@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard'; 
-import CourseView from './pages/CourseView'; 
+import Dashboard from './pages/Dashboard';
+import CourseView from './pages/CourseView';
 
 export default function App() {
   const [view, setView] = useState<'auth' | 'dashboard' | 'course'>('auth');
@@ -14,7 +14,7 @@ export default function App() {
   };
 
   return (
-    <>
+    <div className="antialiased">
       {view === 'auth' && <Login onLogin={handleLogin} />}
       {view === 'dashboard' && (
         <Dashboard 
@@ -29,6 +29,6 @@ export default function App() {
           onBack={() => setView('dashboard')} 
         />
       )}
-    </>
+    </div>
   );
 }
