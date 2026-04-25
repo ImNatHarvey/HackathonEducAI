@@ -1,4 +1,4 @@
-import { studioTools } from "./dashboardData";
+import { studioTools } from "../../mocks/dashboardMockData";
 import type { AIToolName } from "./dashboardTypes";
 
 type AIStudioPanelProps = {

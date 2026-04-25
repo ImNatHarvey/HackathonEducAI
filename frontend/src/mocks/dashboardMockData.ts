@@ -1,4 +1,7 @@
-import type { GeneratedLesson, StudioTool } from "./dashboardTypes";
+import type {
+  GeneratedLesson,
+  StudioTool,
+} from "../components/dashboard/dashboardTypes";
 
 export const generatedLessons: GeneratedLesson[] = [
   {

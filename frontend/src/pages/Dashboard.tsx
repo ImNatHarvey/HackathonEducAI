@@ -5,7 +5,8 @@ import DashboardNavbar from "../components/dashboard/DashboardNavbar";
 import SourcesPanel from "../components/dashboard/SourcesPanel";
 import ChatPanel from "../components/dashboard/ChatPanel";
 import AIStudioPanel from "../components/dashboard/AIStudioPanel";
-import { generatedLessons } from "../components/dashboard/dashboardData";
+import { generatedLessons } from "../mocks/dashboardMockData";
+import { useDashboardActions } from "../hooks/useDashboardActions";
 import type { AIToolName } from "../components/dashboard/dashboardTypes";
 
 interface DashboardProps {
@@ -20,10 +21,14 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeTool, setActiveTool] = useState<AIToolName | null>(null);
 
-  const [isChatLoading, setIsChatLoading] = useState(false);
-  const [chatError, setChatError] = useState("");
-  const [uploadError, setUploadError] = useState("");
-  const [isUploadingSource, setIsUploadingSource] = useState(false);
+  const {
+    isChatLoading,
+    chatError,
+    uploadError,
+    isUploadingSource,
+    handleMockUpload,
+    handleMockSend,
+  } = useDashboardActions({ inputValue });
 
   const filteredLessons = useMemo(() => {
     return generatedLessons.filter((lesson) =>
@@ -32,32 +37,6 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
         .includes(search.toLowerCase()),
     );
   }, [search]);
-
-  const handleMockUpload = () => {
-    setUploadError("");
-    setIsUploadingSource(true);
-
-    window.setTimeout(() => {
-      setIsUploadingSource(false);
-      setUploadError(
-        "Unsupported file type. Please upload PDF, image, text notes, or a YouTube link.",
-      );
-    }, 900);
-  };
-
-  const handleMockSend = () => {
-    if (!inputValue.trim()) return;
-
-    setChatError("");
-    setIsChatLoading(true);
-
-    window.setTimeout(() => {
-      setIsChatLoading(false);
-      setChatError(
-        "Failed to reach n8n webhook. Make sure your workflow is active and running on localhost.",
-      );
-    }, 900);
-  };
 
   return (
     <div className="flex h-dvh max-h-dvh w-full flex-col overflow-hidden bg-aura-bg text-aura-text">
