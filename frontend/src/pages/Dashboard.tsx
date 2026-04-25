@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react";
 import SettingsModal from "../components/settings/SettingsModal";
 import AIToolModal from "../components/ai-studio/AIToolModal";
+import EmptyState from "../components/states/EmptyState";
+import ErrorState from "../components/states/ErrorState";
+import LoadingState from "../components/states/LoadingState";
+import { currentUser } from "../components/user/userMock";
 
 interface DashboardProps {
   topic: string;
@@ -128,6 +132,11 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeTool, setActiveTool] = useState<AIToolName | null>(null);
 
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [chatError, setChatError] = useState("");
+  const [uploadError, setUploadError] = useState("");
+  const [isUploadingSource, setIsUploadingSource] = useState(false);
+
   const filteredLessons = useMemo(() => {
     return generatedLessons.filter((lesson) =>
       `${lesson.title} ${lesson.subtitle}`
@@ -135,6 +144,32 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
         .includes(search.toLowerCase()),
     );
   }, [search]);
+
+  const handleMockUpload = () => {
+    setUploadError("");
+    setIsUploadingSource(true);
+
+    window.setTimeout(() => {
+      setIsUploadingSource(false);
+      setUploadError(
+        "Unsupported file type. Please upload PDF, image, text notes, or a YouTube link.",
+      );
+    }, 900);
+  };
+
+  const handleMockSend = () => {
+    if (!inputValue.trim()) return;
+
+    setChatError("");
+    setIsChatLoading(true);
+
+    window.setTimeout(() => {
+      setIsChatLoading(false);
+      setChatError(
+        "Failed to reach n8n webhook. Make sure your workflow is active and running on localhost.",
+      );
+    }, 900);
+  };
 
   return (
     <div className="flex h-dvh max-h-dvh w-full flex-col overflow-hidden bg-aura-bg text-aura-text">
@@ -160,19 +195,21 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
           <div className="flex min-w-[190px] items-center justify-between gap-3 rounded-2xl border border-aura-border bg-aura-panel px-3.5 py-2 shadow-[0_12px_30px_rgba(0,0,0,0.22)]">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-aura-gold to-aura-orange text-sm font-black text-aura-bg shadow-[0_0_22px_rgba(250,204,21,0.18)]">
-                JD
+                {currentUser.initials}
               </div>
 
               <div className="leading-tight">
-                <p className="text-sm font-black text-aura-text">John Doe</p>
+                <p className="text-sm font-black text-aura-text">
+                  {currentUser.name}
+                </p>
                 <p className="mt-0.5 text-[10px] font-semibold text-aura-muted">
-                  Aura Farmer
+                  {currentUser.title}
                 </p>
               </div>
             </div>
 
             <div className="hidden rounded-full border border-aura-gold/25 bg-aura-gold/10 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-aura-gold 2xl:block">
-              Lv. 1
+              Lv. {currentUser.level}
             </div>
           </div>
 
@@ -237,8 +274,13 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
         {/* LEFT PANEL */}
         <aside className="flex min-h-0 min-w-0 flex-col border-r border-aura-border bg-aura-panel/95">
           <div className="shrink-0 border-b border-aura-border p-4">
-            <button className="w-full rounded-2xl bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold px-4 py-3 text-sm font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(34,211,238,0.22)]">
-              + Add Sources
+            <button
+              type="button"
+              onClick={handleMockUpload}
+              disabled={isUploadingSource}
+              className="w-full rounded-2xl bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold px-4 py-3 text-sm font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(34,211,238,0.22)] disabled:opacity-60"
+            >
+              {isUploadingSource ? "Uploading source..." : "+ Add Sources"}
             </button>
 
             <div className="mt-4 rounded-2xl border border-dashed border-aura-border bg-aura-bg-soft/70 p-4 text-center transition hover:border-aura-cyan/70 hover:bg-aura-cyan/5">
@@ -254,6 +296,26 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
                 PDFs, images, notes, or YouTube links.
               </p>
             </div>
+
+            {isUploadingSource && (
+              <div className="mt-4">
+                <LoadingState
+                  title="Uploading source..."
+                  description="Study Aura is preparing your material for parsing."
+                />
+              </div>
+            )}
+
+            {uploadError && (
+              <div className="mt-4">
+                <ErrorState
+                  title="Upload failed"
+                  description={uploadError}
+                  actionLabel="Try upload again"
+                  onRetry={handleMockUpload}
+                />
+              </div>
+            )}
           </div>
 
           <div className="shrink-0 border-b border-aura-border p-4">
@@ -271,39 +333,47 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
 
           {/* MODULES SCROLL AREA */}
           <div className="aura-scrollbar min-h-0 flex-1 overflow-y-scroll p-4">
-            <div className="grid grid-cols-2 gap-3 pb-4">
-              {filteredLessons.map((lesson) => (
-                <button
-                  key={lesson.title}
-                  onClick={() => onNavigate(lesson.title)}
-                  className="group min-h-[140px] rounded-2xl border border-aura-border bg-aura-card p-3 text-left transition hover:-translate-y-1 hover:border-aura-cyan/60 hover:bg-aura-panel-2"
-                >
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <span className="rounded-full bg-aura-primary/15 px-2 py-1 text-[9px] font-black text-aura-primary-soft">
-                      MODULE
-                    </span>
-                    <span className="text-[10px] font-black text-aura-gold">
-                      {lesson.progress}%
-                    </span>
-                  </div>
+            {filteredLessons.length === 0 ? (
+              <EmptyState
+                icon="📚"
+                title="No modules found"
+                description="Try another keyword or add a new source to generate lessons."
+              />
+            ) : (
+              <div className="grid grid-cols-2 gap-3 pb-4">
+                {filteredLessons.map((lesson) => (
+                  <button
+                    key={lesson.title}
+                    onClick={() => onNavigate(lesson.title)}
+                    className="group min-h-[140px] rounded-2xl border border-aura-border bg-aura-card p-3 text-left transition hover:-translate-y-1 hover:border-aura-cyan/60 hover:bg-aura-panel-2"
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <span className="rounded-full bg-aura-primary/15 px-2 py-1 text-[9px] font-black text-aura-primary-soft">
+                        MODULE
+                      </span>
+                      <span className="text-[10px] font-black text-aura-gold">
+                        {lesson.progress}%
+                      </span>
+                    </div>
 
-                  <h3 className="line-clamp-2 text-[13px] font-black leading-5 text-aura-text">
-                    {lesson.title}
-                  </h3>
+                    <h3 className="line-clamp-2 text-[13px] font-black leading-5 text-aura-text">
+                      {lesson.title}
+                    </h3>
 
-                  <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-aura-muted">
-                    {lesson.subtitle}
-                  </p>
+                    <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-aura-muted">
+                      {lesson.subtitle}
+                    </p>
 
-                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-aura-bg">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-aura-primary to-aura-cyan"
-                      style={{ width: `${lesson.progress}%` }}
-                    />
-                  </div>
-                </button>
-              ))}
-            </div>
+                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-aura-bg">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-aura-primary to-aura-cyan"
+                        style={{ width: `${lesson.progress}%` }}
+                      />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </aside>
 
@@ -321,7 +391,7 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
               </div>
 
               <div className="rounded-full border border-aura-gold/30 bg-aura-gold/10 px-4 py-2 text-xs font-black text-aura-gold">
-                🏆 Aura Farmer
+                🏆 {currentUser.title}
               </div>
             </div>
           </section>
@@ -378,6 +448,22 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
                   </div>
                 </div>
               </div>
+
+              {isChatLoading && (
+                <LoadingState
+                  title="Study Aura is thinking..."
+                  description="Your question is being prepared for the AI workflow."
+                />
+              )}
+
+              {chatError && (
+                <ErrorState
+                  title="n8n request failed"
+                  description={chatError}
+                  actionLabel="Retry message"
+                  onRetry={handleMockSend}
+                />
+              )}
             </div>
           </section>
 
@@ -392,10 +478,12 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
               />
 
               <button
-                disabled={!inputValue.trim()}
+                type="button"
+                onClick={handleMockSend}
+                disabled={!inputValue.trim() || isChatLoading}
                 className="rounded-2xl bg-gradient-to-r from-aura-primary to-aura-cyan px-5 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 disabled:opacity-40"
               >
-                Send
+                {isChatLoading ? "Thinking..." : "Send"}
               </button>
             </div>
           </footer>
