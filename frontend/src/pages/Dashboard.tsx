@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import SettingsModal from "../components/settings/SettingsModal.tsx";
+import SettingsModal from "../components/settings/SettingsModal";
+import AIToolModal from "../components/ai-studio/AIToolModal";
 
 interface DashboardProps {
   topic: string;
@@ -7,8 +8,10 @@ interface DashboardProps {
   onLogout: () => void;
 }
 
+type AIToolName = "Audio" | "Slides" | "Mind Map" | "Cards" | "Tables" | "Quiz";
+
 type StudioTool = {
-  name: string;
+  name: AIToolName;
   label: string;
   icon: string;
   color: string;
@@ -123,6 +126,7 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
   const [inputValue, setInputValue] = useState("");
   const [search, setSearch] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeTool, setActiveTool] = useState<AIToolName | null>(null);
 
   const filteredLessons = useMemo(() => {
     return generatedLessons.filter((lesson) =>
@@ -412,6 +416,8 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
             {studioTools.map((tool) => (
               <button
                 key={tool.name}
+                type="button"
+                onClick={() => setActiveTool(tool.name)}
                 className={`group aura-orb min-h-[135px] rounded-2xl border bg-gradient-to-br ${tool.color} p-4 text-left transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(124,58,237,0.18)]`}
               >
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-white/8 text-xl transition group-hover:scale-110">
@@ -439,6 +445,8 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
       />
+
+      <AIToolModal activeTool={activeTool} onClose={() => setActiveTool(null)} />
     </div>
   );
 };
