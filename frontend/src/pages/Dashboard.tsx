@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import SettingsModal from "../components/settings/SettingsModal.tsx";
 
 interface DashboardProps {
   topic: string;
@@ -121,6 +122,7 @@ const studioTools: StudioTool[] = [
 const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
   const [inputValue, setInputValue] = useState("");
   const [search, setSearch] = useState("");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const filteredLessons = useMemo(() => {
     return generatedLessons.filter((lesson) =>
@@ -150,7 +152,6 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
         </div>
 
         <div className="flex items-center gap-3">
-
           {/* PROFILE TAB */}
           <div className="flex min-w-[190px] items-center justify-between gap-3 rounded-2xl border border-aura-border bg-aura-panel px-3.5 py-2 shadow-[0_12px_30px_rgba(0,0,0,0.22)]">
             <div className="flex items-center gap-3">
@@ -176,6 +177,7 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
             type="button"
             title="Settings"
             aria-label="Settings"
+            onClick={() => setIsSettingsOpen(true)}
             className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-aura-border bg-aura-panel text-aura-muted transition hover:-translate-y-0.5 hover:border-aura-cyan/60 hover:bg-aura-cyan/10 hover:text-aura-cyan"
           >
             <svg
@@ -432,6 +434,11 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
           </div>
         </aside>
       </div>
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
   );
 };
