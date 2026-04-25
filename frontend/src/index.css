@@ -1,1 +1,89 @@
 @import "tailwindcss";
+
+@theme {
+  --color-app-black: #050505;
+  --color-app-ink: #090909;
+  --color-app-panel: #101010;
+  --color-app-panel-soft: #161616;
+  --color-app-elevated: #1c1a14;
+  --color-app-border: #2b2618;
+  --color-app-border-soft: #1f1d16;
+
+  --color-gold: #f7c948;
+  --color-gold-soft: #ffd76a;
+  --color-gold-muted: #a8832f;
+  --color-gold-deep: #6f4f12;
+
+  --color-text-main: #f8f5ea;
+  --color-text-soft: #d8cfb6;
+  --color-text-muted: #9f977f;
+  --color-text-dim: #6f6857;
+
+  --color-tool-audio: #f7c948;
+  --color-tool-slides: #f59e0b;
+  --color-tool-mind: #22d3ee;
+  --color-tool-cards: #a78bfa;
+  --color-tool-table: #34d399;
+  --color-tool-quiz: #fb7185;
+}
+
+:root {
+  color: var(--color-text-main);
+  background: var(--color-app-black);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(247, 201, 72, 0.12), transparent 28rem),
+    radial-gradient(circle at bottom right, rgba(247, 201, 72, 0.08), transparent 30rem),
+    var(--color-app-black);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.premium-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(247, 201, 72, 0.45) rgba(255, 255, 255, 0.04);
+}
+
+.premium-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.premium-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+}
+
+.premium-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(var(--color-gold), var(--color-gold-muted));
+  border-radius: 999px;
+}
+
+.gold-sheen {
+  background: linear-gradient(135deg, #fff3b0 0%, #f7c948 35%, #9f6b16 100%);
+}
+
+.glass-panel {
+  background: linear-gradient(180deg, rgba(28, 26, 20, 0.96), rgba(10, 10, 10, 0.96));
+  border: 1px solid var(--color-app-border);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+}
