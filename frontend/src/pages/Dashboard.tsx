@@ -26,8 +26,8 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
     chatError,
     uploadError,
     isUploadingSource,
-    handleMockUpload,
-    handleMockSend,
+    handleUploadSource,
+    handleSendMessage,
   } = useDashboardActions({ inputValue });
 
   const filteredLessons = useMemo(() => {
@@ -53,7 +53,7 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
           onNavigate={onNavigate}
           isUploadingSource={isUploadingSource}
           uploadError={uploadError}
-          onUpload={handleMockUpload}
+          onUpload={handleUploadSource}
         />
 
         <ChatPanel
@@ -62,7 +62,7 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
           onInputChange={setInputValue}
           isChatLoading={isChatLoading}
           chatError={chatError}
-          onSend={handleMockSend}
+          onSend={handleSendMessage}
         />
 
         <AIStudioPanel onOpenTool={setActiveTool} />

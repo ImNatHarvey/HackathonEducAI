@@ -12,7 +12,7 @@ export const useDashboardActions = ({
   const [uploadError, setUploadError] = useState("");
   const [isUploadingSource, setIsUploadingSource] = useState(false);
 
-  const handleMockUpload = () => {
+  const handleUploadSource = () => {
     setUploadError("");
     setIsUploadingSource(true);
 
@@ -24,7 +24,7 @@ export const useDashboardActions = ({
     }, 900);
   };
 
-  const handleMockSend = () => {
+  const handleSendMessage = () => {
     if (!inputValue.trim()) return;
 
     setChatError("");
@@ -43,7 +43,7 @@ export const useDashboardActions = ({
     chatError,
     uploadError,
     isUploadingSource,
-    handleMockUpload,
-    handleMockSend,
+    handleUploadSource,
+    handleSendMessage,
   };
 };
