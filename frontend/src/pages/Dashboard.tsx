@@ -22,13 +22,18 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
   const [activeTool, setActiveTool] = useState<AIToolName | null>(null);
 
   const {
+    messages,
     isChatLoading,
     chatError,
     uploadError,
     isUploadingSource,
     handleUploadSource,
     handleSendMessage,
-  } = useDashboardActions({ inputValue });
+  } = useDashboardActions({
+    inputValue,
+    topic,
+    onInputClear: () => setInputValue(""),
+  });
 
   const filteredLessons = useMemo(() => {
     return generatedLessons.filter((lesson) =>
@@ -60,6 +65,7 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
           topic={topic}
           inputValue={inputValue}
           onInputChange={setInputValue}
+          messages={messages}
           isChatLoading={isChatLoading}
           chatError={chatError}
           onSend={handleSendMessage}

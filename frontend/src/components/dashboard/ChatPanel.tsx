@@ -2,10 +2,17 @@ import ErrorState from "../states/ErrorState";
 import LoadingState from "../states/LoadingState";
 import { currentUser } from "../user/userMock";
 
+type ChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+};
+
 type ChatPanelProps = {
   topic: string;
   inputValue: string;
   onInputChange: (value: string) => void;
+  messages: ChatMessage[];
   isChatLoading: boolean;
   chatError: string;
   onSend: () => void;
@@ -15,10 +22,18 @@ const ChatPanel = ({
   topic,
   inputValue,
   onInputChange,
+  messages,
   isChatLoading,
   chatError,
   onSend,
 }: ChatPanelProps) => {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      onSend();
+    }
+  };
+
   return (
     <main className="flex min-h-0 min-w-0 flex-col bg-aura-bg">
       <section className="shrink-0 border-b border-aura-border bg-aura-bg-soft/70 px-6 py-4">
@@ -87,6 +102,32 @@ const ChatPanel = ({
             </div>
           </div>
 
+          {messages.length > 0 && (
+            <div className="space-y-3">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${
+                    message.role === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`max-w-[78%] rounded-2xl border px-5 py-4 text-sm leading-6 shadow-aura-soft ${
+                      message.role === "user"
+                        ? "border-aura-cyan/30 bg-aura-cyan/10 text-aura-text"
+                        : "border-aura-border bg-aura-panel text-aura-muted"
+                    }`}
+                  >
+                    <p className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-aura-dim">
+                      {message.role === "user" ? "You" : "Study Aura"}
+                    </p>
+                    <p>{message.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {isChatLoading && (
             <LoadingState
               title="Study Aura is thinking..."
@@ -110,6 +151,7 @@ const ChatPanel = ({
           <input
             value={inputValue}
             onChange={(event) => onInputChange(event.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Ask Study Aura, paste a YouTube link, or request a quiz..."
             className="min-w-0 flex-1 bg-transparent px-4 py-3 text-sm text-aura-text outline-none placeholder:text-aura-dim"
           />
