@@ -1,0 +1,234 @@
+{
+  "name": "Study Aura - Quiz Pipeline Gemini with Fallback",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "study-aura-quiz",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "quiz-webhook",
+      "name": "Quiz Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [120, 260],
+      "webhookId": "study-aura-quiz"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "quiz-prompt",
+              "name": "prompt",
+              "value": "={{\"You are Study Aura, an educational quiz generator. Create exactly \" + ($json.body.questionCount || 10) + \" multiple-choice questions for the topic: \" + ($json.body.topic || \"General Study\") + \". Difficulty: \" + ($json.body.difficulty || \"easy\") + \". Return ONLY valid JSON. No markdown. No code fences. Format: {\\\"title\\\": string, \\\"questions\\\": [{\\\"question\\\": string, \\\"choices\\\": string[], \\\"answer\\\": string, \\\"explanation\\\": string}]}. Each question must have exactly 4 choices. The answer must exactly match one of the choices.\"}}",
+              "type": "string"
+            },
+            {
+              "id": "topic",
+              "name": "topic",
+              "value": "={{$json.body.topic || \"General Study\"}}",
+              "type": "string"
+            },
+            {
+              "id": "difficulty",
+              "name": "difficulty",
+              "value": "={{$json.body.difficulty || \"easy\"}}",
+              "type": "string"
+            },
+            {
+              "id": "question-count",
+              "name": "questionCount",
+              "value": "={{$json.body.questionCount || 10}}",
+              "type": "number"
+            },
+            {
+              "id": "user-id",
+              "name": "userId",
+              "value": "={{$json.body.userId || \"demo-user\"}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-quiz-prompt",
+      "name": "Prepare Quiz Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [400, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "YOUR_GEMINI_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contents[0][parts][0][text]",
+              "value": "={{$json.prompt}}"
+            },
+            {
+              "name": "generationConfig[temperature]",
+              "value": "0.35"
+            },
+            {
+              "name": "generationConfig[maxOutputTokens]",
+              "value": "1800"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ask-gemini-quiz",
+      "name": "Ask Gemini Quiz",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 260],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "quiz-text-exists",
+              "leftValue": "={{$json.candidates[0].content.parts[0].text}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "quiz-succeeded",
+      "name": "Quiz Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [980, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.candidates?.[0]?.content?.parts?.[0]?.text ?? \"\";\n\nconst cleaned = raw\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet quiz;\n\ntry {\n  quiz = JSON.parse(cleaned);\n} catch (error) {\n  quiz = {\n    title: \"Generated Quiz\",\n    questions: [\n      {\n        question: \"Study Aura generated a quiz response, but it could not be parsed. What should you do?\",\n        choices: [\"Try again\", \"Close the app\", \"Delete the workflow\", \"Ignore the topic\"],\n        answer: \"Try again\",\n        explanation: \"The AI response was not valid JSON, so retrying usually fixes the generated format.\"\n      }\n    ]\n  };\n}\n\nreturn [\n  {\n    json: {\n      quiz,\n      fallback: false\n    }\n  }\n];"
+      },
+      "id": "clean-quiz-json",
+      "name": "Clean Quiz JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1260, 140]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"quiz\": $json.quiz,\n    \"fallback\": $json.fallback\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-quiz-response",
+      "name": "Return Quiz Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, 140]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"quiz\": {\n    \"title\": \"Demo Fallback Quiz\",\n    \"questions\": [\n      {\n        \"question\": \"What is the best first step when studying a new topic?\",\n        \"choices\": [\"Memorize everything\", \"Break it into smaller parts\", \"Skip examples\", \"Avoid review\"],\n        \"answer\": \"Break it into smaller parts\",\n        \"explanation\": \"Breaking a topic into smaller parts makes it easier to understand and remember.\"\n      },\n      {\n        \"question\": \"What does Study Aura help generate?\",\n        \"choices\": [\"Study tools\", \"Illegal content\", \"Random passwords\", \"System files\"],\n        \"answer\": \"Study tools\",\n        \"explanation\": \"Study Aura generates learning tools like quizzes, flashcards, tables, summaries, and study content.\"\n      }\n    ]\n  },\n  \"fallback\": true\n}",
+        "options": {}
+      },
+      "id": "return-quiz-fallback",
+      "name": "Return Quiz Fallback",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1260, 380]
+    }
+  ],
+  "connections": {
+    "Quiz Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Quiz Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Quiz Prompt": {
+      "main": [
+        [
+          {
+            "node": "Ask Gemini Quiz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask Gemini Quiz": {
+      "main": [
+        [
+          {
+            "node": "Quiz Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Clean Quiz JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Quiz Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Quiz JSON": {
+      "main": [
+        [
+          {
+            "node": "Return Quiz Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

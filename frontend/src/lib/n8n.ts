@@ -21,6 +21,30 @@ export type N8nUploadResponse = {
   message?: string;
 };
 
+export type QuizDifficulty = "easy" | "medium" | "hard";
+
+export type N8nQuizPayload = {
+  topic: string;
+  difficulty: QuizDifficulty;
+  questionCount: number;
+  userId?: string;
+};
+
+export type QuizQuestion = {
+  question: string;
+  choices: string[];
+  answer: string;
+  explanation: string;
+};
+
+export type N8nQuizResponse = {
+  quiz: {
+    title: string;
+    questions: QuizQuestion[];
+  };
+  fallback?: boolean;
+};
+
 const getRequiredEnv = (key: string) => {
   const value = import.meta.env[key];
 
@@ -64,4 +88,12 @@ export const uploadSourceToN8n = async (
   const url = getRequiredEnv("VITE_N8N_UPLOAD_WEBHOOK_URL");
 
   return postToWebhook<N8nUploadResponse>(url, payload);
+};
+
+export const generateQuizWithN8n = async (
+  payload: N8nQuizPayload,
+): Promise<N8nQuizResponse> => {
+  const url = getRequiredEnv("VITE_N8N_QUIZ_WEBHOOK_URL");
+
+  return postToWebhook<N8nQuizResponse>(url, payload);
 };
