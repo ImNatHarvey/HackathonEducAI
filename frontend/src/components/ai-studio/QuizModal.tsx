@@ -49,11 +49,6 @@ const QuizModal = () => {
   }, [difficulty]);
 
   const handleGenerateQuiz = async () => {
-    console.log("Generate quiz clicked", {
-      difficulty,
-      questionCount: selectedDifficulty.questionCount,
-    });
-
     setError("");
     setFallback(false);
     setIsGenerating(true);
@@ -66,15 +61,11 @@ const QuizModal = () => {
         userId: currentUser.id,
       });
 
-      console.log("Quiz response from n8n:", response);
-
       setQuizTitle(response.quiz.title);
       setQuestions(response.quiz.questions);
       setFallback(Boolean(response.fallback));
       setIsResultOpen(true);
     } catch (error) {
-      console.error("Quiz generation failed:", error);
-
       setError(
         error instanceof Error ? error.message : "Failed to generate quiz.",
       );
@@ -233,80 +224,84 @@ const QuizModal = () => {
       )}
 
       {isResultOpen && questions.length > 0 && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-6 backdrop-blur-sm">
-          <div className="aura-scrollbar max-h-[86vh] w-full max-w-5xl overflow-y-auto rounded-[2rem] border border-aura-border bg-aura-panel p-6 shadow-[0_30px_90px_rgba(0,0,0,0.55)]">
-            <div className="sticky top-0 z-10 mb-5 flex items-start justify-between gap-4 border-b border-aura-border bg-aura-panel/95 pb-4 backdrop-blur">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
-                  Generated Quiz
-                </p>
-                <h4 className="mt-1 text-2xl font-black text-aura-text">
-                  {quizTitle || "Practice Quiz"}
-                </h4>
-                <p className="mt-1 text-sm text-aura-muted">
-                  {selectedDifficulty.label} • {questions.length} questions
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleExportPdf}
-                  className="rounded-2xl border border-aura-gold/40 bg-aura-gold/10 px-4 py-2 text-sm font-black text-aura-gold transition hover:-translate-y-0.5"
-                >
-                  Export PDF
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsResultOpen(false)}
-                  className="rounded-2xl border border-aura-border bg-aura-bg-soft px-4 py-2 text-sm font-black text-aura-muted transition hover:border-aura-pink/60 hover:text-aura-pink"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-
-            {fallback && (
-              <div className="mb-5 rounded-2xl border border-aura-gold/30 bg-aura-gold/10 p-4 text-sm leading-6 text-aura-gold">
-                Demo fallback mode is active. Gemini may have reached its quota,
-                so Study Aura returned a safe fallback quiz.
-              </div>
-            )}
-
-            <div className="space-y-4">
-              {questions.map((question, index) => (
-                <div
-                  key={`${question.question}-${index}`}
-                  className="rounded-2xl border border-aura-border bg-aura-bg-soft p-5"
-                >
-                  <p className="font-black leading-7 text-aura-text">
-                    {index + 1}. {question.question}
-                  </p>
-
-                  <div className="mt-4 grid gap-2 md:grid-cols-2">
-                    {question.choices.map((choice) => (
-                      <div
-                        key={choice}
-                        className={`rounded-xl border px-3 py-2 text-sm ${
-                          choice === question.answer
-                            ? "border-aura-green/40 bg-aura-green/10 text-aura-green"
-                            : "border-aura-border bg-aura-panel text-aura-muted"
-                        }`}
-                      >
-                        {choice}
-                      </div>
-                    ))}
+        <div className="fixed inset-0 z-[80] overflow-y-auto bg-black/75 px-6 py-8 backdrop-blur-sm">
+          <div className="mx-auto flex min-h-full w-full max-w-5xl items-start justify-center">
+            <div className="w-full overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel shadow-[0_30px_90px_rgba(0,0,0,0.55)]">
+              <div className="sticky top-0 z-10 border-b border-aura-border bg-aura-panel/95 px-6 py-5 backdrop-blur">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
+                      Generated Quiz
+                    </p>
+                    <h4 className="mt-1 text-2xl font-black text-aura-text">
+                      {quizTitle || "Practice Quiz"}
+                    </h4>
+                    <p className="mt-1 text-sm text-aura-muted">
+                      {selectedDifficulty.label} • {questions.length} questions
+                    </p>
                   </div>
 
-                  <p className="mt-4 text-sm leading-6 text-aura-muted">
-                    <span className="font-black text-aura-cyan">
-                      Explanation:
-                    </span>{" "}
-                    {question.explanation}
-                  </p>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleExportPdf}
+                      className="rounded-2xl border border-aura-gold/40 bg-aura-gold/10 px-4 py-2 text-sm font-black text-aura-gold transition hover:-translate-y-0.5"
+                    >
+                      Export PDF
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsResultOpen(false)}
+                      className="rounded-2xl border border-aura-border bg-aura-bg-soft px-4 py-2 text-sm font-black text-aura-muted transition hover:border-aura-pink/60 hover:text-aura-pink"
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
-              ))}
+              </div>
+
+              <div className="space-y-4 p-6">
+                {fallback && (
+                  <div className="rounded-2xl border border-aura-gold/30 bg-aura-gold/10 p-4 text-sm leading-6 text-aura-gold">
+                    Demo fallback mode is active. Gemini may have reached its
+                    quota, so Study Aura returned a safe fallback quiz.
+                  </div>
+                )}
+
+                {questions.map((question, index) => (
+                  <div
+                    key={`${question.question}-${index}`}
+                    className="rounded-2xl border border-aura-border bg-aura-bg-soft p-5"
+                  >
+                    <p className="font-black leading-7 text-aura-text">
+                      {index + 1}. {question.question}
+                    </p>
+
+                    <div className="mt-4 grid gap-2 md:grid-cols-2">
+                      {question.choices.map((choice) => (
+                        <div
+                          key={choice}
+                          className={`rounded-xl border px-3 py-2 text-sm ${
+                            choice === question.answer
+                              ? "border-aura-green/40 bg-aura-green/10 text-aura-green"
+                              : "border-aura-border bg-aura-panel text-aura-muted"
+                          }`}
+                        >
+                          {choice}
+                        </div>
+                      ))}
+                    </div>
+
+                    <p className="mt-4 text-sm leading-6 text-aura-muted">
+                      <span className="font-black text-aura-cyan">
+                        Explanation:
+                      </span>{" "}
+                      {question.explanation}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
