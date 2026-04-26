@@ -1,29 +1,26 @@
 {
-  "name": "Study Aura - Chat Pipeline Gemini with Fallback",
+  "name": "Study Aura - Chat Pipeline AI Agent",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "study-aura-chat",
+        "path": "study-aura-chat-agent",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "4b4d6622-f0a4-4711-9eaf-1d9ec36dc92a",
-      "name": "Chat Webhook",
+      "id": "chat-agent-webhook",
+      "name": "Chat Agent Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [
-        -1488,
-        192
-      ],
-      "webhookId": "study-aura-chat"
+      "position": [120, 260],
+      "webhookId": "study-aura-chat-agent"
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
             {
-              "id": "system-prompt",
+              "id": "agent-prompt",
               "name": "prompt",
               "value": "={{\"You are Study Aura, an AI-powered educational tutor for students. Answer clearly, safely, and helpfully. Keep your answer concise but useful. If the user asks for illegal, harmful, or sensitive content, refuse briefly and redirect to safe learning. Current topic: \" + ($json.body.topic || \"General Study\") + \"\\n\\nUser message: \" + ($json.body.message || \"\")}}",
               "type": "string"
@@ -35,7 +32,7 @@
               "type": "string"
             },
             {
-              "id": "user-message",
+              "id": "message",
               "name": "message",
               "value": "={{$json.body.message || \"\"}}",
               "type": "string"
@@ -50,56 +47,46 @@
         },
         "options": {}
       },
-      "id": "cc204ca8-61c3-4ea4-8789-033ba5c2a8be",
-      "name": "Prepare Gemini Prompt",
+      "id": "prepare-agent-prompt",
+      "name": "Prepare Agent Prompt",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [
-        -1216,
-        192
-      ]
+      "position": [400, 260]
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "key",
-              "value": "YOUR_GEMINI_API_KEY"
-            }
-          ]
-        },
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "contents[0][parts][0][text]",
-              "value": "={{$json.prompt}}"
-            },
-            {
-              "name": "generationConfig[temperature]",
-              "value": "0.7"
-            },
-            {
-              "name": "generationConfig[maxOutputTokens]",
-              "value": "250"
-            }
-          ]
-        },
-        "options": {}
+        "promptType": "define",
+        "text": "={{$json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura, a safe educational AI tutor. Keep answers concise, student-friendly, and focused on learning."
+        }
       },
-      "id": "d34bb8bb-6ead-4353-947f-8a1f76b95139",
-      "name": "Ask Gemini",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        -928,
-        192
-      ],
+      "id": "study-aura-ai-agent",
+      "name": "Study Aura AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [700, 260],
       "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {
+          "temperature": 0.5,
+          "maxOutputTokens": 250
+        }
+      },
+      "id": "gemini-chat-model",
+      "name": "Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [700, 520],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Study Aura Gemini Key"
+        }
+      }
     },
     {
       "parameters": {
@@ -112,8 +99,8 @@
           },
           "conditions": [
             {
-              "id": "gemini-text-exists",
-              "leftValue": "={{$json.candidates[0].content.parts[0].text}}",
+              "id": "agent-output-exists",
+              "leftValue": "={{$json.output}}",
               "rightValue": "",
               "operator": {
                 "type": "string",
@@ -126,93 +113,94 @@
         },
         "options": {}
       },
-      "id": "03aa2dea-9fce-4bce-9ddd-bcf0d7545f3e",
-      "name": "Gemini Succeeded?",
+      "id": "agent-succeeded",
+      "name": "Agent Succeeded?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [
-        -656,
-        192
-      ]
+      "position": [1020, 260]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{\n  {\n    \"answer\": $json.candidates[0].content.parts[0].text,\n    \"sources\": []\n  }\n}}",
+        "responseBody": "={{\n  {\n    \"answer\": $json.output,\n    \"sources\": []\n  }\n}}",
         "options": {}
       },
-      "id": "88c596ac-e510-4ddd-8742-2e87f17e4e77",
-      "name": "Return Gemini Response",
+      "id": "return-agent-response",
+      "name": "Return Agent Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [
-        -368,
-        96
-      ]
+      "position": [1300, 160]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "{\n  \"answer\": \"Study Aura is currently in demo fallback mode because the AI request limit was reached. I can still help you study: summarize the topic in 3 short points, list key terms, and quiz yourself with 5 recall questions.\",\n  \"sources\": []\n}",
+        "responseBody": "{\n  \"answer\": \"Study Aura is currently in demo fallback mode. I can still help you study: summarize the topic in 3 short points, list key terms, then quiz yourself with 5 recall questions.\",\n  \"sources\": []\n}",
         "options": {}
       },
-      "id": "b6e67eb6-5e0f-4cec-8bdc-e5c431cfed3f",
-      "name": "Return Fallback Response",
+      "id": "return-agent-fallback",
+      "name": "Return Agent Fallback",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [
-        -368,
-        288
-      ]
+      "position": [1300, 360]
     }
   ],
-  "pinData": {},
   "connections": {
-    "Chat Webhook": {
+    "Chat Agent Webhook": {
       "main": [
         [
           {
-            "node": "Prepare Gemini Prompt",
+            "node": "Prepare Agent Prompt",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Prepare Gemini Prompt": {
+    "Prepare Agent Prompt": {
       "main": [
         [
           {
-            "node": "Ask Gemini",
+            "node": "Study Aura AI Agent",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Ask Gemini": {
+    "Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Study Aura AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Study Aura AI Agent": {
       "main": [
         [
           {
-            "node": "Gemini Succeeded?",
+            "node": "Agent Succeeded?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Gemini Succeeded?": {
+    "Agent Succeeded?": {
       "main": [
         [
           {
-            "node": "Return Gemini Response",
+            "node": "Return Agent Response",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Return Fallback Response",
+            "node": "Return Agent Fallback",
             "type": "main",
             "index": 0
           }
@@ -220,15 +208,7 @@
       ]
     }
   },
-  "active": true,
   "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
-  },
-  "versionId": "70d4d789-8b67-4bc5-b3d7-c99d6ef86c5f",
-  "meta": {
-    "instanceId": "f764945c1c84e3150fef3e723867048d510331bfb76c2fd5193ecd91ac2a5a2e"
-  },
-  "id": "vReXPRrxuvAr8oi6",
-  "tags": []
+    "executionOrder": "v1"
+  }
 }
