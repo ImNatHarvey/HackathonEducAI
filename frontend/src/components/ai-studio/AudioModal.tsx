@@ -9,6 +9,10 @@ import type {
   AudioSegment,
 } from "../../lib/n8n";
 
+type Props = {
+  topic: string;
+};
+
 const styleOptions: {
   label: string;
   value: AudioOverviewStyle;
@@ -53,7 +57,7 @@ const lengthOptions: {
   },
 ];
 
-const AudioModal = () => {
+const AudioModal = ({ topic }: Props) => {
   const [style, setStyle] = useState<AudioOverviewStyle>("podcast");
   const [length, setLength] = useState<AudioOverviewLength>("standard");
   const [title, setTitle] = useState("");
@@ -66,12 +70,15 @@ const AudioModal = () => {
   const [error, setError] = useState("");
 
   const selectedStyle = useMemo(() => {
-    return styleOptions.find((option) => option.value === style) ?? styleOptions[0];
+    return (
+      styleOptions.find((option) => option.value === style) ?? styleOptions[0]
+    );
   }, [style]);
 
   const selectedLength = useMemo(() => {
     return (
-      lengthOptions.find((option) => option.value === length) ?? lengthOptions[0]
+      lengthOptions.find((option) => option.value === length) ??
+      lengthOptions[0]
     );
   }, [length]);
 
@@ -84,7 +91,7 @@ const AudioModal = () => {
 
     try {
       const response = await generateAudioOverviewWithN8n({
-        topic: "Marine Biology 101",
+        topic,
         style,
         length,
         userId: currentUser.id,
@@ -186,8 +193,7 @@ const AudioModal = () => {
               Selected: {selectedStyle.label} • {selectedLength.label}
             </p>
             <p className="mt-1 text-sm text-aura-muted">
-              Study Aura will generate an audio overview script for Marine
-              Biology 101.
+              Study Aura will generate an audio overview script for {topic}.
             </p>
           </div>
 
@@ -197,7 +203,9 @@ const AudioModal = () => {
             disabled={isGenerating}
             className="w-full rounded-2xl bg-gradient-to-r from-aura-primary to-aura-cyan py-3 font-black text-white transition hover:-translate-y-0.5 disabled:opacity-50"
           >
-            {isGenerating ? "Generating Audio Overview..." : "Generate Audio Script"}
+            {isGenerating
+              ? "Generating Audio Overview..."
+              : "Generate Audio Script"}
           </button>
 
           {isGenerating && (
@@ -239,7 +247,7 @@ const AudioModal = () => {
                 {description}
               </p>
               <p className="mt-2 text-sm font-black text-aura-cyan">
-                Estimated duration: {estimatedDuration}
+                Topic: {topic} • Estimated duration: {estimatedDuration}
               </p>
             </div>
 

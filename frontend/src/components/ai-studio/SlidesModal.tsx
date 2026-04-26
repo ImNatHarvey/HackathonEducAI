@@ -5,6 +5,10 @@ import { currentUser } from "../user/userMock";
 import { generateSlidesWithN8n } from "../../lib/n8n";
 import type { SlidesDifficulty, StudySlide } from "../../lib/n8n";
 
+type Props = {
+  topic: string;
+};
+
 const difficultyOptions: {
   label: string;
   value: SlidesDifficulty;
@@ -31,7 +35,7 @@ const difficultyOptions: {
   },
 ];
 
-const SlidesModal = () => {
+const SlidesModal = ({ topic }: Props) => {
   const [difficulty, setDifficulty] = useState<SlidesDifficulty>("easy");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -56,7 +60,7 @@ const SlidesModal = () => {
 
     try {
       const response = await generateSlidesWithN8n({
-        topic: "Marine Biology 101",
+        topic,
         difficulty,
         slideCount: selectedDifficulty.slideCount,
         userId: currentUser.id,
@@ -131,7 +135,7 @@ const SlidesModal = () => {
             </p>
             <p className="mt-1 text-sm text-aura-muted">
               Study Aura will generate {selectedDifficulty.slideCount} slide
-              outlines for Marine Biology 101.
+              outlines for {topic}.
             </p>
           </div>
 
@@ -183,6 +187,9 @@ const SlidesModal = () => {
               </h4>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-aura-muted">
                 {description}
+              </p>
+              <p className="mt-2 text-sm font-black text-aura-cyan">
+                Topic: {topic}
               </p>
             </div>
 

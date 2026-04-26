@@ -5,6 +5,10 @@ import { currentUser } from "../user/userMock";
 import { generateMindMapWithN8n } from "../../lib/n8n";
 import type { MindMapBranch, MindMapDifficulty } from "../../lib/n8n";
 
+type Props = {
+  topic: string;
+};
+
 const difficultyOptions: {
   label: string;
   value: MindMapDifficulty;
@@ -31,7 +35,7 @@ const difficultyOptions: {
   },
 ];
 
-const MindMapModal = () => {
+const MindMapModal = ({ topic }: Props) => {
   const [difficulty, setDifficulty] = useState<MindMapDifficulty>("easy");
   const [title, setTitle] = useState("");
   const [center, setCenter] = useState("");
@@ -57,7 +61,7 @@ const MindMapModal = () => {
 
     try {
       const response = await generateMindMapWithN8n({
-        topic: "Marine Biology 101",
+        topic,
         difficulty,
         branchCount: selectedDifficulty.branchCount,
         userId: currentUser.id,
@@ -134,7 +138,7 @@ const MindMapModal = () => {
             </p>
             <p className="mt-1 text-sm text-aura-muted">
               Study Aura will generate {selectedDifficulty.branchCount} branches
-              for Marine Biology 101.
+              for {topic}.
             </p>
           </div>
 
@@ -186,6 +190,9 @@ const MindMapModal = () => {
               </h4>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-aura-muted">
                 {description}
+              </p>
+              <p className="mt-2 text-sm font-black text-aura-cyan">
+                Topic: {topic}
               </p>
             </div>
 

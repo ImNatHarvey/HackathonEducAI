@@ -10,6 +10,10 @@ import type {
   TableDifficulty,
 } from "../../lib/n8n";
 
+type Props = {
+  topic: string;
+};
+
 const difficultyOptions: {
   label: string;
   value: TableDifficulty;
@@ -63,7 +67,7 @@ const tableTypes: {
   },
 ];
 
-const TablesModal = () => {
+const TablesModal = ({ topic }: Props) => {
   const [difficulty, setDifficulty] = useState<TableDifficulty>("easy");
   const [tableType, setTableType] =
     useState<StudyTableType>("concept_comparison");
@@ -95,7 +99,7 @@ const TablesModal = () => {
 
     try {
       const response = await generateTablesWithN8n({
-        topic: "Marine Biology 101",
+        topic,
         difficulty,
         tableType,
         rowCount: selectedDifficulty.rowCount,
@@ -206,7 +210,7 @@ const TablesModal = () => {
             </p>
             <p className="mt-1 text-sm text-aura-muted">
               Study Aura will generate {selectedDifficulty.rowCount} table rows
-              for Marine Biology 101.
+              for {topic}.
             </p>
           </div>
 
@@ -258,6 +262,9 @@ const TablesModal = () => {
               </h4>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-aura-muted">
                 {description}
+              </p>
+              <p className="mt-2 text-sm font-black text-aura-cyan">
+                Topic: {topic}
               </p>
             </div>
 

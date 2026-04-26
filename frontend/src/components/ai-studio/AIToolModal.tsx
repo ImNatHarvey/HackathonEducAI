@@ -16,26 +16,27 @@ type ToolType =
 
 type Props = {
   activeTool: ToolType;
+  topic: string;
   onClose: () => void;
 };
 
-const AIToolModal = ({ activeTool, onClose }: Props) => {
+const AIToolModal = ({ activeTool, topic, onClose }: Props) => {
   if (!activeTool) return null;
 
   const renderTool = () => {
     switch (activeTool) {
       case "Audio":
-        return <AudioModal />;
+        return <AudioModal topic={topic} />;
       case "Slides":
-        return <SlidesModal />;
+        return <SlidesModal topic={topic} />;
       case "Mind Map":
-        return <MindMapModal />;
+        return <MindMapModal topic={topic} />;
       case "Cards":
-        return <FlashcardsModal />;
+        return <FlashcardsModal topic={topic} />;
       case "Tables":
-        return <TablesModal />;
+        return <TablesModal topic={topic} />;
       case "Quiz":
-        return <QuizModal />;
+        return <QuizModal topic={topic} />;
       default:
         return null;
     }
@@ -45,7 +46,13 @@ const AIToolModal = ({ activeTool, onClose }: Props) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-md">
       <div className="flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel shadow-aura-soft">
         <div className="flex shrink-0 items-center justify-between border-b border-aura-border px-6 py-4">
-          <h2 className="text-lg font-black text-aura-text">{activeTool}</h2>
+          <div>
+            <h2 className="text-lg font-black text-aura-text">{activeTool}</h2>
+            <p className="mt-1 text-xs text-aura-muted">
+              Current topic:{" "}
+              <span className="font-black text-aura-cyan">{topic}</span>
+            </p>
+          </div>
 
           <button
             type="button"

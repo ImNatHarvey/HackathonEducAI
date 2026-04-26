@@ -113,7 +113,11 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
         onClose={() => setIsSettingsOpen(false)}
       />
 
-      <AIToolModal activeTool={activeTool} onClose={() => setActiveTool(null)} />
+      <AIToolModal
+        activeTool={activeTool}
+        topic={topic}
+        onClose={() => setActiveTool(null)}
+      />
 
       <AddSourceModal
         isOpen={isAddSourceOpen}

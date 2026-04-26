@@ -5,6 +5,10 @@ import { currentUser } from "../user/userMock";
 import { generateFlashcardsWithN8n } from "../../lib/n8n";
 import type { FlashcardDifficulty, FlashcardItem } from "../../lib/n8n";
 
+type Props = {
+  topic: string;
+};
+
 const difficultyOptions: {
   label: string;
   value: FlashcardDifficulty;
@@ -39,7 +43,7 @@ const shuffleArray = <T,>(items: T[]) => {
   return [...items].sort(() => Math.random() - 0.5);
 };
 
-const FlashcardsModal = () => {
+const FlashcardsModal = ({ topic }: Props) => {
   const [difficulty, setDifficulty] = useState<FlashcardDifficulty>("easy");
   const [deckTitle, setDeckTitle] = useState("");
   const [cards, setCards] = useState<FlashcardItem[]>([]);
@@ -87,7 +91,7 @@ const FlashcardsModal = () => {
 
     try {
       const response = await generateFlashcardsWithN8n({
-        topic: "Marine Biology 101",
+        topic,
         difficulty,
         cardCount: selectedDifficulty.cardCount,
         userId: currentUser.id,
@@ -208,7 +212,7 @@ const FlashcardsModal = () => {
             </p>
             <p className="mt-1 text-sm text-aura-muted">
               Study Aura will generate {selectedDifficulty.cardCount} flashcards
-              for Marine Biology 101.
+              for {topic}.
             </p>
           </div>
 
@@ -243,8 +247,8 @@ const FlashcardsModal = () => {
 
       {fallback && cards.length > 0 && (
         <div className="rounded-2xl border border-aura-gold/30 bg-aura-gold/10 p-4 text-sm leading-6 text-aura-gold">
-          Demo fallback mode is active. Gemini may have reached its quota, so
-          Study Aura returned a safe flashcard deck.
+          Demo fallback mode is active. Study Aura returned a safe flashcard
+          deck.
         </div>
       )}
 
@@ -259,8 +263,8 @@ const FlashcardsModal = () => {
                 {deckTitle || "Study Aura Flashcards"}
               </h4>
               <p className="mt-1 text-sm text-aura-muted">
-                Card {currentIndex + 1} of {cards.length} • Score {score}/
-                {Object.keys(answeredCards).length}
+                {topic} • Card {currentIndex + 1} of {cards.length} • Score{" "}
+                {score}/{Object.keys(answeredCards).length}
               </p>
             </div>
 

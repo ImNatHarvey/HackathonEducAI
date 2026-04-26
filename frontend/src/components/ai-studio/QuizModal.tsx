@@ -6,6 +6,10 @@ import { generateQuizWithN8n } from "../../lib/n8n";
 import { currentUser } from "../user/userMock";
 import type { QuizDifficulty, QuizQuestion } from "../../lib/n8n";
 
+type Props = {
+  topic: string;
+};
+
 const difficultyOptions: {
   label: string;
   value: QuizDifficulty;
@@ -36,7 +40,7 @@ const shuffleArray = <T,>(items: T[]) => {
   return [...items].sort(() => Math.random() - 0.5);
 };
 
-const QuizModal = () => {
+const QuizModal = ({ topic }: Props) => {
   const [difficulty, setDifficulty] = useState<QuizDifficulty>("easy");
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [quizTitle, setQuizTitle] = useState("");
@@ -59,7 +63,7 @@ const QuizModal = () => {
 
     try {
       const response = await generateQuizWithN8n({
-        topic: "Marine Biology 101",
+        topic,
         difficulty,
         questionCount: selectedDifficulty.questionCount,
         userId: currentUser.id,
@@ -96,7 +100,7 @@ const QuizModal = () => {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.text(
-      `Difficulty: ${selectedDifficulty.label} • Questions: ${questions.length}`,
+      `Topic: ${topic} • Difficulty: ${selectedDifficulty.label} • Questions: ${questions.length}`,
       14,
       y,
     );
@@ -200,7 +204,7 @@ const QuizModal = () => {
         </p>
         <p className="mt-1 text-sm text-aura-muted">
           Study Aura will generate {selectedDifficulty.questionCount} questions
-          for Marine Biology 101.
+          for {topic}.
         </p>
       </div>
 
@@ -245,7 +249,8 @@ const QuizModal = () => {
                       {quizTitle || "Practice Quiz"}
                     </h4>
                     <p className="mt-1 text-sm text-aura-muted">
-                      {selectedDifficulty.label} • {questions.length} questions
+                      {topic} • {selectedDifficulty.label} • {questions.length}{" "}
+                      questions
                     </p>
                   </div>
 
@@ -280,8 +285,8 @@ const QuizModal = () => {
               <div className="space-y-4 p-6">
                 {fallback && (
                   <div className="rounded-2xl border border-aura-gold/30 bg-aura-gold/10 p-4 text-sm leading-6 text-aura-gold">
-                    Demo fallback mode is active. Gemini may have reached its
-                    quota, so Study Aura returned a safe fallback quiz.
+                    Demo fallback mode is active. Study Aura returned a safe
+                    fallback quiz.
                   </div>
                 )}
 
