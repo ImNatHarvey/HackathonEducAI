@@ -2,8 +2,9 @@ import { useState } from "react";
 import { sendChatToN8n, uploadSourceToN8n } from "../lib/n8n";
 import { currentUser } from "../components/user/userMock";
 import type {
-  GeneratedLesson,
   SourceUploadPayload,
+  StudyModule,
+  StudySource,
 } from "../components/dashboard/dashboardTypes";
 
 type ChatMessage = {
@@ -15,15 +16,17 @@ type ChatMessage = {
 type UseDashboardActionsParams = {
   inputValue: string;
   topic: string;
+  activeModule?: StudyModule;
   onInputClear: () => void;
-  onLessonCreated: (lesson: GeneratedLesson) => void;
+  onSourceAdded: (module: StudyModule, source: StudySource) => void;
 };
 
 export const useDashboardActions = ({
   inputValue,
   topic,
+  activeModule,
   onInputClear,
-  onLessonCreated,
+  onSourceAdded,
 }: UseDashboardActionsParams) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -53,13 +56,27 @@ export const useDashboardActions = ({
         throw new Error(response.message || "Source upload failed.");
       }
 
-      onLessonCreated(
-        response.lesson ?? {
-          title,
-          subtitle: `Source added from ${sourceType}. Ready for AI study tools.`,
-          progress: 5,
-        },
-      );
+      const source: StudySource = {
+        id: crypto.randomUUID(),
+        title,
+        type: sourceType,
+        value,
+        createdAt: new Date().toISOString(),
+      };
+
+      const module: StudyModule =
+        activeModule ??
+        ({
+          id: response.lessonId ?? crypto.randomUUID(),
+          title: response.lesson?.title ?? title,
+          subtitle:
+            response.lesson?.subtitle ??
+            `${sourceType} source added. Ready for AI study tools.`,
+          progress: response.lesson?.progress ?? 5,
+          sources: [],
+        } satisfies StudyModule);
+
+      onSourceAdded(module, source);
     } catch (error) {
       setUploadError(
         error instanceof Error

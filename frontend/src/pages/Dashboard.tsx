@@ -10,8 +10,9 @@ import { generatedLessons } from "../mocks/dashboardMockData";
 import { useDashboardActions } from "../hooks/useDashboardActions";
 import type {
   AIToolName,
-  GeneratedLesson,
   SourceUploadPayload,
+  StudyModule,
+  StudySource,
 } from "../components/dashboard/dashboardTypes";
 
 interface DashboardProps {
@@ -26,27 +27,57 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeTool, setActiveTool] = useState<AIToolName | null>(null);
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
-  const [lessons, setLessons] = useState<GeneratedLesson[]>(generatedLessons);
+  const [modules, setModules] = useState<StudyModule[]>(generatedLessons);
 
-  const handleLessonCreated = (lesson: GeneratedLesson) => {
-    setLessons((currentLessons) => {
-      const alreadyExists = currentLessons.some(
-        (currentLesson) =>
-          currentLesson.title.toLowerCase() === lesson.title.toLowerCase(),
+  const currentModule = useMemo(() => {
+    return modules.find(
+      (module) => module.title.toLowerCase() === topic.toLowerCase(),
+    );
+  }, [modules, topic]);
+
+  const currentSources = currentModule?.sources ?? [];
+
+  const upsertModule = (module: StudyModule) => {
+    setModules((currentModules) => {
+      const exists = currentModules.some(
+        (currentModule) =>
+          currentModule.id === module.id ||
+          currentModule.title.toLowerCase() === module.title.toLowerCase(),
       );
 
-      if (alreadyExists) {
-        return currentLessons.map((currentLesson) =>
-          currentLesson.title.toLowerCase() === lesson.title.toLowerCase()
-            ? lesson
-            : currentLesson,
-        );
-      }
+      if (!exists) return [module, ...currentModules];
 
-      return [lesson, ...currentLessons];
+      return currentModules.map((currentModule) =>
+        currentModule.id === module.id ||
+        currentModule.title.toLowerCase() === module.title.toLowerCase()
+          ? module
+          : currentModule,
+      );
     });
+  };
 
-    onNavigate(lesson.title);
+  const handleSourceAdded = (module: StudyModule, source: StudySource) => {
+    const existingModule = modules.find(
+      (currentModule) =>
+        currentModule.id === module.id ||
+        currentModule.title.toLowerCase() === module.title.toLowerCase(),
+    );
+
+    const targetModule = existingModule ?? module;
+
+    const updatedModule: StudyModule = {
+      ...targetModule,
+      progress: Math.max(targetModule.progress, 5),
+      sources: [
+        source,
+        ...targetModule.sources.filter(
+          (currentSource) => currentSource.id !== source.id,
+        ),
+      ],
+    };
+
+    upsertModule(updatedModule);
+    onNavigate(updatedModule.title);
     setIsAddSourceOpen(false);
   };
 
@@ -61,17 +92,18 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
   } = useDashboardActions({
     inputValue,
     topic,
+    activeModule: currentModule,
     onInputClear: () => setInputValue(""),
-    onLessonCreated: handleLessonCreated,
+    onSourceAdded: handleSourceAdded,
   });
 
-  const filteredLessons = useMemo(() => {
-    return lessons.filter((lesson) =>
-      `${lesson.title} ${lesson.subtitle}`
+  const filteredModules = useMemo(() => {
+    return modules.filter((module) =>
+      `${module.title} ${module.subtitle}`
         .toLowerCase()
         .includes(search.toLowerCase()),
     );
-  }, [lessons, search]);
+  }, [modules, search]);
 
   const handleSubmitSource = (payload: SourceUploadPayload) => {
     handleUploadSource(payload);
@@ -88,7 +120,9 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
         <SourcesPanel
           search={search}
           onSearchChange={setSearch}
-          lessons={filteredLessons}
+          lessons={filteredModules}
+          sources={currentSources}
+          currentTopic={topic}
           onNavigate={onNavigate}
           isUploadingSource={isUploadingSource}
           uploadError={uploadError}

@@ -1,60 +1,9 @@
 import type {
-  GeneratedLesson,
+  StudyModule,
   StudioTool,
 } from "../components/dashboard/dashboardTypes";
 
-export const generatedLessons: GeneratedLesson[] = [
-  {
-    title: "Marine Biology 101",
-    subtitle: "Coral reefs, dolphins, aquatic ecosystems",
-    progress: 100,
-  },
-  {
-    title: "AI Ethics & Safety",
-    subtitle: "Sensitive topic filtering and safe learning",
-    progress: 72,
-  },
-  {
-    title: "Intro to N8N",
-    subtitle: "Automation workflows and webhooks",
-    progress: 64,
-  },
-  {
-    title: "Advanced C# Structs",
-    subtitle: "Value types, memory, and records",
-    progress: 45,
-  },
-  {
-    title: "React Study UI",
-    subtitle: "Components, state, and interaction design",
-    progress: 88,
-  },
-  {
-    title: "Research Writing",
-    subtitle: "Citations, synthesis, and tables",
-    progress: 35,
-  },
-  {
-    title: "Data Visualization",
-    subtitle: "Charts, illustration tables, and diagrams",
-    progress: 58,
-  },
-  {
-    title: "Operating Systems",
-    subtitle: "Processes, memory, scheduling",
-    progress: 27,
-  },
-  {
-    title: "Database Systems",
-    subtitle: "Tables, relations, queries, and indexes",
-    progress: 40,
-  },
-  {
-    title: "Human Computer Interaction",
-    subtitle: "Usability, accessibility, and user flows",
-    progress: 51,
-  },
-];
+export const generatedLessons: StudyModule[] = [];
 
 export const studioTools: StudioTool[] = [
   {
