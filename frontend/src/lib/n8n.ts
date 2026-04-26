@@ -157,6 +157,33 @@ export type N8nSlidesResponse = {
   fallback?: boolean;
 };
 
+export type AudioOverviewStyle = "calm" | "energetic" | "podcast";
+
+export type AudioOverviewLength = "short" | "standard" | "deep";
+
+export type N8nAudioPayload = {
+  topic: string;
+  style: AudioOverviewStyle;
+  length: AudioOverviewLength;
+  userId?: string;
+};
+
+export type AudioSegment = {
+  speaker: string;
+  text: string;
+};
+
+export type N8nAudioResponse = {
+  audioOverview: {
+    title: string;
+    description: string;
+    estimatedDuration: string;
+    segments: AudioSegment[];
+    recap: string[];
+  };
+  fallback?: boolean;
+};
+
 const getRequiredEnv = (key: string) => {
   const value = import.meta.env[key];
 
@@ -240,4 +267,12 @@ export const generateSlidesWithN8n = async (
   const url = getRequiredEnv("VITE_N8N_SLIDES_WEBHOOK_URL");
 
   return postToWebhook<N8nSlidesResponse>(url, payload);
+};
+
+export const generateAudioOverviewWithN8n = async (
+  payload: N8nAudioPayload,
+): Promise<N8nAudioResponse> => {
+  const url = getRequiredEnv("VITE_N8N_AUDIO_WEBHOOK_URL");
+
+  return postToWebhook<N8nAudioResponse>(url, payload);
 };

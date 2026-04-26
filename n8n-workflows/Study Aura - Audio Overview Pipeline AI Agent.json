@@ -1,0 +1,217 @@
+{
+  "name": "Study Aura - Audio Overview Pipeline AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "study-aura-audio",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "audio-agent-webhook",
+      "name": "Audio Agent Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [120, 260],
+      "webhookId": "study-aura-audio"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "audio-prompt",
+              "name": "prompt",
+              "value": "={{\"You are Study Aura, an educational audio overview script generator. Create a narration script for the topic: \" + ($json.body.topic || \"General Study\") + \". Style: \" + ($json.body.style || \"podcast\") + \". Length: \" + ($json.body.length || \"standard\") + \". Return ONLY valid JSON. No markdown. No code fences. Format: {\\\"title\\\": string, \\\"description\\\": string, \\\"estimatedDuration\\\": string, \\\"segments\\\": [{\\\"speaker\\\": string, \\\"text\\\": string}], \\\"recap\\\": string[]}. Use 3 to 6 segments. If style is podcast, use Host A and Host B. If style is calm or energetic, use Narrator as speaker.\"}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-audio-agent-prompt",
+      "name": "Prepare Audio Agent Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [400, 260]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+        }
+      },
+      "id": "audio-ai-agent",
+      "name": "Audio AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [700, 260],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite-preview",
+        "options": {
+          "temperature": 0.45,
+          "maxOutputTokens": 1800
+        }
+      },
+      "id": "audio-gemini-chat-model",
+      "name": "Audio Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [700, 520],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Study Aura Gemini Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "agent-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "audio-agent-succeeded",
+      "name": "Audio Agent Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1020, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet audioOverview;\n\ntry {\n  audioOverview = JSON.parse(cleaned);\n\n  if (!Array.isArray(audioOverview.segments)) {\n    throw new Error(\"Invalid audio overview format\");\n  }\n} catch (error) {\n  audioOverview = {\n    title: \"Demo Audio Overview\",\n    description: \"A fallback Study Aura audio overview script.\",\n    estimatedDuration: \"1 minute\",\n    segments: [\n      {\n        speaker: \"Narrator\",\n        text: \"Welcome to this Study Aura audio overview. Today, we are reviewing Marine Biology, the study of life in the ocean.\"\n      },\n      {\n        speaker: \"Narrator\",\n        text: \"Key examples include dolphins, coral reefs, and marine ecosystems. These help us understand how ocean life survives and interacts.\"\n      }\n    ],\n    recap: [\"Marine biology studies ocean life\", \"Dolphins are marine mammals\", \"Coral reefs support biodiversity\"]\n  };\n}\n\nconst segments = audioOverview.segments.map((segment) => ({\n  speaker: String(segment.speaker || \"Narrator\"),\n  text: String(segment.text || \"Review this topic carefully.\")\n}));\n\nreturn [\n  {\n    json: {\n      audioOverview: {\n        title: String(audioOverview.title || \"Study Aura Audio Overview\"),\n        description: String(audioOverview.description || \"Generated audio overview script.\"),\n        estimatedDuration: String(audioOverview.estimatedDuration || \"2 minutes\"),\n        segments,\n        recap: Array.isArray(audioOverview.recap)\n          ? audioOverview.recap.map((item) => String(item))\n          : []\n      },\n      fallback: false\n    }\n  }\n];"
+      },
+      "id": "clean-audio-agent-json",
+      "name": "Clean Audio Agent JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1260, 140]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"audioOverview\": $json.audioOverview,\n    \"fallback\": $json.fallback\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-audio-agent-response",
+      "name": "Return Audio Agent Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, 140]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"audioOverview\": {\n    \"title\": \"Demo Fallback Audio Overview\",\n    \"description\": \"A safe fallback audio overview script for Study Aura when the AI model is unavailable.\",\n    \"estimatedDuration\": \"1 minute\",\n    \"segments\": [\n      {\n        \"speaker\": \"Narrator\",\n        \"text\": \"Welcome to this Study Aura audio overview. Today, we are reviewing Marine Biology, the study of life in the ocean.\"\n      },\n      {\n        \"speaker\": \"Narrator\",\n        \"text\": \"Important examples include dolphins, coral reefs, and marine ecosystems. These ideas help us understand how ocean life survives and interacts.\"\n      }\n    ],\n    \"recap\": [\"Marine biology studies ocean life\", \"Dolphins are marine mammals\", \"Coral reefs support biodiversity\"]\n  },\n  \"fallback\": true\n}",
+        "options": {}
+      },
+      "id": "return-audio-agent-fallback",
+      "name": "Return Audio Agent Fallback",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1260, 380]
+    }
+  ],
+  "connections": {
+    "Audio Agent Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Audio Agent Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Audio Agent Prompt": {
+      "main": [
+        [
+          {
+            "node": "Audio AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audio Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Audio AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audio AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Audio Agent Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audio Agent Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Clean Audio Agent JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Audio Agent Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Audio Agent JSON": {
+      "main": [
+        [
+          {
+            "node": "Return Audio Agent Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
