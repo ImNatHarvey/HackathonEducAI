@@ -72,6 +72,64 @@ export type N8nFlashcardsResponse = {
   fallback?: boolean;
 };
 
+export type TableDifficulty = "easy" | "medium" | "hard";
+
+export type StudyTableType =
+  | "concept_comparison"
+  | "term_definition"
+  | "process_steps"
+  | "cause_effect";
+
+export type N8nTablesPayload = {
+  topic: string;
+  difficulty: TableDifficulty;
+  tableType: StudyTableType;
+  rowCount: number;
+  userId?: string;
+};
+
+export type StudyTableColumn = {
+  key: string;
+  label: string;
+};
+
+export type StudyTableRow = Record<string, string>;
+
+export type N8nTablesResponse = {
+  table: {
+    title: string;
+    description: string;
+    columns: StudyTableColumn[];
+    rows: StudyTableRow[];
+  };
+  fallback?: boolean;
+};
+
+export type MindMapDifficulty = "easy" | "medium" | "hard";
+
+export type MindMapBranch = {
+  title: string;
+  summary: string;
+  keywords: string[];
+};
+
+export type N8nMindMapPayload = {
+  topic: string;
+  difficulty: MindMapDifficulty;
+  branchCount: number;
+  userId?: string;
+};
+
+export type N8nMindMapResponse = {
+  mindMap: {
+    title: string;
+    center: string;
+    description: string;
+    branches: MindMapBranch[];
+  };
+  fallback?: boolean;
+};
+
 const getRequiredEnv = (key: string) => {
   const value = import.meta.env[key];
 
@@ -131,4 +189,20 @@ export const generateFlashcardsWithN8n = async (
   const url = getRequiredEnv("VITE_N8N_FLASHCARDS_WEBHOOK_URL");
 
   return postToWebhook<N8nFlashcardsResponse>(url, payload);
+};
+
+export const generateTablesWithN8n = async (
+  payload: N8nTablesPayload,
+): Promise<N8nTablesResponse> => {
+  const url = getRequiredEnv("VITE_N8N_TABLES_WEBHOOK_URL");
+
+  return postToWebhook<N8nTablesResponse>(url, payload);
+};
+
+export const generateMindMapWithN8n = async (
+  payload: N8nMindMapPayload,
+): Promise<N8nMindMapResponse> => {
+  const url = getRequiredEnv("VITE_N8N_MINDMAP_WEBHOOK_URL");
+
+  return postToWebhook<N8nMindMapResponse>(url, payload);
 };

@@ -1,0 +1,217 @@
+{
+  "name": "Study Aura - Tables Pipeline AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "study-aura-tables",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "tables-agent-webhook",
+      "name": "Tables Agent Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [120, 260],
+      "webhookId": "study-aura-tables"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "tables-prompt",
+              "name": "prompt",
+              "value": "={{\"You are Study Aura, an educational table generator. Create a structured study table for the topic: \" + ($json.body.topic || \"General Study\") + \". Difficulty: \" + ($json.body.difficulty || \"easy\") + \". Table type: \" + ($json.body.tableType || \"concept_comparison\") + \". Create exactly \" + ($json.body.rowCount || 5) + \" rows. Return ONLY valid JSON. No markdown. No code fences. Format: {\\\"title\\\": string, \\\"description\\\": string, \\\"columns\\\": [{\\\"key\\\": string, \\\"label\\\": string}], \\\"rows\\\": [{stringKey: stringValue}]}. Use 3 to 5 columns only. Every row must use the exact column keys.\"}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-tables-agent-prompt",
+      "name": "Prepare Tables Agent Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [400, 260]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+        }
+      },
+      "id": "tables-ai-agent",
+      "name": "Tables AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [700, 260],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite-preview",
+        "options": {
+          "temperature": 0.4,
+          "maxOutputTokens": 1600
+        }
+      },
+      "id": "tables-gemini-chat-model",
+      "name": "Tables Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [700, 520],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Study Aura Gemini Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "agent-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "tables-agent-succeeded",
+      "name": "Tables Agent Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1020, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet table;\n\ntry {\n  table = JSON.parse(cleaned);\n\n  if (!Array.isArray(table.columns) || !Array.isArray(table.rows)) {\n    throw new Error(\"Invalid table format\");\n  }\n} catch (error) {\n  table = {\n    title: \"Demo Study Table\",\n    description: \"A fallback illustration table for Study Aura.\",\n    columns: [\n      { key: \"term\", label: \"Term\" },\n      { key: \"meaning\", label: \"Meaning\" },\n      { key: \"example\", label: \"Example\" }\n    ],\n    rows: [\n      {\n        term: \"Dolphin\",\n        meaning: \"An intelligent marine mammal\",\n        example: \"Uses echolocation to navigate\"\n      },\n      {\n        term: \"Coral Reef\",\n        meaning: \"A marine ecosystem built by coral polyps\",\n        example: \"Provides habitat for many ocean species\"\n      }\n    ]\n  };\n}\n\nconst columns = table.columns.map((column) => ({\n  key: String(column.key || \"column\"),\n  label: String(column.label || column.key || \"Column\")\n}));\n\nconst rows = table.rows.map((row) => {\n  const normalizedRow = {};\n\n  for (const column of columns) {\n    normalizedRow[column.key] = String(row[column.key] || \"\");\n  }\n\n  return normalizedRow;\n});\n\nreturn [\n  {\n    json: {\n      table: {\n        title: String(table.title || \"Study Aura Table\"),\n        description: String(table.description || \"Generated study table.\"),\n        columns,\n        rows\n      },\n      fallback: false\n    }\n  }\n];"
+      },
+      "id": "clean-tables-agent-json",
+      "name": "Clean Tables Agent JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1260, 140]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"table\": $json.table,\n    \"fallback\": $json.fallback\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-tables-agent-response",
+      "name": "Return Tables Agent Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, 140]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"table\": {\n    \"title\": \"Demo Fallback Table\",\n    \"description\": \"A safe fallback table for Study Aura when the AI model is unavailable.\",\n    \"columns\": [\n      { \"key\": \"term\", \"label\": \"Term\" },\n      { \"key\": \"meaning\", \"label\": \"Meaning\" },\n      { \"key\": \"example\", \"label\": \"Example\" }\n    ],\n    \"rows\": [\n      {\n        \"term\": \"Dolphin\",\n        \"meaning\": \"An intelligent marine mammal\",\n        \"example\": \"Uses echolocation to navigate underwater\"\n      },\n      {\n        \"term\": \"Coral Reef\",\n        \"meaning\": \"A marine ecosystem formed by coral polyps\",\n        \"example\": \"Supports fish, algae, and invertebrates\"\n      }\n    ]\n  },\n  \"fallback\": true\n}",
+        "options": {}
+      },
+      "id": "return-tables-agent-fallback",
+      "name": "Return Tables Agent Fallback",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1260, 380]
+    }
+  ],
+  "connections": {
+    "Tables Agent Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Tables Agent Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Tables Agent Prompt": {
+      "main": [
+        [
+          {
+            "node": "Tables AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tables Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Tables AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tables AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Tables Agent Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tables Agent Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Clean Tables Agent JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Tables Agent Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Tables Agent JSON": {
+      "main": [
+        [
+          {
+            "node": "Return Tables Agent Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
