@@ -42,24 +42,23 @@ const AIToolModal = ({ activeTool, onClose }: Props) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md px-4">
-      <div className="w-full max-w-4xl rounded-[2rem] border border-aura-border bg-aura-panel overflow-hidden shadow-aura-soft">
-        {/* HEADER */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-aura-border">
-          <h2 className="text-lg font-black text-aura-text">
-            {activeTool}
-          </h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-md">
+      <div className="flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel shadow-aura-soft">
+        <div className="flex shrink-0 items-center justify-between border-b border-aura-border px-6 py-4">
+          <h2 className="text-lg font-black text-aura-text">{activeTool}</h2>
 
           <button
+            type="button"
             onClick={onClose}
-            className="h-10 w-10 rounded-xl border border-aura-border hover:border-aura-pink hover:text-aura-pink"
+            className="h-10 w-10 rounded-xl border border-aura-border transition hover:border-aura-pink hover:text-aura-pink"
           >
             ✕
           </button>
         </div>
 
-        {/* BODY */}
-        <div className="p-6">{renderTool()}</div>
+        <div className="aura-scrollbar min-h-0 flex-1 overflow-y-auto p-6">
+          {renderTool()}
+        </div>
       </div>
     </div>
   );

@@ -49,6 +49,11 @@ const QuizModal = () => {
   }, [difficulty]);
 
   const handleGenerateQuiz = async () => {
+    console.log("Generate quiz clicked", {
+      difficulty,
+      questionCount: selectedDifficulty.questionCount,
+    });
+
     setError("");
     setFallback(false);
     setIsGenerating(true);
@@ -61,11 +66,15 @@ const QuizModal = () => {
         userId: currentUser.id,
       });
 
+      console.log("Quiz response from n8n:", response);
+
       setQuizTitle(response.quiz.title);
       setQuestions(response.quiz.questions);
       setFallback(Boolean(response.fallback));
       setIsResultOpen(true);
     } catch (error) {
+      console.error("Quiz generation failed:", error);
+
       setError(
         error instanceof Error ? error.message : "Failed to generate quiz.",
       );
@@ -111,6 +120,7 @@ const QuizModal = () => {
       y += questionLines.length * 6 + 2;
 
       doc.setFont("helvetica", "normal");
+
       item.choices.forEach((choice, choiceIndex) => {
         const label = String.fromCharCode(65 + choiceIndex);
         const choiceLines = doc.splitTextToSize(`${label}. ${choice}`, 170);
