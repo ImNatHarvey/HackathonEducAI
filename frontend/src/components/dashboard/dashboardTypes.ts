@@ -19,3 +19,11 @@ export type GeneratedLesson = {
   subtitle: string;
   progress: number;
 };
+
+export type SourceType = "pdf" | "image" | "text" | "youtube";
+
+export type SourceUploadPayload = {
+  sourceType: SourceType;
+  value: string;
+  title: string;
+};

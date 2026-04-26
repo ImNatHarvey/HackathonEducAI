@@ -5,9 +5,14 @@ import DashboardNavbar from "../components/dashboard/DashboardNavbar";
 import SourcesPanel from "../components/dashboard/SourcesPanel";
 import ChatPanel from "../components/dashboard/ChatPanel";
 import AIStudioPanel from "../components/dashboard/AIStudioPanel";
+import AddSourceModal from "../components/dashboard/AddSourceModal";
 import { generatedLessons } from "../mocks/dashboardMockData";
 import { useDashboardActions } from "../hooks/useDashboardActions";
-import type { AIToolName } from "../components/dashboard/dashboardTypes";
+import type {
+  AIToolName,
+  GeneratedLesson,
+  SourceUploadPayload,
+} from "../components/dashboard/dashboardTypes";
 
 interface DashboardProps {
   topic: string;
@@ -20,6 +25,30 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
   const [search, setSearch] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeTool, setActiveTool] = useState<AIToolName | null>(null);
+  const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
+  const [lessons, setLessons] = useState<GeneratedLesson[]>(generatedLessons);
+
+  const handleLessonCreated = (lesson: GeneratedLesson) => {
+    setLessons((currentLessons) => {
+      const alreadyExists = currentLessons.some(
+        (currentLesson) =>
+          currentLesson.title.toLowerCase() === lesson.title.toLowerCase(),
+      );
+
+      if (alreadyExists) {
+        return currentLessons.map((currentLesson) =>
+          currentLesson.title.toLowerCase() === lesson.title.toLowerCase()
+            ? lesson
+            : currentLesson,
+        );
+      }
+
+      return [lesson, ...currentLessons];
+    });
+
+    onNavigate(lesson.title);
+    setIsAddSourceOpen(false);
+  };
 
   const {
     messages,
@@ -33,15 +62,20 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
     inputValue,
     topic,
     onInputClear: () => setInputValue(""),
+    onLessonCreated: handleLessonCreated,
   });
 
   const filteredLessons = useMemo(() => {
-    return generatedLessons.filter((lesson) =>
+    return lessons.filter((lesson) =>
       `${lesson.title} ${lesson.subtitle}`
         .toLowerCase()
         .includes(search.toLowerCase()),
     );
-  }, [search]);
+  }, [lessons, search]);
+
+  const handleSubmitSource = (payload: SourceUploadPayload) => {
+    handleUploadSource(payload);
+  };
 
   return (
     <div className="flex h-dvh max-h-dvh w-full flex-col overflow-hidden bg-aura-bg text-aura-text">
@@ -58,7 +92,7 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
           onNavigate={onNavigate}
           isUploadingSource={isUploadingSource}
           uploadError={uploadError}
-          onUpload={handleUploadSource}
+          onUpload={() => setIsAddSourceOpen(true)}
         />
 
         <ChatPanel
@@ -80,6 +114,14 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
       />
 
       <AIToolModal activeTool={activeTool} onClose={() => setActiveTool(null)} />
+
+      <AddSourceModal
+        isOpen={isAddSourceOpen}
+        isUploading={isUploadingSource}
+        uploadError={uploadError}
+        onClose={() => setIsAddSourceOpen(false)}
+        onSubmit={handleSubmitSource}
+      />
     </div>
   );
 };

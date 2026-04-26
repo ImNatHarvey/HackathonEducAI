@@ -7,6 +7,7 @@ export type N8nChatPayload = {
 export type N8nUploadPayload = {
   sourceType: "pdf" | "image" | "text" | "youtube";
   value: string;
+  title: string;
   userId?: string;
 };
 
@@ -19,6 +20,11 @@ export type N8nUploadResponse = {
   success: boolean;
   lessonId?: string;
   message?: string;
+  lesson?: {
+    title: string;
+    subtitle: string;
+    progress: number;
+  };
 };
 
 export type QuizDifficulty = "easy" | "medium" | "hard";
