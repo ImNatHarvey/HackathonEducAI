@@ -1,0 +1,165 @@
+{
+  "name": "Study Aura - Quiz Pipeline AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "study-aura-quiz",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "quiz-agent-webhook",
+      "name": "Quiz Agent Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [120, 260],
+      "webhookId": "study-aura-quiz"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "quiz-prompt",
+              "name": "prompt",
+              "value": "={{\"You are Study Aura, an educational quiz generator. Create exactly \" + ($json.body.questionCount || 10) + \" multiple-choice questions for the topic: \" + ($json.body.topic || \"General Study\") + \". Difficulty: \" + ($json.body.difficulty || \"easy\") + \". Return ONLY valid JSON. No markdown. No code fences. Format: {\\\"title\\\": string, \\\"questions\\\": [{\\\"question\\\": string, \\\"choices\\\": string[], \\\"answer\\\": string, \\\"explanation\\\": string}]}. Each question must have exactly 4 choices. The answer must exactly match one of the choices.\"}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-quiz-agent-prompt",
+      "name": "Prepare Quiz Agent Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [400, 260]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown or explanations outside JSON."
+        }
+      },
+      "id": "quiz-ai-agent",
+      "name": "Quiz AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [700, 260],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite-preview",
+        "options": {
+          "temperature": 0.35,
+          "maxOutputTokens": 1800
+        }
+      },
+      "id": "quiz-gemini-chat-model",
+      "name": "Quiz Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [700, 520],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Study Aura Gemini Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "agent-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "quiz-agent-succeeded",
+      "name": "Quiz Agent Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1020, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet quiz;\n\ntry {\n  quiz = JSON.parse(cleaned);\n\n  if (!quiz.questions || !Array.isArray(quiz.questions)) {\n    throw new Error(\"Invalid quiz format\");\n  }\n} catch (error) {\n  quiz = {\n    title: \"Generated Quiz\",\n    questions: [\n      {\n        question: \"Study Aura generated a quiz response, but it could not be parsed. What should you do?\",\n        choices: [\"Try again\", \"Close the app\", \"Delete the workflow\", \"Ignore the topic\"],\n        answer: \"Try again\",\n        explanation: \"The AI response was not valid JSON, so retrying usually fixes the generated format.\"\n      }\n    ]\n  };\n}\n\nreturn [\n  {\n    json: {\n      quiz,\n      fallback: false\n    }\n  }\n];"
+      },
+      "id": "clean-quiz-agent-json",
+      "name": "Clean Quiz Agent JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1260, 140]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"quiz\": $json.quiz,\n    \"fallback\": $json.fallback\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-quiz-agent-response",
+      "name": "Return Quiz Agent Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, 140]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"quiz\": {\n    \"title\": \"Demo Fallback Quiz\",\n    \"questions\": [\n      {\n        \"question\": \"What is the best first step when studying a new topic?\",\n        \"choices\": [\"Memorize everything\", \"Break it into smaller parts\", \"Skip examples\", \"Avoid review\"],\n        \"answer\": \"Break it into smaller parts\",\n        \"explanation\": \"Breaking a topic into smaller parts makes it easier to understand and remember.\"\n      }\n    ]\n  },\n  \"fallback\": true\n}",
+        "options": {}
+      },
+      "id": "return-quiz-agent-fallback",
+      "name": "Return Quiz Agent Fallback",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1260, 380]
+    }
+  ],
+  "connections": {
+    "Quiz Agent Webhook": {
+      "main": [[{ "node": "Prepare Quiz Agent Prompt", "type": "main", "index": 0 }]]
+    },
+    "Prepare Quiz Agent Prompt": {
+      "main": [[{ "node": "Quiz AI Agent", "type": "main", "index": 0 }]]
+    },
+    "Quiz Gemini Chat Model": {
+      "ai_languageModel": [[{ "node": "Quiz AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Quiz AI Agent": {
+      "main": [[{ "node": "Quiz Agent Succeeded?", "type": "main", "index": 0 }]]
+    },
+    "Quiz Agent Succeeded?": {
+      "main": [
+        [{ "node": "Clean Quiz Agent JSON", "type": "main", "index": 0 }],
+        [{ "node": "Return Quiz Agent Fallback", "type": "main", "index": 0 }]
+      ]
+    },
+    "Clean Quiz Agent JSON": {
+      "main": [[{ "node": "Return Quiz Agent Response", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

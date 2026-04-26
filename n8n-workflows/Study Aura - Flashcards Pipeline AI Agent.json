@@ -1,0 +1,217 @@
+{
+  "name": "Study Aura - Flashcards Pipeline AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "study-aura-flashcards",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "flashcards-agent-webhook",
+      "name": "Flashcards Agent Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [120, 260],
+      "webhookId": "study-aura-flashcards"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "flashcards-prompt",
+              "name": "prompt",
+              "value": "={{\"You are Study Aura, an educational flashcard generator. Create exactly \" + ($json.body.cardCount || 10) + \" interactive flashcards for the topic: \" + ($json.body.topic || \"General Study\") + \". Difficulty: \" + ($json.body.difficulty || \"easy\") + \". Return ONLY valid JSON. No markdown. No code fences. Format: {\\\"title\\\": string, \\\"cards\\\": [{\\\"type\\\": \\\"question\\\" | \\\"fill_blank\\\", \\\"prompt\\\": string, \\\"answer\\\": string, \\\"hint\\\": string, \\\"explanation\\\": string}]}. Mix question and fill_blank card types. Keep answers short enough for typed input. The answer should be a concise phrase, not a full paragraph.\"}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-flashcards-agent-prompt",
+      "name": "Prepare Flashcards Agent Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [400, 260]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+        }
+      },
+      "id": "flashcards-ai-agent",
+      "name": "Flashcards AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [700, 260],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite-preview",
+        "options": {
+          "temperature": 0.4,
+          "maxOutputTokens": 1800
+        }
+      },
+      "id": "flashcards-gemini-chat-model",
+      "name": "Flashcards Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [700, 520],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Study Aura Gemini Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "agent-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "flashcards-agent-succeeded",
+      "name": "Flashcards Agent Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1020, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet deck;\n\ntry {\n  deck = JSON.parse(cleaned);\n\n  if (!deck.cards || !Array.isArray(deck.cards)) {\n    throw new Error(\"Invalid deck format\");\n  }\n} catch (error) {\n  deck = {\n    title: \"Generated Flashcards\",\n    cards: [\n      {\n        type: \"question\",\n        prompt: \"Study Aura generated a flashcard response, but it could not be parsed. What should you do?\",\n        answer: \"Try again\",\n        hint: \"Repeat the generation process.\",\n        explanation: \"Sometimes AI output formatting can fail. Retrying usually fixes the JSON structure.\"\n      }\n    ]\n  };\n}\n\nconst normalizedCards = deck.cards.map((card) => ({\n  type: card.type === \"fill_blank\" ? \"fill_blank\" : \"question\",\n  prompt: String(card.prompt || \"Untitled flashcard\"),\n  answer: String(card.answer || \"No answer provided\"),\n  hint: String(card.hint || \"Think about the key idea.\"),\n  explanation: String(card.explanation || \"Review the related lesson content.\")\n}));\n\nreturn [\n  {\n    json: {\n      deck: {\n        title: String(deck.title || \"Study Aura Flashcards\"),\n        cards: normalizedCards\n      },\n      fallback: false\n    }\n  }\n];"
+      },
+      "id": "clean-flashcards-agent-json",
+      "name": "Clean Flashcards Agent JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1260, 140]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"deck\": $json.deck,\n    \"fallback\": $json.fallback\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-flashcards-agent-response",
+      "name": "Return Flashcards Agent Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, 140]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"deck\": {\n    \"title\": \"Demo Fallback Flashcards\",\n    \"cards\": [\n      {\n        \"type\": \"question\",\n        \"prompt\": \"What is Study Aura designed to help students create?\",\n        \"answer\": \"Study tools\",\n        \"hint\": \"Think about quizzes and flashcards.\",\n        \"explanation\": \"Study Aura helps students generate learning tools such as quizzes, flashcards, tables, and summaries.\"\n      },\n      {\n        \"type\": \"fill_blank\",\n        \"prompt\": \"Dolphins are intelligent marine ________.\",\n        \"answer\": \"mammals\",\n        \"hint\": \"They breathe air and nurse their young.\",\n        \"explanation\": \"Dolphins are mammals because they breathe air, are warm-blooded, and feed milk to their young.\"\n      }\n    ]\n  },\n  \"fallback\": true\n}",
+        "options": {}
+      },
+      "id": "return-flashcards-agent-fallback",
+      "name": "Return Flashcards Agent Fallback",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1260, 380]
+    }
+  ],
+  "connections": {
+    "Flashcards Agent Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Flashcards Agent Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Flashcards Agent Prompt": {
+      "main": [
+        [
+          {
+            "node": "Flashcards AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flashcards Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Flashcards AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flashcards AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Flashcards Agent Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flashcards Agent Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Clean Flashcards Agent JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Flashcards Agent Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Flashcards Agent JSON": {
+      "main": [
+        [
+          {
+            "node": "Return Flashcards Agent Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
