@@ -1,0 +1,234 @@
+{
+  "name": "Study Aura - Chat Pipeline Gemini with Fallback",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "study-aura-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "4b4d6622-f0a4-4711-9eaf-1d9ec36dc92a",
+      "name": "Chat Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1488,
+        192
+      ],
+      "webhookId": "study-aura-chat"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "system-prompt",
+              "name": "prompt",
+              "value": "={{\"You are Study Aura, an AI-powered educational tutor for students. Answer clearly, safely, and helpfully. Keep your answer concise but useful. If the user asks for illegal, harmful, or sensitive content, refuse briefly and redirect to safe learning. Current topic: \" + ($json.body.topic || \"General Study\") + \"\\n\\nUser message: \" + ($json.body.message || \"\")}}",
+              "type": "string"
+            },
+            {
+              "id": "topic",
+              "name": "topic",
+              "value": "={{$json.body.topic || \"General Study\"}}",
+              "type": "string"
+            },
+            {
+              "id": "user-message",
+              "name": "message",
+              "value": "={{$json.body.message || \"\"}}",
+              "type": "string"
+            },
+            {
+              "id": "user-id",
+              "name": "userId",
+              "value": "={{$json.body.userId || \"demo-user\"}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cc204ca8-61c3-4ea4-8789-033ba5c2a8be",
+      "name": "Prepare Gemini Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1216,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "YOUR_GEMINI_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contents[0][parts][0][text]",
+              "value": "={{$json.prompt}}"
+            },
+            {
+              "name": "generationConfig[temperature]",
+              "value": "0.7"
+            },
+            {
+              "name": "generationConfig[maxOutputTokens]",
+              "value": "250"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d34bb8bb-6ead-4353-947f-8a1f76b95139",
+      "name": "Ask Gemini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -928,
+        192
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "gemini-text-exists",
+              "leftValue": "={{$json.candidates[0].content.parts[0].text}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "03aa2dea-9fce-4bce-9ddd-bcf0d7545f3e",
+      "name": "Gemini Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -656,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"answer\": $json.candidates[0].content.parts[0].text,\n    \"sources\": []\n  }\n}}",
+        "options": {}
+      },
+      "id": "88c596ac-e510-4ddd-8742-2e87f17e4e77",
+      "name": "Return Gemini Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -368,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"answer\": \"Study Aura is currently in demo fallback mode because the AI request limit was reached. I can still help you study: summarize the topic in 3 short points, list key terms, and quiz yourself with 5 recall questions.\",\n  \"sources\": []\n}",
+        "options": {}
+      },
+      "id": "b6e67eb6-5e0f-4cec-8bdc-e5c431cfed3f",
+      "name": "Return Fallback Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -368,
+        288
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Chat Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Gemini Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Gemini Prompt": {
+      "main": [
+        [
+          {
+            "node": "Ask Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask Gemini": {
+      "main": [
+        [
+          {
+            "node": "Gemini Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Return Gemini Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Fallback Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "70d4d789-8b67-4bc5-b3d7-c99d6ef86c5f",
+  "meta": {
+    "instanceId": "f764945c1c84e3150fef3e723867048d510331bfb76c2fd5193ecd91ac2a5a2e"
+  },
+  "id": "vReXPRrxuvAr8oi6",
+  "tags": []
+}
