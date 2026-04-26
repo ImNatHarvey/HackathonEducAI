@@ -130,6 +130,33 @@ export type N8nMindMapResponse = {
   fallback?: boolean;
 };
 
+export type SlidesDifficulty = "easy" | "medium" | "hard";
+
+export type StudySlide = {
+  slideNumber: number;
+  title: string;
+  subtitle: string;
+  bullets: string[];
+  speakerNotes: string;
+  visualIdea: string;
+};
+
+export type N8nSlidesPayload = {
+  topic: string;
+  difficulty: SlidesDifficulty;
+  slideCount: number;
+  userId?: string;
+};
+
+export type N8nSlidesResponse = {
+  deck: {
+    title: string;
+    description: string;
+    slides: StudySlide[];
+  };
+  fallback?: boolean;
+};
+
 const getRequiredEnv = (key: string) => {
   const value = import.meta.env[key];
 
@@ -205,4 +232,12 @@ export const generateMindMapWithN8n = async (
   const url = getRequiredEnv("VITE_N8N_MINDMAP_WEBHOOK_URL");
 
   return postToWebhook<N8nMindMapResponse>(url, payload);
+};
+
+export const generateSlidesWithN8n = async (
+  payload: N8nSlidesPayload,
+): Promise<N8nSlidesResponse> => {
+  const url = getRequiredEnv("VITE_N8N_SLIDES_WEBHOOK_URL");
+
+  return postToWebhook<N8nSlidesResponse>(url, payload);
 };
