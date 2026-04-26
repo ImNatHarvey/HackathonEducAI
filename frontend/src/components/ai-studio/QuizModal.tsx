@@ -32,6 +32,10 @@ const difficultyOptions: {
   },
 ];
 
+const shuffleArray = <T,>(items: T[]) => {
+  return [...items].sort(() => Math.random() - 0.5);
+};
+
 const QuizModal = () => {
   const [difficulty, setDifficulty] = useState<QuizDifficulty>("easy");
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -72,6 +76,10 @@ const QuizModal = () => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleShuffleQuestions = () => {
+    setQuestions((current) => shuffleArray(current));
   };
 
   const handleExportPdf = () => {
@@ -241,7 +249,15 @@ const QuizModal = () => {
                     </p>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={handleShuffleQuestions}
+                      className="rounded-2xl border border-aura-cyan/40 bg-aura-cyan/10 px-4 py-2 text-sm font-black text-aura-cyan transition hover:-translate-y-0.5"
+                    >
+                      Shuffle
+                    </button>
+
                     <button
                       type="button"
                       onClick={handleExportPdf}

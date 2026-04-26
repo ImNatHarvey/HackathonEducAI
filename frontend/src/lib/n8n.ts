@@ -45,6 +45,33 @@ export type N8nQuizResponse = {
   fallback?: boolean;
 };
 
+export type FlashcardDifficulty = "easy" | "medium" | "hard";
+
+export type FlashcardType = "question" | "fill_blank";
+
+export type N8nFlashcardsPayload = {
+  topic: string;
+  difficulty: FlashcardDifficulty;
+  cardCount: number;
+  userId?: string;
+};
+
+export type FlashcardItem = {
+  type: FlashcardType;
+  prompt: string;
+  answer: string;
+  hint: string;
+  explanation: string;
+};
+
+export type N8nFlashcardsResponse = {
+  deck: {
+    title: string;
+    cards: FlashcardItem[];
+  };
+  fallback?: boolean;
+};
+
 const getRequiredEnv = (key: string) => {
   const value = import.meta.env[key];
 
@@ -96,4 +123,12 @@ export const generateQuizWithN8n = async (
   const url = getRequiredEnv("VITE_N8N_QUIZ_WEBHOOK_URL");
 
   return postToWebhook<N8nQuizResponse>(url, payload);
+};
+
+export const generateFlashcardsWithN8n = async (
+  payload: N8nFlashcardsPayload,
+): Promise<N8nFlashcardsResponse> => {
+  const url = getRequiredEnv("VITE_N8N_FLASHCARDS_WEBHOOK_URL");
+
+  return postToWebhook<N8nFlashcardsResponse>(url, payload);
 };
