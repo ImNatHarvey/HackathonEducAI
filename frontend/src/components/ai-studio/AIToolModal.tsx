@@ -150,9 +150,9 @@ const AIToolModal = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-aura-bg/80 px-4 py-6 backdrop-blur-xl">
-      <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
-        <div className="flex items-start justify-between gap-4 border-b border-aura-border px-6 py-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-aura-bg/80 px-3 py-3 backdrop-blur-xl">
+      <div className="flex max-h-[94vh] w-full max-w-[1500px] flex-col overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
+        <div className="flex items-start justify-between gap-4 border-b border-aura-border px-6 py-4">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.28em] text-aura-cyan">
               AI Studio Output
@@ -162,7 +162,7 @@ const AIToolModal = ({
               {toolTitles[activeTool]}
             </h2>
 
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-aura-muted">
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-aura-muted">
               {isViewingSavedOutput ? (
                 <>
                   Viewing a saved output from{" "}
@@ -189,16 +189,16 @@ const AIToolModal = ({
           </button>
         </div>
 
-        <div className="aura-scrollbar min-h-0 flex-1 overflow-y-auto p-6">
+        <div className="aura-scrollbar min-h-0 flex-1 overflow-y-auto px-6 py-5">
           {selectedSourceCount === 0 && !isViewingSavedOutput && (
-            <div className="mb-5 rounded-2xl border border-yellow-400/30 bg-yellow-500/10 px-4 py-3 text-sm font-semibold leading-6 text-yellow-100">
+            <div className="mb-4 rounded-2xl border border-yellow-400/30 bg-yellow-500/10 px-4 py-3 text-sm font-semibold leading-6 text-yellow-100">
               No sources are selected. Aura will generate from the module topic
               only. Select sources in the left panel for better context.
             </div>
           )}
 
           {!hasResult && (
-            <div className="mb-5 rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-5">
+            <div className="mb-4 rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-5">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-aura-cyan">
                   Generation Presets
@@ -347,7 +347,7 @@ const AIToolModal = ({
 
           {hasResult && (
             <div>
-              <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-aura-border bg-aura-bg-soft p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-aura-border bg-aura-bg-soft p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.22em] text-aura-cyan">
                     {isViewingSavedOutput ? "Saved Result" : "Generated Result"}

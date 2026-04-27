@@ -35,13 +35,17 @@ export type N8nWebSearchPayload = {
   userId?: string;
 };
 
-export type N8nChatResponse = {
-  answer: string;
-  sources?: string[];
+export type N8nBaseResponse = {
+  provider?: string;
   fallback?: boolean;
 };
 
-export type N8nUploadResponse = {
+export type N8nChatResponse = N8nBaseResponse & {
+  answer: string;
+  sources?: string[];
+};
+
+export type N8nUploadResponse = N8nBaseResponse & {
   success: boolean;
   sourceSummary?: string;
   lessonId?: string;
@@ -51,15 +55,13 @@ export type N8nUploadResponse = {
     subtitle: string;
     progress: number;
   };
-  fallback?: boolean;
 };
 
-export type N8nSummarizeSourceResponse = {
+export type N8nSummarizeSourceResponse = N8nBaseResponse & {
   success: boolean;
   summary: string;
   keyPoints?: string[];
   message?: string;
-  fallback?: boolean;
 };
 
 export type WebSearchResult = {
@@ -68,11 +70,10 @@ export type WebSearchResult = {
   snippet: string;
 };
 
-export type N8nWebSearchResponse = {
+export type N8nWebSearchResponse = N8nBaseResponse & {
   success: boolean;
   results: WebSearchResult[];
   message?: string;
-  fallback?: boolean;
 };
 
 export type QuizDifficulty = "easy" | "medium" | "hard";
@@ -93,12 +94,11 @@ export type QuizQuestion = {
   explanation: string;
 };
 
-export type N8nQuizResponse = {
+export type N8nQuizResponse = N8nBaseResponse & {
   quiz: {
     title: string;
     questions: QuizQuestion[];
   };
-  fallback?: boolean;
 };
 
 export type FlashcardDifficulty = "easy" | "medium" | "hard";
@@ -122,12 +122,11 @@ export type FlashcardItem = {
   explanation: string;
 };
 
-export type N8nFlashcardsResponse = {
+export type N8nFlashcardsResponse = N8nBaseResponse & {
   deck: {
     title: string;
     cards: FlashcardItem[];
   };
-  fallback?: boolean;
 };
 
 export type TableDifficulty = "easy" | "medium" | "hard";
@@ -155,14 +154,13 @@ export type StudyTableColumn = {
 
 export type StudyTableRow = Record<string, string>;
 
-export type N8nTablesResponse = {
+export type N8nTablesResponse = N8nBaseResponse & {
   table: {
     title: string;
     description: string;
     columns: StudyTableColumn[];
     rows: StudyTableRow[];
   };
-  fallback?: boolean;
 };
 
 export type MindMapDifficulty = "easy" | "medium" | "hard";
@@ -182,14 +180,13 @@ export type N8nMindMapPayload = {
   userId?: string;
 };
 
-export type N8nMindMapResponse = {
+export type N8nMindMapResponse = N8nBaseResponse & {
   mindMap: {
     title: string;
     center: string;
     description: string;
     branches: MindMapBranch[];
   };
-  fallback?: boolean;
 };
 
 export type SlidesDifficulty = "easy" | "medium" | "hard";
@@ -212,13 +209,12 @@ export type N8nSlidesPayload = {
   userId?: string;
 };
 
-export type N8nSlidesResponse = {
+export type N8nSlidesResponse = N8nBaseResponse & {
   deck: {
     title: string;
     description: string;
     slides: StudySlide[];
   };
-  fallback?: boolean;
 };
 
 export type AudioOverviewStyle = "calm" | "energetic" | "podcast";
@@ -239,7 +235,7 @@ export type N8nAudioPayload = {
   userId?: string;
 };
 
-export type N8nAudioResponse = {
+export type N8nAudioResponse = N8nBaseResponse & {
   audioOverview: {
     title: string;
     description: string;
@@ -247,7 +243,6 @@ export type N8nAudioResponse = {
     segments: AudioSegment[];
     recap: string[];
   };
-  fallback?: boolean;
 };
 
 type N8nWebhookName =

@@ -40,6 +40,17 @@ const shuffleArray = <T,>(items: T[]) => {
   return [...items].sort(() => Math.random() - 0.5);
 };
 
+const normalizeAnswer = (value: string) => {
+  return value.trim().toLowerCase();
+};
+
+const formatProviderName = (provider: string) => {
+  return provider
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
 const QuizModal = ({ topic }: Props) => {
   const [difficulty, setDifficulty] = useState<QuizDifficulty>("easy");
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -47,7 +58,12 @@ const QuizModal = ({ topic }: Props) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [fallback, setFallback] = useState(false);
+  const [provider, setProvider] = useState("");
   const [isResultOpen, setIsResultOpen] = useState(false);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>(
+    {},
+  );
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const selectedDifficulty = useMemo(() => {
     return (
@@ -56,10 +72,36 @@ const QuizModal = ({ topic }: Props) => {
     );
   }, [difficulty]);
 
+  const answeredCount = Object.keys(selectedAnswers).length;
+
+  const score = useMemo(() => {
+    return questions.reduce((total, question, index) => {
+      const selectedAnswer = selectedAnswers[index];
+
+      if (
+        selectedAnswer &&
+        normalizeAnswer(selectedAnswer) === normalizeAnswer(question.answer)
+      ) {
+        return total + 1;
+      }
+
+      return total;
+    }, 0);
+  }, [questions, selectedAnswers]);
+
+  const accuracy = questions.length
+    ? Math.round((score / questions.length) * 100)
+    : 0;
+
+  const providerLabel = provider ? formatProviderName(provider) : "";
+
   const handleGenerateQuiz = async () => {
     setError("");
     setFallback(false);
+    setProvider("");
     setIsGenerating(true);
+    setSelectedAnswers({});
+    setIsSubmitted(false);
 
     try {
       const response = await generateQuizWithN8n({
@@ -72,6 +114,7 @@ const QuizModal = ({ topic }: Props) => {
       setQuizTitle(response.quiz.title);
       setQuestions(response.quiz.questions);
       setFallback(Boolean(response.fallback));
+      setProvider(response.provider ?? "");
       setIsResultOpen(true);
     } catch (error) {
       setError(
@@ -84,6 +127,22 @@ const QuizModal = ({ topic }: Props) => {
 
   const handleShuffleQuestions = () => {
     setQuestions((current) => shuffleArray(current));
+    setSelectedAnswers({});
+    setIsSubmitted(false);
+  };
+
+  const handleSelectAnswer = (questionIndex: number, answer: string) => {
+    if (isSubmitted) return;
+
+    setSelectedAnswers((currentAnswers) => ({
+      ...currentAnswers,
+      [questionIndex]: answer,
+    }));
+  };
+
+  const handleResetAnswers = () => {
+    setSelectedAnswers({});
+    setIsSubmitted(false);
   };
 
   const handleExportPdf = () => {
@@ -165,8 +224,8 @@ const QuizModal = ({ topic }: Props) => {
       <div>
         <h3 className="text-xl font-black text-aura-text">Generate Quiz</h3>
         <p className="mt-1 text-sm text-aura-muted">
-          Choose a difficulty, then Study Aura will generate a quiz through your
-          n8n workflow.
+          Choose a difficulty, then Study Aura will generate an answerable quiz
+          through your n8n workflow.
         </p>
       </div>
 
@@ -237,21 +296,39 @@ const QuizModal = ({ topic }: Props) => {
 
       {isResultOpen && questions.length > 0 && (
         <div className="fixed inset-0 z-[80] overflow-y-auto bg-black/75 px-6 py-8 backdrop-blur-sm">
-          <div className="mx-auto flex min-h-full w-full max-w-5xl items-start justify-center">
+          <div className="mx-auto flex min-h-full w-full max-w-6xl items-start justify-center">
             <div className="w-full overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel shadow-[0_30px_90px_rgba(0,0,0,0.55)]">
               <div className="sticky top-0 z-10 border-b border-aura-border bg-aura-panel/95 px-6 py-5 backdrop-blur">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
-                      Generated Quiz
+                      Interactive Quiz
                     </p>
+
                     <h4 className="mt-1 text-2xl font-black text-aura-text">
                       {quizTitle || "Practice Quiz"}
                     </h4>
+
                     <p className="mt-1 text-sm text-aura-muted">
                       {topic} • {selectedDifficulty.label} • {questions.length}{" "}
                       questions
                     </p>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {providerLabel && (
+                        <span className="rounded-full border border-aura-cyan/40 bg-aura-cyan/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-aura-cyan">
+                          {fallback
+                            ? `Generated by ${providerLabel} fallback`
+                            : `Generated by ${providerLabel}`}
+                        </span>
+                      )}
+
+                      {fallback && (
+                        <span className="rounded-full border border-aura-gold/40 bg-aura-gold/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-aura-gold">
+                          Safe fallback output
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
@@ -280,48 +357,147 @@ const QuizModal = ({ topic }: Props) => {
                     </button>
                   </div>
                 </div>
+
+                <div className="mt-5 grid gap-3 md:grid-cols-4">
+                  <div className="rounded-2xl border border-aura-border bg-aura-bg-soft p-4">
+                    <p className="text-2xl font-black text-aura-text">
+                      {answeredCount}/{questions.length}
+                    </p>
+                    <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-aura-dim">
+                      Answered
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-aura-border bg-aura-bg-soft p-4">
+                    <p className="text-2xl font-black text-aura-text">
+                      {isSubmitted ? `${score}/${questions.length}` : "--"}
+                    </p>
+                    <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-aura-dim">
+                      Score
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-aura-border bg-aura-bg-soft p-4">
+                    <p className="text-2xl font-black text-aura-text">
+                      {isSubmitted ? `${accuracy}%` : "--"}
+                    </p>
+                    <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-aura-dim">
+                      Accuracy
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleResetAnswers}
+                      className="flex-1 rounded-2xl border border-aura-border bg-aura-bg-soft px-4 py-3 text-sm font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text"
+                    >
+                      Reset
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsSubmitted(true)}
+                      disabled={answeredCount === 0}
+                      className="flex-1 rounded-2xl bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold px-4 py-3 text-sm font-black text-aura-bg transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Submit
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-4 p-6">
-                {fallback && (
-                  <div className="rounded-2xl border border-aura-gold/30 bg-aura-gold/10 p-4 text-sm leading-6 text-aura-gold">
-                    Demo fallback mode is active. Study Aura returned a safe
-                    fallback quiz.
-                  </div>
-                )}
+                {questions.map((question, index) => {
+                  const selectedAnswer = selectedAnswers[index];
+                  const isCorrect =
+                    selectedAnswer &&
+                    normalizeAnswer(selectedAnswer) ===
+                      normalizeAnswer(question.answer);
 
-                {questions.map((question, index) => (
-                  <div
-                    key={`${question.question}-${index}`}
-                    className="rounded-2xl border border-aura-border bg-aura-bg-soft p-5"
-                  >
-                    <p className="font-black leading-7 text-aura-text">
-                      {index + 1}. {question.question}
-                    </p>
+                  return (
+                    <div
+                      key={`${question.question}-${index}`}
+                      className="rounded-2xl border border-aura-border bg-aura-bg-soft p-5"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-wider text-aura-cyan">
+                            Question {index + 1}
+                          </p>
 
-                    <div className="mt-4 grid gap-2 md:grid-cols-2">
-                      {question.choices.map((choice) => (
-                        <div
-                          key={choice}
-                          className={`rounded-xl border px-3 py-2 text-sm ${
-                            choice === question.answer
-                              ? "border-aura-green/40 bg-aura-green/10 text-aura-green"
-                              : "border-aura-border bg-aura-panel text-aura-muted"
-                          }`}
-                        >
-                          {choice}
+                          <p className="mt-2 font-black leading-7 text-aura-text">
+                            {question.question}
+                          </p>
                         </div>
-                      ))}
-                    </div>
 
-                    <p className="mt-4 text-sm leading-6 text-aura-muted">
-                      <span className="font-black text-aura-cyan">
-                        Explanation:
-                      </span>{" "}
-                      {question.explanation}
-                    </p>
-                  </div>
-                ))}
+                        {isSubmitted && (
+                          <span
+                            className={`shrink-0 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wider ${
+                              isCorrect
+                                ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-200"
+                                : "border-red-400/40 bg-red-500/10 text-red-200"
+                            }`}
+                          >
+                            {isCorrect ? "Correct" : "Review"}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-4 grid gap-2 md:grid-cols-2">
+                        {question.choices.map((choice) => {
+                          const isSelected = selectedAnswer === choice;
+                          const isCorrectChoice =
+                            normalizeAnswer(choice) ===
+                            normalizeAnswer(question.answer);
+
+                          const submittedClass =
+                            isSubmitted && isCorrectChoice
+                              ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-100"
+                              : isSubmitted && isSelected && !isCorrectChoice
+                                ? "border-red-400/60 bg-red-500/10 text-red-100"
+                                : "";
+
+                          const idleClass = isSelected
+                            ? "border-aura-cyan/70 bg-aura-cyan/10 text-aura-text"
+                            : "border-aura-border bg-aura-panel text-aura-muted hover:border-aura-cyan/50 hover:text-aura-text";
+
+                          return (
+                            <button
+                              key={choice}
+                              type="button"
+                              onClick={() => handleSelectAnswer(index, choice)}
+                              disabled={isSubmitted}
+                              className={`rounded-xl border px-3 py-3 text-left text-sm font-semibold transition ${
+                                submittedClass || idleClass
+                              } disabled:cursor-default`}
+                            >
+                              {choice}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {isSubmitted && (
+                        <div className="mt-4 rounded-xl border border-aura-border bg-aura-panel p-4">
+                          <p className="text-sm leading-6 text-aura-muted">
+                            <span className="font-black text-aura-text">
+                              Correct answer:
+                            </span>{" "}
+                            {question.answer}
+                          </p>
+
+                          <p className="mt-2 text-sm leading-6 text-aura-muted">
+                            <span className="font-black text-aura-text">
+                              Explanation:
+                            </span>{" "}
+                            {question.explanation}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
