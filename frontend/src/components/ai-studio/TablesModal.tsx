@@ -303,7 +303,7 @@ const TablesModal = ({ topic }: Props) => {
                         key={`${column.key}-${rowIndex}`}
                         className="border-b border-aura-border px-4 py-4 align-top text-sm leading-6 text-aura-muted"
                       >
-                        {row[column.key] || "—"}
+                        {String(row[column.key] ?? "—")}
                       </td>
                     ))}
                   </tr>

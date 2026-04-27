@@ -140,8 +140,6 @@ const AIToolModal = ({
     onClose();
   };
 
-  const activeCountLabel = getLockedCountLabel(activeTool, options.difficulty);
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-aura-bg/80 px-3 py-3 backdrop-blur-xl">
       <div className="flex max-h-[94vh] w-full max-w-[1500px] flex-col overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel shadow-[0_30px_100px_rgba(0,0,0,0.45)]">

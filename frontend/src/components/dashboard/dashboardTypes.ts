@@ -1,3 +1,55 @@
+export type SourceType = "text" | "youtube" | "website" | "pdf" | "image";
+
+export type SourceStatus = "ready" | "reading" | "failed" | "pending";
+
+export type StudySource = {
+  id: string;
+  type: SourceType;
+  title: string;
+  value: string;
+  selected: boolean;
+  createdAt: string;
+
+  summary?: string;
+  extractedText?: string;
+  originalUrl?: string;
+  status?: SourceStatus;
+  statusMessage?: string;
+  parserProvider?: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
+};
+
+export type SourceUploadPayload = {
+  sourceType: SourceType;
+  title: string;
+  value: string;
+
+  summary?: string;
+  extractedText?: string;
+  originalUrl?: string;
+  status?: SourceStatus;
+  statusMessage?: string;
+  parserProvider?: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
+};
+
+export type StudyModule = {
+  id: string;
+  title: string;
+  subtitle: string;
+  description?: string;
+  progress: number;
+  createdAt: string;
+  updatedAt: string;
+  sources: StudySource[];
+};
+
+export type GeneratedLesson = StudyModule;
+
 export type AIToolName =
   | "Audio"
   | "Slides"
@@ -9,44 +61,15 @@ export type AIToolName =
 export type StudioTool = {
   name: AIToolName;
   label: string;
+  description: string;
   icon: string;
   color: string;
-  description: string;
 };
 
-export type SourceType = "text" | "youtube" | "website" | "pdf" | "image";
+export type SourceUploadMode = SourceType;
 
-export type StudySource = {
-  id: string;
-  title: string;
-  type: SourceType;
-  value: string;
-  selected: boolean;
-  summary?: string;
-  createdAt: string;
-};
-
-export type StudyModule = {
-  id: string;
-  title: string;
-  subtitle: string;
-  progress: number;
-  createdAt: string;
-  updatedAt: string;
-  sources: StudySource[];
-};
-
-export type SourceUploadPayload = {
+export type SourceUploadDraft = {
   sourceType: SourceType;
-  value: string;
   title: string;
+  value: string;
 };
-
-export type SelectedSourceContext = {
-  sourceIds: string[];
-  sourceTitles: string[];
-  sourceSummaries: string[];
-  combinedContext: string;
-};
-
-export type GeneratedLesson = StudyModule;
