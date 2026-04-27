@@ -1,0 +1,1057 @@
+{
+  "name": "Study Aura - Source Reader Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "study-aura-source-reader",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-source-reader",
+      "name": "Source Reader Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-900, 0],
+      "webhookId": "study-aura-source-reader"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\n\nconst sourceType = String(body.sourceType || body.type || 'text').toLowerCase();\nconst value = String(body.value || body.content || body.url || '').trim();\nconst title = String(body.title || '').trim();\nconst originalUrl = String(body.originalUrl || body.url || value || '').trim();\n\nfunction titleFromValue(input, fallback) {\n  if (title) return title;\n  if (!input) return fallback;\n  try {\n    const url = new URL(input);\n    return url.hostname.replace(/^www\\./, '');\n  } catch {\n    return input.slice(0, 60) || fallback;\n  }\n}\n\nreturn [{\n  json: {\n    sourceType,\n    title: titleFromValue(value, 'Untitled Source'),\n    value,\n    originalUrl: ['website', 'youtube', 'pdf', 'image'].includes(sourceType) ? originalUrl : '',\n    extractedText: '',\n    summary: '',\n    status: 'reading',\n    statusMessage: 'Reading source...',\n    parserProvider: 'none'\n  }\n}];"
+      },
+      "id": "normalize-input",
+      "name": "Normalize Source Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-680, 0]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.sourceType }}",
+                    "rightValue": "text",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.sourceType }}",
+                    "rightValue": "website",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "website"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.sourceType }}",
+                    "rightValue": "youtube",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "youtube"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.sourceType }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "pdf"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.sourceType }}",
+                    "rightValue": "image",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "image"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "route-source-type",
+      "name": "Route Source Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [-460, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.value || '';\nreturn [{\n  json: {\n    ...$json,\n    extractedText: text,\n    summary: text.length > 280 ? text.slice(0, 280) + '...' : text,\n    status: text ? 'ready' : 'failed',\n    statusMessage: text ? 'Text source is ready.' : 'No text content was provided.',\n    parserProvider: 'direct-text'\n  }\n}];"
+      },
+      "id": "text-direct-reader",
+      "name": "Text Direct Reader",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-180, -360]
+    },
+    {
+      "parameters": {
+        "url": "=https://r.jina.ai/http://{{$json.originalUrl.replace(/^https?:\\/\\//, '')}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "website-jina-reader",
+      "name": "Website Fallback 1 - Jina Reader",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-180, -180],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst body = $json.body || $json.data || $json;\nconst text = typeof body === 'string' ? body : JSON.stringify(body || '');\nconst ok = text && text.length > 200 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'Website extracted using Jina Reader.' : 'Jina Reader could not extract enough content.',\n    parserProvider: ok ? 'jina-reader' : 'jina-reader-failed'\n  }\n}];"
+      },
+      "id": "website-jina-normalize",
+      "name": "Normalize Jina Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [40, -180]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "ready",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "website-jina-success",
+      "name": "Jina Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [260, -180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v1/scrape",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.FIRECRAWL_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"url\": \"{{$json.originalUrl}}\",\n  \"formats\": [\"markdown\"],\n  \"onlyMainContent\": true\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "website-firecrawl",
+      "name": "Website Fallback 2 - Firecrawl",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, -80],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst text = data.markdown || data.content || data.text || '';\nconst ok = text && text.length > 200 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'Website extracted using Firecrawl.' : 'Firecrawl could not extract enough content.',\n    parserProvider: ok ? 'firecrawl' : 'firecrawl-failed'\n  }\n}];"
+      },
+      "id": "website-firecrawl-normalize",
+      "name": "Normalize Firecrawl Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, -80]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "ready",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "website-firecrawl-success",
+      "name": "Firecrawl Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [940, -80]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.originalUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "website-html-fallback",
+      "name": "Website Fallback 3 - Raw HTML",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1180, 20],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst html = typeof $json.body === 'string' ? $json.body : JSON.stringify($json);\nconst text = html\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&amp;/g, '&')\n  .replace(/\\s+/g, ' ')\n  .trim();\nconst ok = text.length > 120;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'failed',\n    statusMessage: ok ? 'Website extracted using raw HTML fallback.' : 'Could not read this website. Try copied text instead.',\n    parserProvider: ok ? 'raw-html-fallback' : 'website-failed'\n  }\n}];"
+      },
+      "id": "website-html-normalize",
+      "name": "Normalize Raw HTML Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1400, 20]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.supadata.ai/v1/youtube/transcript",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$env.SUPADATA_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"url\": \"{{$json.originalUrl}}\",\n  \"text\": true\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "youtube-transcript-primary",
+      "name": "YouTube Fallback 1 - Transcript API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-180, 40],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst text = data.text || data.transcript || data.content || (Array.isArray(data.segments) ? data.segments.map(s => s.text).join(' ') : '');\nconst ok = text && text.length > 120 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'YouTube transcript extracted.' : 'Primary transcript provider failed.',\n    parserProvider: ok ? 'youtube-transcript-api' : 'youtube-transcript-api-failed'\n  }\n}];"
+      },
+      "id": "youtube-primary-normalize",
+      "name": "Normalize YouTube Primary Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [40, 40]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "ready",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "youtube-primary-success",
+      "name": "YouTube Primary Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [260, 40]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.transcriptapi.com/youtube",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.TRANSCRIPTAPI_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"url\":\"{{$json.originalUrl}}\"}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "youtube-transcript-secondary",
+      "name": "YouTube Fallback 2 - TranscriptAPI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 140],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst text = data.text || data.transcript || data.content || '';\nconst ok = text && text.length > 120 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'failed',\n    statusMessage: ok ? 'YouTube transcript extracted using secondary provider.' : 'Could not extract transcript. Try copied text from the video or another source.',\n    parserProvider: ok ? 'transcriptapi' : 'youtube-failed'\n  }\n}];"
+      },
+      "id": "youtube-secondary-normalize",
+      "name": "Normalize YouTube Secondary Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 140]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cloud.llamaindex.ai/api/parsing/upload",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.LLAMAPARSE_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formData",
+              "name": "file_url",
+              "value": "={{$json.originalUrl}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "pdf-llamaparse",
+      "name": "PDF Fallback 1 - LlamaParse",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-180, 280],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst text = data.markdown || data.text || data.content || data.result || '';\nconst ok = text && text.length > 120 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'PDF extracted using LlamaParse.' : 'LlamaParse did not return readable text yet. Falling back.',\n    parserProvider: ok ? 'llamaparse' : 'llamaparse-failed'\n  }\n}];"
+      },
+      "id": "pdf-llamaparse-normalize",
+      "name": "Normalize LlamaParse Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [40, 280]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "ready",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "pdf-llamaparse-success",
+      "name": "LlamaParse Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [260, 280]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mistral.ai/v1/ocr",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.MISTRAL_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"mistral-ocr-latest\",\n  \"document\": {\n    \"type\": \"document_url\",\n    \"document_url\": \"{{$json.originalUrl}}\"\n  }\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "pdf-mistral-ocr",
+      "name": "PDF Fallback 2 - Mistral OCR",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 380],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst pages = $json.pages || $json.data?.pages || [];\nconst text = Array.isArray(pages)\n  ? pages.map(p => p.markdown || p.text || '').join('\\n\\n')\n  : ($json.text || $json.markdown || '');\nconst ok = text && text.length > 120 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'failed',\n    statusMessage: ok ? 'PDF extracted using Mistral OCR.' : 'Could not extract this PDF. Try copied text or a clearer PDF link.',\n    parserProvider: ok ? 'mistral-ocr' : 'pdf-failed'\n  }\n}];"
+      },
+      "id": "pdf-mistral-normalize",
+      "name": "Normalize Mistral PDF Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mistral.ai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.MISTRAL_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"pixtral-12b-2409\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\"type\": \"text\", \"text\": \"Extract all readable educational content from this image. Return clean markdown only.\"},\n        {\"type\": \"image_url\", \"image_url\": \"{{$json.originalUrl}}\"}\n      ]\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "image-pixtral",
+      "name": "Image Fallback 1 - Pixtral",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-180, 540],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst text = $json.choices?.[0]?.message?.content || $json.text || '';\nconst ok = text && text.length > 80 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'Image extracted using Pixtral vision.' : 'Pixtral could not extract enough content.',\n    parserProvider: ok ? 'mistral-pixtral' : 'mistral-pixtral-failed'\n  }\n}];"
+      },
+      "id": "image-pixtral-normalize",
+      "name": "Normalize Pixtral Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [40, 540]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "ready",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "image-pixtral-success",
+      "name": "Pixtral Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [260, 540]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{$env.GEMINI_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\"text\": \"Extract all readable educational content from this image URL. Return clean markdown only. Image URL: {{$json.originalUrl}}\"}\n      ]\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "image-gemini",
+      "name": "Image Fallback 2 - Gemini Vision Prompt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 640],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst text = $json.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('\\n') || '';\nconst ok = text && text.length > 80 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'failed',\n    statusMessage: ok ? 'Image extracted using Gemini fallback.' : 'Could not read this image. Try a clearer image or copied text.',\n    parserProvider: ok ? 'gemini-vision' : 'image-failed'\n  }\n}];"
+      },
+      "id": "image-gemini-normalize",
+      "name": "Normalize Gemini Image Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 640]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    ...$json,\n    status: 'failed',\n    statusMessage: `Unsupported source type: ${$json.sourceType}`,\n    parserProvider: 'unsupported-source-type'\n  }\n}];"
+      },
+      "id": "unsupported-source-type",
+      "name": "Unsupported Source Type",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-180, 760]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $json;\nconst text = String(item.extractedText || item.value || '').replace(/\\s+/g, ' ').trim();\nconst summary = item.summary || (text.length > 360 ? text.slice(0, 360) + '...' : text);\n\nreturn [{\n  json: {\n    sourceType: item.sourceType || 'text',\n    title: item.title || 'Untitled Source',\n    value: item.value || '',\n    originalUrl: item.originalUrl || '',\n    extractedText: item.extractedText || '',\n    summary,\n    status: item.status || 'failed',\n    statusMessage: item.statusMessage || 'Source reader finished.',\n    parserProvider: item.parserProvider || 'unknown'\n  }\n}];"
+      },
+      "id": "final-response-shape",
+      "name": "Final Response Shape",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1700, 120]
+    }
+  ],
+  "connections": {
+    "Source Reader Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Source Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Source Input": {
+      "main": [
+        [
+          {
+            "node": "Route Source Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Source Type": {
+      "main": [
+        [
+          {
+            "node": "Text Direct Reader",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Website Fallback 1 - Jina Reader",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "YouTube Fallback 1 - Transcript API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PDF Fallback 1 - LlamaParse",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Image Fallback 1 - Pixtral",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unsupported Source Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Direct Reader": {
+      "main": [
+        [
+          {
+            "node": "Final Response Shape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Website Fallback 1 - Jina Reader": {
+      "main": [
+        [
+          {
+            "node": "Normalize Jina Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Jina Result": {
+      "main": [
+        [
+          {
+            "node": "Jina Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jina Success?": {
+      "main": [
+        [
+          {
+            "node": "Final Response Shape",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Website Fallback 2 - Firecrawl",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Website Fallback 2 - Firecrawl": {
+      "main": [
+        [
+          {
+            "node": "Normalize Firecrawl Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Firecrawl Result": {
+      "main": [
+        [
+          {
+            "node": "Firecrawl Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Firecrawl Success?": {
+      "main": [
+        [
+          {
+            "node": "Final Response Shape",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Website Fallback 3 - Raw HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Website Fallback 3 - Raw HTML": {
+      "main": [
+        [
+          {
+            "node": "Normalize Raw HTML Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Raw HTML Result": {
+      "main": [
+        [
+          {
+            "node": "Final Response Shape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "YouTube Fallback 1 - Transcript API": {
+      "main": [
+        [
+          {
+            "node": "Normalize YouTube Primary Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize YouTube Primary Result": {
+      "main": [
+        [
+          {
+            "node": "YouTube Primary Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "YouTube Primary Success?": {
+      "main": [
+        [
+          {
+            "node": "Final Response Shape",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "YouTube Fallback 2 - TranscriptAPI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "YouTube Fallback 2 - TranscriptAPI": {
+      "main": [
+        [
+          {
+            "node": "Normalize YouTube Secondary Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize YouTube Secondary Result": {
+      "main": [
+        [
+          {
+            "node": "Final Response Shape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF Fallback 1 - LlamaParse": {
+      "main": [
+        [
+          {
+            "node": "Normalize LlamaParse Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize LlamaParse Result": {
+      "main": [
+        [
+          {
+            "node": "LlamaParse Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LlamaParse Success?": {
+      "main": [
+        [
+          {
+            "node": "Final Response Shape",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PDF Fallback 2 - Mistral OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF Fallback 2 - Mistral OCR": {
+      "main": [
+        [
+          {
+            "node": "Normalize Mistral PDF Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Mistral PDF Result": {
+      "main": [
+        [
+          {
+            "node": "Final Response Shape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Fallback 1 - Pixtral": {
+      "main": [
+        [
+          {
+            "node": "Normalize Pixtral Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Pixtral Result": {
+      "main": [
+        [
+          {
+            "node": "Pixtral Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pixtral Success?": {
+      "main": [
+        [
+          {
+            "node": "Final Response Shape",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Image Fallback 2 - Gemini Vision Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Fallback 2 - Gemini Vision Prompt": {
+      "main": [
+        [
+          {
+            "node": "Normalize Gemini Image Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Gemini Image Result": {
+      "main": [
+        [
+          {
+            "node": "Final Response Shape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unsupported Source Type": {
+      "main": [
+        [
+          {
+            "node": "Final Response Shape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "versionId": "study-aura-source-reader-v1",
+  "triggerCount": 0,
+  "tags": []
+}
