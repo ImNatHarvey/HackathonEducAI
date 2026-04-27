@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import SettingsModal from "../components/settings/SettingsModal";
 import AIToolModal from "../components/ai-studio/AIToolModal";
 import DashboardNavbar from "../components/dashboard/DashboardNavbar";
@@ -7,6 +7,10 @@ import ChatPanel from "../components/dashboard/ChatPanel";
 import AIStudioPanel from "../components/dashboard/AIStudioPanel";
 import AddSourceModal from "../components/dashboard/AddSourceModal";
 import { useDashboardActions } from "../hooks/useDashboardActions";
+import {
+  fetchGeneratedOutputs,
+  type GeneratedOutput,
+} from "../services/generatedOutputService";
 import type { SettingsPanel } from "../components/settings/settingsTypes";
 import type { AuthProfile } from "../services/authService";
 import type {
@@ -69,6 +73,11 @@ const Dashboard = ({
   const [settingsInitialPanel, setSettingsInitialPanel] =
     useState<SettingsPanel>("home");
   const [activeTool, setActiveTool] = useState<AIToolName | null>(null);
+  const [savedOutputToView, setSavedOutputToView] =
+    useState<GeneratedOutput | null>(null);
+  const [recentOutputs, setRecentOutputs] = useState<GeneratedOutput[]>([]);
+  const [isLoadingOutputs, setIsLoadingOutputs] = useState(false);
+  const [outputError, setOutputError] = useState("");
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
 
   const currentModule = useMemo(() => {
@@ -86,6 +95,38 @@ const Dashboard = ({
   }, [currentSources]);
 
   const selectedSourceCount = selectedSources.length;
+
+  const loadGeneratedOutputs = async () => {
+    if (!userId || !currentModule?.id) {
+      setRecentOutputs([]);
+      return;
+    }
+
+    setIsLoadingOutputs(true);
+    setOutputError("");
+
+    try {
+      const outputs = await fetchGeneratedOutputs({
+        userId,
+        moduleId: currentModule.id,
+      });
+
+      setRecentOutputs(outputs);
+    } catch (error) {
+      setOutputError(
+        error instanceof Error
+          ? error.message
+          : "Failed to load generated outputs.",
+      );
+    } finally {
+      setIsLoadingOutputs(false);
+    }
+  };
+
+  useEffect(() => {
+    loadGeneratedOutputs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, currentModule?.id]);
 
   const openSettings = (panel: SettingsPanel = "home") => {
     setSettingsInitialPanel(panel);
@@ -262,6 +303,22 @@ const Dashboard = ({
     handleUploadSources(payloads);
   };
 
+  const handleOpenTool = (toolName: AIToolName) => {
+    setSavedOutputToView(null);
+    setActiveTool(toolName);
+  };
+
+  const handleOpenSavedOutput = (output: GeneratedOutput) => {
+    setSavedOutputToView(output);
+    setActiveTool(output.toolName);
+  };
+
+  const handleCloseToolModal = () => {
+    setActiveTool(null);
+    setSavedOutputToView(null);
+    loadGeneratedOutputs();
+  };
+
   return (
     <div className="flex h-dvh max-h-dvh w-full flex-col overflow-hidden bg-aura-bg text-aura-text">
       <DashboardNavbar
@@ -305,7 +362,11 @@ const Dashboard = ({
         <div className="min-h-[420px] overflow-hidden lg:col-span-2 xl:col-span-1 xl:min-h-0">
           <AIStudioPanel
             selectedSourceCount={selectedSourceCount}
-            onOpenTool={setActiveTool}
+            recentOutputs={recentOutputs}
+            isLoadingOutputs={isLoadingOutputs}
+            outputError={outputError}
+            onOpenTool={handleOpenTool}
+            onOpenSavedOutput={handleOpenSavedOutput}
           />
         </div>
       </div>
@@ -323,7 +384,8 @@ const Dashboard = ({
         moduleId={currentModule?.id}
         userId={userId}
         selectedSources={selectedSources}
-        onClose={() => setActiveTool(null)}
+        savedOutput={savedOutputToView}
+        onClose={handleCloseToolModal}
       />
 
       <AddSourceModal

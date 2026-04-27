@@ -14,6 +14,7 @@ import type {
   QuizDifficulty,
   StudyTableType,
 } from "../../lib/n8n";
+import type { GeneratedOutput } from "../../services/generatedOutputService";
 
 type AIToolModalProps = {
   activeTool: AIToolName | null;
@@ -21,6 +22,7 @@ type AIToolModalProps = {
   moduleId?: string;
   userId?: string;
   selectedSources: StudySource[];
+  savedOutput?: GeneratedOutput | null;
   onClose: () => void;
 };
 
@@ -96,6 +98,7 @@ const AIToolModal = ({
   moduleId,
   userId,
   selectedSources,
+  savedOutput = null,
   onClose,
 }: AIToolModalProps) => {
   const [options, setOptions] =
@@ -119,9 +122,11 @@ const AIToolModal = ({
 
   if (!activeTool) return null;
 
+  const savedResult = savedOutput?.payload?.result;
+  const isViewingSavedOutput = Boolean(savedOutput && savedResult);
   const selectedSourceCount = selectedSources.length;
   const isLoading = status === "loading";
-  const hasResult = status === "success";
+  const hasResult = status === "success" || isViewingSavedOutput;
 
   const updateOptions = (updates: Partial<AIToolGenerationOptions>) => {
     setOptions((currentOptions) => ({
@@ -158,10 +163,19 @@ const AIToolModal = ({
             </h2>
 
             <p className="mt-2 max-w-2xl text-sm leading-6 text-aura-muted">
-              Choose a generation preset, then generate from{" "}
-              <span className="font-bold text-aura-text">{topic}</span> using{" "}
-              {selectedSourceCount} selected source
-              {selectedSourceCount === 1 ? "" : "s"}.
+              {isViewingSavedOutput ? (
+                <>
+                  Viewing a saved output from{" "}
+                  <span className="font-bold text-aura-text">{topic}</span>.
+                </>
+              ) : (
+                <>
+                  Choose a generation preset, then generate from{" "}
+                  <span className="font-bold text-aura-text">{topic}</span>{" "}
+                  using {selectedSourceCount} selected source
+                  {selectedSourceCount === 1 ? "" : "s"}.
+                </>
+              )}
             </p>
           </div>
 
@@ -176,7 +190,7 @@ const AIToolModal = ({
         </div>
 
         <div className="aura-scrollbar min-h-0 flex-1 overflow-y-auto p-6">
-          {selectedSourceCount === 0 && (
+          {selectedSourceCount === 0 && !isViewingSavedOutput && (
             <div className="mb-5 rounded-2xl border border-yellow-400/30 bg-yellow-500/10 px-4 py-3 text-sm font-semibold leading-6 text-yellow-100">
               No sources are selected. Aura will generate from the module topic
               only. Select sources in the left panel for better context.
@@ -331,46 +345,63 @@ const AIToolModal = ({
             </div>
           )}
 
-          {status === "success" && (
+          {hasResult && (
             <div>
               <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-aura-border bg-aura-bg-soft p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.22em] text-aura-cyan">
-                    Generated Result
-                  </p>
-                  <p className="mt-1 text-sm text-aura-muted">
-                    Preset:{" "}
-                    <span className="font-bold text-aura-text">
-                      {activeTool === "Audio"
-                        ? `${options.audioStyle} / ${options.audioLength}`
-                        : `${options.difficulty} • ${activeCountLabel}`}
-                    </span>
+                    {isViewingSavedOutput ? "Saved Result" : "Generated Result"}
                   </p>
 
-                  {saveNotice && (
+                  <p className="mt-1 text-sm text-aura-muted">
+                    {isViewingSavedOutput ? (
+                      <>
+                        Saved as:{" "}
+                        <span className="font-bold text-aura-text">
+                          {savedOutput?.title}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        Preset:{" "}
+                        <span className="font-bold text-aura-text">
+                          {activeTool === "Audio"
+                            ? `${options.audioStyle} / ${options.audioLength}`
+                            : `${options.difficulty} • ${activeCountLabel}`}
+                        </span>
+                      </>
+                    )}
+                  </p>
+
+                  {!isViewingSavedOutput && saveNotice && (
                     <p className="mt-2 text-xs font-black uppercase tracking-[0.18em] text-aura-gold">
                       {saveNotice}
                     </p>
                   )}
 
-                  {savedOutputId && (
+                  {!isViewingSavedOutput && savedOutputId && (
                     <p className="mt-1 text-[10px] font-semibold text-aura-dim">
                       Output ID: {savedOutputId.slice(0, 8)}
                     </p>
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleGenerate}
-                  disabled={isLoading}
-                  className="rounded-2xl border border-aura-border bg-aura-panel px-4 py-2 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text disabled:opacity-50"
-                >
-                  Regenerate
-                </button>
+                {!isViewingSavedOutput && (
+                  <button
+                    type="button"
+                    onClick={handleGenerate}
+                    disabled={isLoading}
+                    className="rounded-2xl border border-aura-border bg-aura-panel px-4 py-2 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text disabled:opacity-50"
+                  >
+                    Regenerate
+                  </button>
+                )}
               </div>
 
-              <AIToolResultRenderer toolName={activeTool} result={result} />
+              <AIToolResultRenderer
+                toolName={activeTool}
+                result={isViewingSavedOutput ? savedResult : result}
+              />
             </div>
           )}
         </div>

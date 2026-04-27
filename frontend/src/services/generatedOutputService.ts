@@ -1,13 +1,21 @@
 import { supabase } from "../lib/supabase";
 import type { AIToolName } from "../components/dashboard/dashboardTypes";
 
+export type SavedGeneratedPayload = {
+  toolName?: AIToolName;
+  topic?: string;
+  options?: unknown;
+  selectedSources?: unknown[];
+  result?: unknown;
+};
+
 export type GeneratedOutput = {
   id: string;
   userId: string;
   moduleId: string;
   toolName: AIToolName;
   title: string;
-  payload: unknown;
+  payload: SavedGeneratedPayload;
   createdAt: string;
 };
 
@@ -17,7 +25,7 @@ type GeneratedOutputRow = {
   module_id: string;
   tool_name: AIToolName;
   title: string;
-  payload: unknown;
+  payload: SavedGeneratedPayload;
   created_at: string;
 };
 
@@ -44,7 +52,7 @@ export const createGeneratedOutput = async ({
   moduleId: string;
   toolName: AIToolName;
   title: string;
-  payload: unknown;
+  payload: SavedGeneratedPayload;
 }): Promise<GeneratedOutput> => {
   const { data, error } = await supabase
     .from("generated_outputs")

@@ -1,14 +1,36 @@
 import { studioTools } from "../../mocks/dashboardMockData";
+import type { GeneratedOutput } from "../../services/generatedOutputService";
 import type { AIToolName } from "./dashboardTypes";
 
 type AIStudioPanelProps = {
   selectedSourceCount: number;
+  recentOutputs: GeneratedOutput[];
+  isLoadingOutputs: boolean;
+  outputError: string;
   onOpenTool: (toolName: AIToolName) => void;
+  onOpenSavedOutput: (output: GeneratedOutput) => void;
+};
+
+const formatOutputDate = (isoDate: string) => {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(isoDate));
+};
+
+const getToolMeta = (toolName: AIToolName) => {
+  return studioTools.find((tool) => tool.name === toolName);
 };
 
 const AIStudioPanel = ({
   selectedSourceCount,
+  recentOutputs,
+  isLoadingOutputs,
+  outputError,
   onOpenTool,
+  onOpenSavedOutput,
 }: AIStudioPanelProps) => {
   const hasSelectedSources = selectedSourceCount > 0;
 
@@ -66,7 +88,7 @@ const AIStudioPanel = ({
           </span>
         </div>
 
-        <div className="space-y-3 pb-6">
+        <div className="space-y-3">
           {studioTools.map((tool) => (
             <button
               key={tool.name}
@@ -97,6 +119,77 @@ const AIStudioPanel = ({
               </div>
             </button>
           ))}
+        </div>
+
+        <div className="mt-6 border-t border-aura-border pt-5">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
+              Recent Outputs
+            </p>
+
+            <span className="rounded-full border border-aura-border bg-aura-bg-soft px-2 py-1 text-[9px] font-black uppercase tracking-wider text-aura-dim">
+              {recentOutputs.length}
+            </span>
+          </div>
+
+          {isLoadingOutputs && (
+            <div className="rounded-2xl border border-aura-border bg-aura-bg-soft p-4 text-sm font-semibold text-aura-muted">
+              Loading saved outputs...
+            </div>
+          )}
+
+          {outputError && !isLoadingOutputs && (
+            <div className="rounded-2xl border border-red-400/30 bg-red-500/10 p-4 text-xs font-semibold leading-5 text-red-200">
+              {outputError}
+            </div>
+          )}
+
+          {!isLoadingOutputs && !outputError && recentOutputs.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-aura-border bg-aura-bg-soft/60 p-4 text-sm leading-6 text-aura-muted">
+              Generated outputs will appear here after you create them.
+            </div>
+          )}
+
+          {!isLoadingOutputs && !outputError && recentOutputs.length > 0 && (
+            <div className="space-y-3 pb-6">
+              {recentOutputs.slice(0, 8).map((output) => {
+                const toolMeta = getToolMeta(output.toolName);
+
+                return (
+                  <button
+                    key={output.id}
+                    type="button"
+                    onClick={() => onOpenSavedOutput(output)}
+                    className="group w-full rounded-2xl border border-aura-border bg-aura-bg-soft p-4 text-left transition hover:-translate-y-0.5 hover:border-aura-gold/60 hover:bg-aura-gold/5"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${
+                          toolMeta?.color ?? "from-aura-primary to-aura-cyan"
+                        } text-lg shadow-[0_12px_35px_rgba(0,0,0,0.2)]`}
+                      >
+                        {toolMeta?.icon ?? "✦"}
+                      </div>
+
+                      <div className="min-w-0">
+                        <p className="line-clamp-2 text-sm font-black text-aura-text">
+                          {output.title}
+                        </p>
+
+                        <p className="mt-1 text-xs font-semibold text-aura-muted">
+                          {formatOutputDate(output.createdAt)}
+                        </p>
+
+                        <p className="mt-3 text-[10px] font-black uppercase tracking-wider text-aura-gold opacity-0 transition group-hover:opacity-100">
+                          Open saved output →
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </aside>
