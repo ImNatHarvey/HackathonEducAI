@@ -152,7 +152,7 @@ export type StudyTableColumn = {
   label: string;
 };
 
-export type StudyTableRow = Record<string, string>;
+export type StudyTableRow = Record<string, unknown>;
 
 export type N8nTablesResponse = N8nBaseResponse & {
   table: {
@@ -198,6 +198,13 @@ export type StudySlide = {
   bullets: string[];
   speakerNotes: string;
   visualIdea: string;
+
+  // For future image API fallback:
+  // Unsplash → Pexels → Pixabay
+  visualQuery?: string;
+  imageUrl?: string;
+  imageAlt?: string;
+  imageProvider?: "unsplash" | "pexels" | "pixabay" | "fallback";
 };
 
 export type N8nSlidesPayload = {

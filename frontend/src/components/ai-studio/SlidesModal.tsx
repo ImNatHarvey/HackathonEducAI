@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ErrorState from "../states/ErrorState";
 import LoadingState from "../states/LoadingState";
 import { currentUser } from "../user/userMock";
@@ -19,21 +19,33 @@ const difficultyOptions: {
     label: "Easy",
     value: "easy",
     slideCount: 5,
-    description: "5 simple review slides",
+    description: "Simple review deck",
   },
   {
     label: "Medium",
     value: "medium",
     slideCount: 8,
-    description: "8 balanced lesson slides",
+    description: "Balanced lesson deck",
   },
   {
     label: "Hard",
     value: "hard",
     slideCount: 12,
-    description: "12 detailed presentation slides",
+    description: "Detailed presentation deck",
   },
 ];
+
+function normalizeSlide(slide: StudySlide, index: number): StudySlide {
+  return {
+    ...slide,
+    slideNumber: Number(slide.slideNumber) || index + 1,
+    title: slide.title || `Slide ${index + 1}`,
+    subtitle: slide.subtitle || "",
+    bullets: Array.isArray(slide.bullets) ? slide.bullets.filter(Boolean) : [],
+    speakerNotes: slide.speakerNotes || "",
+    visualIdea: slide.visualIdea || "",
+  };
+}
 
 const SlidesModal = ({ topic }: Props) => {
   const [difficulty, setDifficulty] = useState<SlidesDifficulty>("easy");
@@ -43,6 +55,8 @@ const SlidesModal = ({ topic }: Props) => {
   const [fallback, setFallback] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [showSpeakerNotes, setShowSpeakerNotes] = useState(false);
 
   const selectedDifficulty = useMemo(() => {
     return (
@@ -51,12 +65,22 @@ const SlidesModal = ({ topic }: Props) => {
     );
   }, [difficulty]);
 
-  const hasSlides = slides.length > 0;
+  const normalizedSlides = useMemo(() => {
+    return slides.map((slide, index) => normalizeSlide(slide, index));
+  }, [slides]);
+
+  const hasSlides = normalizedSlides.length > 0;
+  const activeSlide = normalizedSlides[activeIndex];
+  const totalSlides = normalizedSlides.length;
+  const progressPercent =
+    totalSlides > 0 ? ((activeIndex + 1) / totalSlides) * 100 : 0;
 
   const handleGenerateSlides = async () => {
     setError("");
     setFallback(false);
     setIsGenerating(true);
+    setActiveIndex(0);
+    setShowSpeakerNotes(false);
 
     try {
       const response = await generateSlidesWithN8n({
@@ -85,17 +109,49 @@ const SlidesModal = ({ topic }: Props) => {
     setSlides([]);
     setFallback(false);
     setError("");
+    setActiveIndex(0);
+    setShowSpeakerNotes(false);
   };
+
+  const goToPrevious = () => {
+    setShowSpeakerNotes(false);
+    setActiveIndex((current) => Math.max(current - 1, 0));
+  };
+
+  const goToNext = () => {
+    setShowSpeakerNotes(false);
+    setActiveIndex((current) => Math.min(current + 1, totalSlides - 1));
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!hasSlides) return;
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        goToPrevious();
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        goToNext();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [hasSlides, totalSlides]);
 
   return (
     <div className="space-y-5">
       <div>
-        <h3 className="text-xl font-black text-aura-text">
-          Generate Slides
-        </h3>
+        <h3 className="text-xl font-black text-aura-text">Generate Slides</h3>
         <p className="mt-1 text-sm text-aura-muted">
-          Turn the lesson into a clean slide outline with bullets, speaker
-          notes, and visual ideas.
+          Turn the lesson into a presentation-style deck with bullets, topic
+          descriptions, speaker notes, and visual ideas.
         </p>
       </div>
 
@@ -122,7 +178,7 @@ const SlidesModal = ({ topic }: Props) => {
                   </div>
 
                   <span className="rounded-full border border-aura-gold/30 bg-aura-gold/10 px-2 py-1 text-xs font-black text-aura-gold">
-                    {option.slideCount}
+                    {option.slideCount} slides
                   </span>
                 </div>
               </button>
@@ -153,7 +209,7 @@ const SlidesModal = ({ topic }: Props) => {
           {isGenerating && (
             <LoadingState
               title="Generating slides..."
-              description="Study Aura is creating a slide outline through n8n."
+              description="Study Aura is creating a presentation-style deck through n8n."
             />
           )}
 
@@ -175,95 +231,136 @@ const SlidesModal = ({ topic }: Props) => {
         </div>
       )}
 
-      {hasSlides && (
-        <div className="rounded-[1.75rem] border border-aura-border bg-aura-bg-soft p-5">
-          <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+      {hasSlides && activeSlide && (
+        <div className="slides-live-result">
+          <div className="slides-live-header">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
-                Generated Slide Deck
-              </p>
-              <h4 className="mt-1 text-xl font-black text-aura-text">
-                {title}
-              </h4>
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-aura-muted">
-                {description}
-              </p>
-              <p className="mt-2 text-sm font-black text-aura-cyan">
-                Topic: {topic}
-              </p>
+              <p className="slides-live-kicker">Generated Slide Deck</p>
+              <h4>{title || `${topic} Slide Deck`}</h4>
+              <p>{description || `A generated slide deck about ${topic}.`}</p>
+              <strong>Topic: {topic}</strong>
             </div>
 
             <button
               type="button"
               onClick={handleNewSlides}
-              className="rounded-2xl border border-aura-pink/40 bg-aura-pink/10 px-4 py-2 text-sm font-black text-aura-pink transition hover:-translate-y-0.5"
+              className="slides-new-button"
             >
               New Slides
             </button>
           </div>
 
-          <div className="grid gap-4">
-            {slides.map((slide) => (
-              <div
-                key={`${slide.slideNumber}-${slide.title}`}
-                className="overflow-hidden rounded-[1.5rem] border border-aura-border bg-aura-panel shadow-aura-soft"
-              >
-                <div className="border-b border-aura-border bg-aura-bg-soft px-5 py-4">
-                  <div className="flex items-start gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-aura-gold/40 bg-aura-gold/10 text-xs font-black text-aura-gold">
-                      {slide.slideNumber}
-                    </span>
-
-                    <div>
-                      <p className="text-lg font-black text-aura-text">
-                        {slide.title}
-                      </p>
-                      <p className="mt-1 text-sm text-aura-muted">
-                        {slide.subtitle}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 p-5 lg:grid-cols-[1.2fr_0.8fr]">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
-                      Slide Bullets
-                    </p>
-                    <ul className="mt-3 space-y-2">
-                      {slide.bullets.map((bullet) => (
-                        <li
-                          key={bullet}
-                          className="rounded-xl border border-aura-border bg-aura-bg-soft px-3 py-2 text-sm leading-6 text-aura-muted"
-                        >
-                          {bullet}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="rounded-2xl border border-aura-cyan/25 bg-aura-cyan/10 p-4">
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-aura-cyan">
-                        Visual Idea
-                      </p>
-                      <p className="mt-2 text-sm leading-6 text-aura-muted">
-                        {slide.visualIdea}
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl border border-aura-gold/25 bg-aura-gold/10 p-4">
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-aura-gold">
-                        Speaker Notes
-                      </p>
-                      <p className="mt-2 text-sm leading-6 text-aura-muted">
-                        {slide.speakerNotes}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+          <div className="slides-viewer-shell">
+            <div className="slides-viewer-toolbar">
+              <div>
+                <p className="slides-viewer-count">
+                  Slide {activeIndex + 1} of {totalSlides}
+                </p>
+                <p className="slides-viewer-hint">
+                  Use ← and → keys to navigate
+                </p>
               </div>
-            ))}
+
+              <div className="slides-viewer-actions">
+                <button
+                  type="button"
+                  onClick={goToPrevious}
+                  disabled={activeIndex === 0}
+                  className="slides-nav-button"
+                >
+                  Previous
+                </button>
+
+                <button
+                  type="button"
+                  onClick={goToNext}
+                  disabled={activeIndex === totalSlides - 1}
+                  className="slides-nav-button slides-nav-button-primary"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+
+            <div className="slides-progress-track">
+              <div
+                className="slides-progress-fill"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+
+            <article className="slides-presentation-card">
+              <div className="slides-card-topline">
+                <span>Slide {activeSlide.slideNumber}</span>
+                <span>{title || "Study Aura Deck"}</span>
+              </div>
+
+              <div className="slides-card-content">
+                <div className="slides-main-panel">
+                  <h4>{activeSlide.title}</h4>
+
+                  {activeSlide.subtitle && (
+                    <p className="slides-topic-description">
+                      {activeSlide.subtitle}
+                    </p>
+                  )}
+
+                  <ul className="slides-bullet-list">
+                    {activeSlide.bullets.map((bullet, index) => (
+                      <li key={`${activeSlide.slideNumber}-bullet-${index}`}>
+                        {bullet}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <aside className="slides-side-panel">
+                  <div className="slides-visual-card">
+                    <p className="slides-panel-label">Visual Idea</p>
+                    <p>{activeSlide.visualIdea || "No visual idea provided."}</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowSpeakerNotes((current) => !current)}
+                    className="slides-speaker-button"
+                  >
+                    {showSpeakerNotes
+                      ? "Hide Speaker Notes"
+                      : "Show Speaker Notes"}
+                  </button>
+
+                  {showSpeakerNotes && (
+                    <div className="slides-speaker-notes-card">
+                      <p className="slides-panel-label">Speaker Notes</p>
+                      <p>
+                        {activeSlide.speakerNotes ||
+                          "No speaker notes were generated for this slide."}
+                      </p>
+                    </div>
+                  )}
+                </aside>
+              </div>
+            </article>
+
+            <div className="slides-thumbnail-strip">
+              {normalizedSlides.map((slide, index) => (
+                <button
+                  key={`${slide.slideNumber}-${slide.title}`}
+                  type="button"
+                  onClick={() => {
+                    setActiveIndex(index);
+                    setShowSpeakerNotes(false);
+                  }}
+                  className={`slides-thumbnail ${
+                    activeIndex === index ? "slides-thumbnail-active" : ""
+                  }`}
+                >
+                  <span>{index + 1}</span>
+                  <p>{slide.title}</p>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
