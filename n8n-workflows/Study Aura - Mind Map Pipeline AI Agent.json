@@ -12,7 +12,7 @@
       "name": "Mind Map Agent Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [120, 260],
+      "position": [-3184, 912],
       "webhookId": "study-aura-mindmap"
     },
     {
@@ -22,7 +22,37 @@
             {
               "id": "mindmap-prompt",
               "name": "prompt",
-              "value": "={{\"You are Study Aura, an educational mind map generator. Create a mind map for the topic: \" + ($json.body.topic || \"General Study\") + \". Difficulty: \" + ($json.body.difficulty || \"easy\") + \". Create exactly \" + ($json.body.branchCount || 4) + \" branches. Return ONLY valid JSON. No markdown. No code fences. Format: {\\\"title\\\": string, \\\"center\\\": string, \\\"description\\\": string, \\\"branches\\\": [{\\\"title\\\": string, \\\"summary\\\": string, \\\"keywords\\\": string[]}]}. Each branch must have 3 to 5 short keywords.\"}}",
+              "value": "={{\n\"You are Study Aura, an educational mind map generator. Create a mind map for the topic: \" + ($json.body.topic || \"General Study\") + \". Difficulty: \" + ($json.body.difficulty || \"easy\") + \". Create exactly \" + ($json.body.branchCount || 4) + \" branches.\\n\\n\" +\n\"Selected source context:\\n\" +\n(\n  Array.isArray($json.body.selectedSources) && $json.body.selectedSources.length > 0\n    ? $json.body.selectedSources.map((source, index) => {\n        return (index + 1) + \". \" + (source.title || \"Untitled Source\") + \" [\" + (source.type || \"source\") + \"]\\n\" +\n          \"Summary or content: \" + (source.summary || source.value || \"No summary provided.\");\n      }).join(\"\\n\\n\")\n    : \"No selected sources were provided. Use the topic only.\"\n) +\n\"\\n\\nReturn ONLY valid JSON. No markdown. No code fences.\\n\" +\n\"Required JSON format: {\\\"title\\\": string, \\\"center\\\": string, \\\"description\\\": string, \\\"branches\\\": [{\\\"title\\\": string, \\\"summary\\\": string, \\\"keywords\\\": string[]}]}.\\n\" +\n\"Rules:\\n\" +\n\"- Each branch must have 3 to 5 short keywords.\\n\" +\n\"- Summaries should be short and student-friendly.\\n\" +\n\"- Prioritize selected source context when available.\\n\" +\n\"- Do not include markdown, comments, or text outside JSON.\"\n}}",
+              "type": "string"
+            },
+            {
+              "id": "topic",
+              "name": "topic",
+              "value": "={{$json.body.topic || \"General Study\"}}",
+              "type": "string"
+            },
+            {
+              "id": "difficulty",
+              "name": "difficulty",
+              "value": "={{$json.body.difficulty || \"easy\"}}",
+              "type": "string"
+            },
+            {
+              "id": "branch-count",
+              "name": "branchCount",
+              "value": "={{$json.body.branchCount || 4}}",
+              "type": "number"
+            },
+            {
+              "id": "module-id",
+              "name": "moduleId",
+              "value": "={{$json.body.moduleId || \"demo-module\"}}",
+              "type": "string"
+            },
+            {
+              "id": "user-id",
+              "name": "userId",
+              "value": "={{$json.body.userId || \"demo-user\"}}",
               "type": "string"
             }
           ]
@@ -33,7 +63,7 @@
       "name": "Prepare Mind Map Agent Prompt",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [400, 260]
+      "position": [-2896, 912]
     },
     {
       "parameters": {
@@ -43,11 +73,11 @@
           "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
         }
       },
-      "id": "mindmap-ai-agent",
-      "name": "Mind Map AI Agent",
+      "id": "mindmap-gemini-ai-agent",
+      "name": "Mind Map Gemini AI Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
-      "position": [700, 260],
+      "position": [-2576, 608],
       "continueOnFail": true
     },
     {
@@ -55,17 +85,17 @@
         "modelName": "models/gemini-3.1-flash-lite-preview",
         "options": {
           "temperature": 0.4,
-          "maxOutputTokens": 1600
+          "maxOutputTokens": 1800
         }
       },
       "id": "mindmap-gemini-chat-model",
       "name": "Mind Map Gemini Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
-      "position": [700, 520],
+      "position": [-2576, 832],
       "credentials": {
         "googlePalmApi": {
-          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "id": "REPLACE_WITH_GEMINI_CREDENTIAL_ID",
           "name": "Study Aura Gemini Key"
         }
       }
@@ -81,12 +111,22 @@
           },
           "conditions": [
             {
-              "id": "agent-output-exists",
+              "id": "gemini-output-exists",
               "leftValue": "={{$json.output}}",
               "rightValue": "",
               "operator": {
                 "type": "string",
                 "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "gemini-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
                 "singleValue": true
               }
             }
@@ -95,120 +135,519 @@
         },
         "options": {}
       },
-      "id": "mindmap-agent-succeeded",
-      "name": "Mind Map Agent Succeeded?",
+      "id": "mindmap-gemini-succeeded",
+      "name": "Mind Map Gemini Succeeded?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [1020, 260]
+      "position": [-2240, 608]
     },
     {
       "parameters": {
-        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet mindMap;\n\ntry {\n  mindMap = JSON.parse(cleaned);\n\n  if (!Array.isArray(mindMap.branches)) {\n    throw new Error(\"Invalid mind map format\");\n  }\n} catch (error) {\n  mindMap = {\n    title: \"Demo Mind Map\",\n    center: \"Marine Biology\",\n    description: \"A fallback concept map for Study Aura.\",\n    branches: [\n      {\n        title: \"Marine Mammals\",\n        summary: \"Animals like dolphins and whales that breathe air and nurse their young.\",\n        keywords: [\"dolphins\", \"whales\", \"mammals\"]\n      },\n      {\n        title: \"Coral Reefs\",\n        summary: \"Important marine ecosystems that support biodiversity.\",\n        keywords: [\"coral\", \"habitat\", \"biodiversity\"]\n      }\n    ]\n  };\n}\n\nconst branches = mindMap.branches.map((branch) => ({\n  title: String(branch.title || \"Untitled Branch\"),\n  summary: String(branch.summary || \"Review this concept.\"),\n  keywords: Array.isArray(branch.keywords)\n    ? branch.keywords.map((keyword) => String(keyword)).slice(0, 5)\n    : [\"study\", \"review\"]\n}));\n\nreturn [\n  {\n    json: {\n      mindMap: {\n        title: String(mindMap.title || \"Study Aura Mind Map\"),\n        center: String(mindMap.center || \"Main Topic\"),\n        description: String(mindMap.description || \"Generated concept map.\"),\n        branches\n      },\n      fallback: false\n    }\n  }\n];"
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet mindMap;\nlet fallback = false;\n\ntry {\n  mindMap = JSON.parse(cleaned);\n\n  if (!mindMap.title || !mindMap.center || !Array.isArray(mindMap.branches)) {\n    throw new Error(\"Invalid mind map format\");\n  }\n} catch (error) {\n  fallback = true;\n  mindMap = {\n    title: \"Study Aura Mind Map\",\n    center: \"Main Topic\",\n    description: \"A quick fallback concept map for organizing a study topic.\",\n    branches: [\n      {\n        title: \"Core Idea\",\n        summary: \"The main concept you should understand first.\",\n        keywords: [\"main point\", \"definition\", \"overview\"]\n      },\n      {\n        title: \"Supporting Details\",\n        summary: \"Important facts or examples that explain the topic more clearly.\",\n        keywords: [\"examples\", \"details\", \"evidence\"]\n      }\n    ]\n  };\n}\n\nconst branches = Array.isArray(mindMap.branches)\n  ? mindMap.branches.map((branch) => {\n      const keywords = Array.isArray(branch.keywords)\n        ? branch.keywords.map((keyword) => String(keyword)).slice(0, 5)\n        : [\"study\", \"review\", \"concept\"];\n\n      while (keywords.length < 3) {\n        keywords.push(\"key idea\");\n      }\n\n      return {\n        title: String(branch.title || \"Untitled Branch\"),\n        summary: String(branch.summary || \"Review this concept.\"),\n        keywords\n      };\n    })\n  : [];\n\nreturn [\n  {\n    json: {\n      mindMap: {\n        title: String(mindMap.title || \"Study Aura Mind Map\"),\n        center: String(mindMap.center || \"Main Topic\"),\n        description: String(mindMap.description || \"Generated concept map.\"),\n        branches\n      },\n      fallback,\n      provider: $json.provider || \"gemini\"\n    }\n  }\n];"
       },
-      "id": "clean-mindmap-agent-json",
-      "name": "Clean Mind Map Agent JSON",
+      "id": "clean-gemini-mindmap-json",
+      "name": "Clean Gemini Mind Map JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1260, 140]
+      "position": [-1936, 528]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{\n  {\n    \"mindMap\": $json.mindMap,\n    \"fallback\": $json.fallback\n  }\n}}",
+        "responseBody": "={{\n  {\n    \"mindMap\": $json.mindMap,\n    \"provider\": \"gemini\",\n    \"fallback\": $json.fallback\n  }\n}}",
         "options": {}
       },
-      "id": "return-mindmap-agent-response",
-      "name": "Return Mind Map Agent Response",
+      "id": "return-gemini-mindmap-response",
+      "name": "Return Gemini Mind Map Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1540, 140]
+      "position": [-1664, 528]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$node[\"Prepare Mind Map Agent Prompt\"].json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+        }
+      },
+      "id": "mindmap-groq-ai-agent",
+      "name": "Mind Map Groq AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [-1936, 736],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "id": "mindmap-groq-chat-model",
+      "name": "Mind Map Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [-1936, 960],
+      "credentials": {
+        "groqApi": {
+          "id": "REPLACE_WITH_GROQ_CREDENTIAL_ID",
+          "name": "Study Aura Groq Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "groq-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "groq-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "mindmap-groq-succeeded",
+      "name": "Mind Map Groq Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-1600, 736]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet mindMap;\nlet fallback = false;\n\ntry {\n  mindMap = JSON.parse(cleaned);\n\n  if (!mindMap.title || !mindMap.center || !Array.isArray(mindMap.branches)) {\n    throw new Error(\"Invalid mind map format\");\n  }\n} catch (error) {\n  fallback = true;\n  mindMap = {\n    title: \"Study Aura Mind Map\",\n    center: \"Main Topic\",\n    description: \"A quick fallback concept map for organizing a study topic.\",\n    branches: [\n      {\n        title: \"Core Idea\",\n        summary: \"The main concept you should understand first.\",\n        keywords: [\"main point\", \"definition\", \"overview\"]\n      },\n      {\n        title: \"Supporting Details\",\n        summary: \"Important facts or examples that explain the topic more clearly.\",\n        keywords: [\"examples\", \"details\", \"evidence\"]\n      }\n    ]\n  };\n}\n\nconst branches = Array.isArray(mindMap.branches)\n  ? mindMap.branches.map((branch) => {\n      const keywords = Array.isArray(branch.keywords)\n        ? branch.keywords.map((keyword) => String(keyword)).slice(0, 5)\n        : [\"study\", \"review\", \"concept\"];\n\n      while (keywords.length < 3) {\n        keywords.push(\"key idea\");\n      }\n\n      return {\n        title: String(branch.title || \"Untitled Branch\"),\n        summary: String(branch.summary || \"Review this concept.\"),\n        keywords\n      };\n    })\n  : [];\n\nreturn [\n  {\n    json: {\n      mindMap: {\n        title: String(mindMap.title || \"Study Aura Mind Map\"),\n        center: String(mindMap.center || \"Main Topic\"),\n        description: String(mindMap.description || \"Generated concept map.\"),\n        branches\n      },\n      fallback,\n      provider: $json.provider || \"groq\"\n    }\n  }\n];"
+      },
+      "id": "clean-groq-mindmap-json",
+      "name": "Clean Groq Mind Map JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1296, 656]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "{\n  \"mindMap\": {\n    \"title\": \"Demo Fallback Mind Map\",\n    \"center\": \"Marine Biology\",\n    \"description\": \"A safe fallback mind map for Study Aura when the AI model is unavailable.\",\n    \"branches\": [\n      {\n        \"title\": \"Marine Mammals\",\n        \"summary\": \"Dolphins and whales breathe air, are warm-blooded, and nurse their young.\",\n        \"keywords\": [\"dolphins\", \"whales\", \"mammals\"]\n      },\n      {\n        \"title\": \"Coral Reefs\",\n        \"summary\": \"Coral reefs are underwater ecosystems that support many marine species.\",\n        \"keywords\": [\"coral\", \"reef\", \"biodiversity\"]\n      }\n    ]\n  },\n  \"fallback\": true\n}",
+        "responseBody": "={{\n  {\n    \"mindMap\": $json.mindMap,\n    \"provider\": \"groq\",\n    \"fallback\": true\n  }\n}}",
         "options": {}
       },
-      "id": "return-mindmap-agent-fallback",
-      "name": "Return Mind Map Agent Fallback",
+      "id": "return-groq-mindmap-response",
+      "name": "Return Groq Mind Map Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1260, 380]
+      "position": [-1024, 656]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$node[\"Prepare Mind Map Agent Prompt\"].json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+        }
+      },
+      "id": "mindmap-openrouter-ai-agent",
+      "name": "Mind Map OpenRouter AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [-1024, 848],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3-coder:free",
+        "options": {
+          "temperature": 0.4,
+          "maxTokens": 1800
+        }
+      },
+      "id": "mindmap-openrouter-chat-model",
+      "name": "Mind Map OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [-1024, 1072],
+      "credentials": {
+        "openRouterApi": {
+          "id": "REPLACE_WITH_OPENROUTER_CREDENTIAL_ID",
+          "name": "Study Aura OpenRouter Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "openrouter-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "openrouter-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "mindmap-openrouter-succeeded",
+      "name": "Mind Map OpenRouter Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-688, 848]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet mindMap;\nlet fallback = false;\n\ntry {\n  mindMap = JSON.parse(cleaned);\n\n  if (!mindMap.title || !mindMap.center || !Array.isArray(mindMap.branches)) {\n    throw new Error(\"Invalid mind map format\");\n  }\n} catch (error) {\n  fallback = true;\n  mindMap = {\n    title: \"Study Aura Mind Map\",\n    center: \"Main Topic\",\n    description: \"A quick fallback concept map for organizing a study topic.\",\n    branches: [\n      {\n        title: \"Core Idea\",\n        summary: \"The main concept you should understand first.\",\n        keywords: [\"main point\", \"definition\", \"overview\"]\n      },\n      {\n        title: \"Supporting Details\",\n        summary: \"Important facts or examples that explain the topic more clearly.\",\n        keywords: [\"examples\", \"details\", \"evidence\"]\n      }\n    ]\n  };\n}\n\nconst branches = Array.isArray(mindMap.branches)\n  ? mindMap.branches.map((branch) => {\n      const keywords = Array.isArray(branch.keywords)\n        ? branch.keywords.map((keyword) => String(keyword)).slice(0, 5)\n        : [\"study\", \"review\", \"concept\"];\n\n      while (keywords.length < 3) {\n        keywords.push(\"key idea\");\n      }\n\n      return {\n        title: String(branch.title || \"Untitled Branch\"),\n        summary: String(branch.summary || \"Review this concept.\"),\n        keywords\n      };\n    })\n  : [];\n\nreturn [\n  {\n    json: {\n      mindMap: {\n        title: String(mindMap.title || \"Study Aura Mind Map\"),\n        center: String(mindMap.center || \"Main Topic\"),\n        description: String(mindMap.description || \"Generated concept map.\"),\n        branches\n      },\n      fallback,\n      provider: $json.provider || \"openrouter\"\n    }\n  }\n];"
+      },
+      "id": "clean-openrouter-mindmap-json",
+      "name": "Clean OpenRouter Mind Map JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-384, 768]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"mindMap\": $json.mindMap,\n    \"provider\": \"openrouter\",\n    \"fallback\": true\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-openrouter-mindmap-response",
+      "name": "Return OpenRouter Mind Map Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [-112, 768]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$node[\"Prepare Mind Map Agent Prompt\"].json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+        }
+      },
+      "id": "mindmap-mistral-ai-agent",
+      "name": "Mind Map Mistral AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [-112, 976],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "mistral-small-latest",
+        "options": {
+          "temperature": 0.4,
+          "maxTokens": 1800
+        }
+      },
+      "id": "mindmap-mistral-chat-model",
+      "name": "Mind Map Mistral Cloud Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+      "typeVersion": 1,
+      "position": [-112, 1200],
+      "credentials": {
+        "mistralCloudApi": {
+          "id": "REPLACE_WITH_MISTRAL_CREDENTIAL_ID",
+          "name": "Study Aura Mistral Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "mistral-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "mistral-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "mindmap-mistral-succeeded",
+      "name": "Mind Map Mistral Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [224, 976]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet mindMap;\nlet fallback = false;\n\ntry {\n  mindMap = JSON.parse(cleaned);\n\n  if (!mindMap.title || !mindMap.center || !Array.isArray(mindMap.branches)) {\n    throw new Error(\"Invalid mind map format\");\n  }\n} catch (error) {\n  fallback = true;\n  mindMap = {\n    title: \"Study Aura Mind Map\",\n    center: \"Main Topic\",\n    description: \"A quick fallback concept map for organizing a study topic.\",\n    branches: [\n      {\n        title: \"Core Idea\",\n        summary: \"The main concept you should understand first.\",\n        keywords: [\"main point\", \"definition\", \"overview\"]\n      },\n      {\n        title: \"Supporting Details\",\n        summary: \"Important facts or examples that explain the topic more clearly.\",\n        keywords: [\"examples\", \"details\", \"evidence\"]\n      }\n    ]\n  };\n}\n\nconst branches = Array.isArray(mindMap.branches)\n  ? mindMap.branches.map((branch) => {\n      const keywords = Array.isArray(branch.keywords)\n        ? branch.keywords.map((keyword) => String(keyword)).slice(0, 5)\n        : [\"study\", \"review\", \"concept\"];\n\n      while (keywords.length < 3) {\n        keywords.push(\"key idea\");\n      }\n\n      return {\n        title: String(branch.title || \"Untitled Branch\"),\n        summary: String(branch.summary || \"Review this concept.\"),\n        keywords\n      };\n    })\n  : [];\n\nreturn [\n  {\n    json: {\n      mindMap: {\n        title: String(mindMap.title || \"Study Aura Mind Map\"),\n        center: String(mindMap.center || \"Main Topic\"),\n        description: String(mindMap.description || \"Generated concept map.\"),\n        branches\n      },\n      fallback,\n      provider: $json.provider || \"mistral\"\n    }\n  }\n];"
+      },
+      "id": "clean-mistral-mindmap-json",
+      "name": "Clean Mistral Mind Map JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [528, 896]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"mindMap\": $json.mindMap,\n    \"provider\": \"mistral\",\n    \"fallback\": true\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-mistral-mindmap-response",
+      "name": "Return Mistral Mind Map Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [800, 896]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$node[\"Prepare Mind Map Agent Prompt\"].json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+        }
+      },
+      "id": "mindmap-deepseek-ai-agent",
+      "name": "Mind Map DeepSeek AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [800, 1088],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "deepseek-v4-flash",
+        "options": {
+          "temperature": 0.4,
+          "maxTokens": 1800
+        }
+      },
+      "id": "mindmap-deepseek-chat-model",
+      "name": "Mind Map DeepSeek Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [800, 1312],
+      "credentials": {
+        "deepSeekApi": {
+          "id": "REPLACE_WITH_DEEPSEEK_CREDENTIAL_ID",
+          "name": "Study Aura DeepSeek Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "deepseek-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "deepseek-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "mindmap-deepseek-succeeded",
+      "name": "Mind Map DeepSeek Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1136, 1088]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet mindMap;\nlet fallback = false;\n\ntry {\n  mindMap = JSON.parse(cleaned);\n\n  if (!mindMap.title || !mindMap.center || !Array.isArray(mindMap.branches)) {\n    throw new Error(\"Invalid mind map format\");\n  }\n} catch (error) {\n  fallback = true;\n  mindMap = {\n    title: \"Study Aura Mind Map\",\n    center: \"Main Topic\",\n    description: \"A quick fallback concept map for organizing a study topic.\",\n    branches: [\n      {\n        title: \"Core Idea\",\n        summary: \"The main concept you should understand first.\",\n        keywords: [\"main point\", \"definition\", \"overview\"]\n      },\n      {\n        title: \"Supporting Details\",\n        summary: \"Important facts or examples that explain the topic more clearly.\",\n        keywords: [\"examples\", \"details\", \"evidence\"]\n      }\n    ]\n  };\n}\n\nconst branches = Array.isArray(mindMap.branches)\n  ? mindMap.branches.map((branch) => {\n      const keywords = Array.isArray(branch.keywords)\n        ? branch.keywords.map((keyword) => String(keyword)).slice(0, 5)\n        : [\"study\", \"review\", \"concept\"];\n\n      while (keywords.length < 3) {\n        keywords.push(\"key idea\");\n      }\n\n      return {\n        title: String(branch.title || \"Untitled Branch\"),\n        summary: String(branch.summary || \"Review this concept.\"),\n        keywords\n      };\n    })\n  : [];\n\nreturn [\n  {\n    json: {\n      mindMap: {\n        title: String(mindMap.title || \"Study Aura Mind Map\"),\n        center: String(mindMap.center || \"Main Topic\"),\n        description: String(mindMap.description || \"Generated concept map.\"),\n        branches\n      },\n      fallback,\n      provider: $json.provider || \"deepseek\"\n    }\n  }\n];"
+      },
+      "id": "clean-deepseek-mindmap-json",
+      "name": "Clean DeepSeek Mind Map JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 1008]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"mindMap\": $json.mindMap,\n    \"provider\": \"deepseek\",\n    \"fallback\": true\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-deepseek-mindmap-response",
+      "name": "Return DeepSeek Mind Map Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1712, 1008]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"mindMap\": {\n      \"title\": \"Study Aura Mind Map\",\n      \"center\": \"Main Topic\",\n      \"description\": \"A quick fallback concept map for organizing a study topic.\",\n      \"branches\": [\n        {\n          \"title\": \"Core Idea\",\n          \"summary\": \"The main concept you should understand first.\",\n          \"keywords\": [\"main point\", \"definition\", \"overview\"]\n        },\n        {\n          \"title\": \"Supporting Details\",\n          \"summary\": \"Important facts or examples that explain the topic more clearly.\",\n          \"keywords\": [\"examples\", \"details\", \"evidence\"]\n        },\n        {\n          \"title\": \"Review Strategy\",\n          \"summary\": \"Ways to remember and apply the topic after learning it.\",\n          \"keywords\": [\"practice\", \"recall\", \"application\"]\n        }\n      ]\n    },\n    \"provider\": \"static-fallback\",\n    \"fallback\": true\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-static-mindmap-fallback",
+      "name": "Return Static Mind Map Fallback",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1712, 1216]
     }
   ],
   "connections": {
     "Mind Map Agent Webhook": {
-      "main": [
-        [
-          {
-            "node": "Prepare Mind Map Agent Prompt",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Prepare Mind Map Agent Prompt", "type": "main", "index": 0 }]]
     },
     "Prepare Mind Map Agent Prompt": {
-      "main": [
-        [
-          {
-            "node": "Mind Map AI Agent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Mind Map Gemini AI Agent", "type": "main", "index": 0 }]]
     },
     "Mind Map Gemini Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Mind Map AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
+      "ai_languageModel": [[{ "node": "Mind Map Gemini AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Mind Map Gemini AI Agent": {
+      "main": [[{ "node": "Mind Map Gemini Succeeded?", "type": "main", "index": 0 }]]
+    },
+    "Mind Map Gemini Succeeded?": {
+      "main": [
+        [{ "node": "Clean Gemini Mind Map JSON", "type": "main", "index": 0 }],
+        [{ "node": "Mind Map Groq AI Agent", "type": "main", "index": 0 }]
       ]
     },
-    "Mind Map AI Agent": {
+    "Clean Gemini Mind Map JSON": {
+      "main": [[{ "node": "Return Gemini Mind Map Response", "type": "main", "index": 0 }]]
+    },
+    "Mind Map Groq Chat Model": {
+      "ai_languageModel": [[{ "node": "Mind Map Groq AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Mind Map Groq AI Agent": {
+      "main": [[{ "node": "Mind Map Groq Succeeded?", "type": "main", "index": 0 }]]
+    },
+    "Mind Map Groq Succeeded?": {
       "main": [
-        [
-          {
-            "node": "Mind Map Agent Succeeded?",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Clean Groq Mind Map JSON", "type": "main", "index": 0 }],
+        [{ "node": "Mind Map OpenRouter AI Agent", "type": "main", "index": 0 }]
       ]
     },
-    "Mind Map Agent Succeeded?": {
+    "Clean Groq Mind Map JSON": {
+      "main": [[{ "node": "Return Groq Mind Map Response", "type": "main", "index": 0 }]]
+    },
+    "Mind Map OpenRouter Chat Model": {
+      "ai_languageModel": [[{ "node": "Mind Map OpenRouter AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Mind Map OpenRouter AI Agent": {
+      "main": [[{ "node": "Mind Map OpenRouter Succeeded?", "type": "main", "index": 0 }]]
+    },
+    "Mind Map OpenRouter Succeeded?": {
       "main": [
-        [
-          {
-            "node": "Clean Mind Map Agent JSON",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Return Mind Map Agent Fallback",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Clean OpenRouter Mind Map JSON", "type": "main", "index": 0 }],
+        [{ "node": "Mind Map Mistral AI Agent", "type": "main", "index": 0 }]
       ]
     },
-    "Clean Mind Map Agent JSON": {
+    "Clean OpenRouter Mind Map JSON": {
+      "main": [[{ "node": "Return OpenRouter Mind Map Response", "type": "main", "index": 0 }]]
+    },
+    "Mind Map Mistral Cloud Chat Model": {
+      "ai_languageModel": [[{ "node": "Mind Map Mistral AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Mind Map Mistral AI Agent": {
+      "main": [[{ "node": "Mind Map Mistral Succeeded?", "type": "main", "index": 0 }]]
+    },
+    "Mind Map Mistral Succeeded?": {
       "main": [
-        [
-          {
-            "node": "Return Mind Map Agent Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Clean Mistral Mind Map JSON", "type": "main", "index": 0 }],
+        [{ "node": "Mind Map DeepSeek AI Agent", "type": "main", "index": 0 }]
       ]
+    },
+    "Clean Mistral Mind Map JSON": {
+      "main": [[{ "node": "Return Mistral Mind Map Response", "type": "main", "index": 0 }]]
+    },
+    "Mind Map DeepSeek Chat Model": {
+      "ai_languageModel": [[{ "node": "Mind Map DeepSeek AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Mind Map DeepSeek AI Agent": {
+      "main": [[{ "node": "Mind Map DeepSeek Succeeded?", "type": "main", "index": 0 }]]
+    },
+    "Mind Map DeepSeek Succeeded?": {
+      "main": [
+        [{ "node": "Clean DeepSeek Mind Map JSON", "type": "main", "index": 0 }],
+        [{ "node": "Return Static Mind Map Fallback", "type": "main", "index": 0 }]
+      ]
+    },
+    "Clean DeepSeek Mind Map JSON": {
+      "main": [[{ "node": "Return DeepSeek Mind Map Response", "type": "main", "index": 0 }]]
     }
   },
   "settings": {

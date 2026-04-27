@@ -12,7 +12,7 @@
       "name": "Slides Agent Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [120, 260],
+      "position": [-3184, 912],
       "webhookId": "study-aura-slides"
     },
     {
@@ -22,7 +22,37 @@
             {
               "id": "slides-prompt",
               "name": "prompt",
-              "value": "={{\"You are Study Aura, an educational slide deck generator. Create exactly \" + ($json.body.slideCount || 5) + \" slide outlines for the topic: \" + ($json.body.topic || \"General Study\") + \". Difficulty: \" + ($json.body.difficulty || \"easy\") + \". Return ONLY valid JSON. No markdown. No code fences. Format: {\\\"title\\\": string, \\\"description\\\": string, \\\"slides\\\": [{\\\"slideNumber\\\": number, \\\"title\\\": string, \\\"subtitle\\\": string, \\\"bullets\\\": string[], \\\"speakerNotes\\\": string, \\\"visualIdea\\\": string}]}. Each slide must have 3 to 5 bullets. Speaker notes should be concise.\"}}",
+              "value": "={{\n\"You are Study Aura, an educational slide deck generator. Create exactly \" + ($json.body.slideCount || 5) + \" slide outlines for the topic: \" + ($json.body.topic || \"General Study\") + \". Difficulty: \" + ($json.body.difficulty || \"easy\") + \".\\n\\n\" +\n\"Selected source context:\\n\" +\n(\n  Array.isArray($json.body.selectedSources) && $json.body.selectedSources.length > 0\n    ? $json.body.selectedSources.map((source, index) => {\n        return (index + 1) + \". \" + (source.title || \"Untitled Source\") + \" [\" + (source.type || \"source\") + \"]\\n\" +\n          \"Summary or content: \" + (source.summary || source.value || \"No summary provided.\");\n      }).join(\"\\n\\n\")\n    : \"No selected sources were provided. Use the topic only.\"\n) +\n\"\\n\\nReturn ONLY valid JSON. No markdown. No code fences.\\n\" +\n\"Required JSON format: {\\\"title\\\": string, \\\"description\\\": string, \\\"slides\\\": [{\\\"slideNumber\\\": number, \\\"title\\\": string, \\\"subtitle\\\": string, \\\"bullets\\\": string[], \\\"speakerNotes\\\": string, \\\"visualIdea\\\": string}]}.\\n\" +\n\"Rules:\\n\" +\n\"- Each slide must have 3 to 5 bullets.\\n\" +\n\"- Speaker notes should be concise and presentation-ready.\\n\" +\n\"- Visual ideas should be specific but simple to design.\\n\" +\n\"- Prioritize selected source context when available.\\n\" +\n\"- Do not include markdown, comments, or text outside JSON.\"\n}}",
+              "type": "string"
+            },
+            {
+              "id": "topic",
+              "name": "topic",
+              "value": "={{$json.body.topic || \"General Study\"}}",
+              "type": "string"
+            },
+            {
+              "id": "difficulty",
+              "name": "difficulty",
+              "value": "={{$json.body.difficulty || \"easy\"}}",
+              "type": "string"
+            },
+            {
+              "id": "slide-count",
+              "name": "slideCount",
+              "value": "={{$json.body.slideCount || 5}}",
+              "type": "number"
+            },
+            {
+              "id": "module-id",
+              "name": "moduleId",
+              "value": "={{$json.body.moduleId || \"demo-module\"}}",
+              "type": "string"
+            },
+            {
+              "id": "user-id",
+              "name": "userId",
+              "value": "={{$json.body.userId || \"demo-user\"}}",
               "type": "string"
             }
           ]
@@ -33,7 +63,7 @@
       "name": "Prepare Slides Agent Prompt",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [400, 260]
+      "position": [-2896, 912]
     },
     {
       "parameters": {
@@ -43,11 +73,11 @@
           "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
         }
       },
-      "id": "slides-ai-agent",
-      "name": "Slides AI Agent",
+      "id": "slides-gemini-ai-agent",
+      "name": "Slides Gemini AI Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
-      "position": [700, 260],
+      "position": [-2576, 608],
       "continueOnFail": true
     },
     {
@@ -55,17 +85,17 @@
         "modelName": "models/gemini-3.1-flash-lite-preview",
         "options": {
           "temperature": 0.4,
-          "maxOutputTokens": 2200
+          "maxOutputTokens": 2600
         }
       },
       "id": "slides-gemini-chat-model",
       "name": "Slides Gemini Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
-      "position": [700, 520],
+      "position": [-2576, 832],
       "credentials": {
         "googlePalmApi": {
-          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "id": "REPLACE_WITH_GEMINI_CREDENTIAL_ID",
           "name": "Study Aura Gemini Key"
         }
       }
@@ -81,12 +111,22 @@
           },
           "conditions": [
             {
-              "id": "agent-output-exists",
+              "id": "gemini-output-exists",
               "leftValue": "={{$json.output}}",
               "rightValue": "",
               "operator": {
                 "type": "string",
                 "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "gemini-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
                 "singleValue": true
               }
             }
@@ -95,120 +135,519 @@
         },
         "options": {}
       },
-      "id": "slides-agent-succeeded",
-      "name": "Slides Agent Succeeded?",
+      "id": "slides-gemini-succeeded",
+      "name": "Slides Gemini Succeeded?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [1020, 260]
+      "position": [-2240, 608]
     },
     {
       "parameters": {
-        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet deck;\n\ntry {\n  deck = JSON.parse(cleaned);\n\n  if (!Array.isArray(deck.slides)) {\n    throw new Error(\"Invalid slides format\");\n  }\n} catch (error) {\n  deck = {\n    title: \"Demo Slide Deck\",\n    description: \"A fallback Study Aura slide outline.\",\n    slides: [\n      {\n        slideNumber: 1,\n        title: \"Introduction to Marine Biology\",\n        subtitle: \"Understanding ocean life\",\n        bullets: [\"Marine biology studies ocean organisms\", \"It covers ecosystems, behavior, and conservation\", \"Dolphins and coral reefs are common examples\"],\n        speakerNotes: \"Introduce marine biology as the study of life in the ocean.\",\n        visualIdea: \"Ocean background with icons of dolphins, coral, and fish\"\n      }\n    ]\n  };\n}\n\nconst slides = deck.slides.map((slide, index) => ({\n  slideNumber: Number(slide.slideNumber || index + 1),\n  title: String(slide.title || `Slide ${index + 1}`),\n  subtitle: String(slide.subtitle || \"Study Aura slide\"),\n  bullets: Array.isArray(slide.bullets)\n    ? slide.bullets.map((bullet) => String(bullet)).slice(0, 5)\n    : [\"Review the key idea\"],\n  speakerNotes: String(slide.speakerNotes || \"Explain this concept clearly.\"),\n  visualIdea: String(slide.visualIdea || \"Use a simple educational visual.\")\n}));\n\nreturn [\n  {\n    json: {\n      deck: {\n        title: String(deck.title || \"Study Aura Slide Deck\"),\n        description: String(deck.description || \"Generated slide outline.\"),\n        slides\n      },\n      fallback: false\n    }\n  }\n];"
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet deck;\nlet fallback = false;\n\ntry {\n  deck = JSON.parse(cleaned);\n\n  if (!deck.title || !Array.isArray(deck.slides)) {\n    throw new Error(\"Invalid slides format\");\n  }\n} catch (error) {\n  fallback = true;\n  deck = {\n    title: \"Study Aura Slide Deck\",\n    description: \"A quick fallback slide outline for presenting a study topic.\",\n    slides: [\n      {\n        slideNumber: 1,\n        title: \"Topic Overview\",\n        subtitle: \"Start with the main idea\",\n        bullets: [\"Define the topic\", \"Explain why it matters\", \"Preview the key points\"],\n        speakerNotes: \"Introduce the topic clearly and connect it to the learner's goal.\",\n        visualIdea: \"Title slide with a simple topic icon and clean background\"\n      }\n    ]\n  };\n}\n\nconst slides = Array.isArray(deck.slides)\n  ? deck.slides.map((slide, index) => {\n      const bullets = Array.isArray(slide.bullets)\n        ? slide.bullets.map((bullet) => String(bullet)).slice(0, 5)\n        : [\"Review the key idea\", \"Explain one example\", \"Summarize the takeaway\"];\n\n      while (bullets.length < 3) {\n        bullets.push(\"Add one supporting detail\");\n      }\n\n      return {\n        slideNumber: Number(slide.slideNumber || index + 1),\n        title: String(slide.title || `Slide ${index + 1}`),\n        subtitle: String(slide.subtitle || \"Study Aura slide\"),\n        bullets,\n        speakerNotes: String(slide.speakerNotes || \"Explain this concept clearly.\"),\n        visualIdea: String(slide.visualIdea || \"Use a simple educational visual.\")\n      };\n    })\n  : [];\n\nreturn [\n  {\n    json: {\n      deck: {\n        title: String(deck.title || \"Study Aura Slide Deck\"),\n        description: String(deck.description || \"Generated slide outline.\"),\n        slides\n      },\n      fallback,\n      provider: $json.provider || \"gemini\"\n    }\n  }\n];"
       },
-      "id": "clean-slides-agent-json",
-      "name": "Clean Slides Agent JSON",
+      "id": "clean-gemini-slides-json",
+      "name": "Clean Gemini Slides JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1260, 140]
+      "position": [-1936, 528]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{\n  {\n    \"deck\": $json.deck,\n    \"fallback\": $json.fallback\n  }\n}}",
+        "responseBody": "={{\n  {\n    \"deck\": $json.deck,\n    \"provider\": \"gemini\",\n    \"fallback\": $json.fallback\n  }\n}}",
         "options": {}
       },
-      "id": "return-slides-agent-response",
-      "name": "Return Slides Agent Response",
+      "id": "return-gemini-slides-response",
+      "name": "Return Gemini Slides Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1540, 140]
+      "position": [-1664, 528]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$node[\"Prepare Slides Agent Prompt\"].json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+        }
+      },
+      "id": "slides-groq-ai-agent",
+      "name": "Slides Groq AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [-1936, 736],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "id": "slides-groq-chat-model",
+      "name": "Slides Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [-1936, 960],
+      "credentials": {
+        "groqApi": {
+          "id": "REPLACE_WITH_GROQ_CREDENTIAL_ID",
+          "name": "Study Aura Groq Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "groq-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "groq-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "slides-groq-succeeded",
+      "name": "Slides Groq Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-1600, 736]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet deck;\nlet fallback = false;\n\ntry {\n  deck = JSON.parse(cleaned);\n\n  if (!deck.title || !Array.isArray(deck.slides)) {\n    throw new Error(\"Invalid slides format\");\n  }\n} catch (error) {\n  fallback = true;\n  deck = {\n    title: \"Study Aura Slide Deck\",\n    description: \"A quick fallback slide outline for presenting a study topic.\",\n    slides: [\n      {\n        slideNumber: 1,\n        title: \"Topic Overview\",\n        subtitle: \"Start with the main idea\",\n        bullets: [\"Define the topic\", \"Explain why it matters\", \"Preview the key points\"],\n        speakerNotes: \"Introduce the topic clearly and connect it to the learner's goal.\",\n        visualIdea: \"Title slide with a simple topic icon and clean background\"\n      }\n    ]\n  };\n}\n\nconst slides = Array.isArray(deck.slides)\n  ? deck.slides.map((slide, index) => {\n      const bullets = Array.isArray(slide.bullets)\n        ? slide.bullets.map((bullet) => String(bullet)).slice(0, 5)\n        : [\"Review the key idea\", \"Explain one example\", \"Summarize the takeaway\"];\n\n      while (bullets.length < 3) {\n        bullets.push(\"Add one supporting detail\");\n      }\n\n      return {\n        slideNumber: Number(slide.slideNumber || index + 1),\n        title: String(slide.title || `Slide ${index + 1}`),\n        subtitle: String(slide.subtitle || \"Study Aura slide\"),\n        bullets,\n        speakerNotes: String(slide.speakerNotes || \"Explain this concept clearly.\"),\n        visualIdea: String(slide.visualIdea || \"Use a simple educational visual.\")\n      };\n    })\n  : [];\n\nreturn [\n  {\n    json: {\n      deck: {\n        title: String(deck.title || \"Study Aura Slide Deck\"),\n        description: String(deck.description || \"Generated slide outline.\"),\n        slides\n      },\n      fallback,\n      provider: $json.provider || \"groq\"\n    }\n  }\n];"
+      },
+      "id": "clean-groq-slides-json",
+      "name": "Clean Groq Slides JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1296, 656]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "{\n  \"deck\": {\n    \"title\": \"Demo Fallback Slide Deck\",\n    \"description\": \"A safe fallback slide deck for Study Aura when the AI model is unavailable.\",\n    \"slides\": [\n      {\n        \"slideNumber\": 1,\n        \"title\": \"Introduction to Marine Biology\",\n        \"subtitle\": \"Understanding ocean life\",\n        \"bullets\": [\"Marine biology studies ocean organisms\", \"It covers ecosystems, behavior, and conservation\", \"Dolphins and coral reefs are common examples\"],\n        \"speakerNotes\": \"Introduce marine biology as the study of life in the ocean.\",\n        \"visualIdea\": \"Ocean background with icons of dolphins, coral, and fish\"\n      }\n    ]\n  },\n  \"fallback\": true\n}",
+        "responseBody": "={{\n  {\n    \"deck\": $json.deck,\n    \"provider\": \"groq\",\n    \"fallback\": true\n  }\n}}",
         "options": {}
       },
-      "id": "return-slides-agent-fallback",
-      "name": "Return Slides Agent Fallback",
+      "id": "return-groq-slides-response",
+      "name": "Return Groq Slides Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1260, 380]
+      "position": [-1024, 656]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$node[\"Prepare Slides Agent Prompt\"].json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+        }
+      },
+      "id": "slides-openrouter-ai-agent",
+      "name": "Slides OpenRouter AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [-1024, 848],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3-coder:free",
+        "options": {
+          "temperature": 0.4,
+          "maxTokens": 2600
+        }
+      },
+      "id": "slides-openrouter-chat-model",
+      "name": "Slides OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [-1024, 1072],
+      "credentials": {
+        "openRouterApi": {
+          "id": "REPLACE_WITH_OPENROUTER_CREDENTIAL_ID",
+          "name": "Study Aura OpenRouter Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "openrouter-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "openrouter-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "slides-openrouter-succeeded",
+      "name": "Slides OpenRouter Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-688, 848]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet deck;\nlet fallback = false;\n\ntry {\n  deck = JSON.parse(cleaned);\n\n  if (!deck.title || !Array.isArray(deck.slides)) {\n    throw new Error(\"Invalid slides format\");\n  }\n} catch (error) {\n  fallback = true;\n  deck = {\n    title: \"Study Aura Slide Deck\",\n    description: \"A quick fallback slide outline for presenting a study topic.\",\n    slides: [\n      {\n        slideNumber: 1,\n        title: \"Topic Overview\",\n        subtitle: \"Start with the main idea\",\n        bullets: [\"Define the topic\", \"Explain why it matters\", \"Preview the key points\"],\n        speakerNotes: \"Introduce the topic clearly and connect it to the learner's goal.\",\n        visualIdea: \"Title slide with a simple topic icon and clean background\"\n      }\n    ]\n  };\n}\n\nconst slides = Array.isArray(deck.slides)\n  ? deck.slides.map((slide, index) => {\n      const bullets = Array.isArray(slide.bullets)\n        ? slide.bullets.map((bullet) => String(bullet)).slice(0, 5)\n        : [\"Review the key idea\", \"Explain one example\", \"Summarize the takeaway\"];\n\n      while (bullets.length < 3) {\n        bullets.push(\"Add one supporting detail\");\n      }\n\n      return {\n        slideNumber: Number(slide.slideNumber || index + 1),\n        title: String(slide.title || `Slide ${index + 1}`),\n        subtitle: String(slide.subtitle || \"Study Aura slide\"),\n        bullets,\n        speakerNotes: String(slide.speakerNotes || \"Explain this concept clearly.\"),\n        visualIdea: String(slide.visualIdea || \"Use a simple educational visual.\")\n      };\n    })\n  : [];\n\nreturn [\n  {\n    json: {\n      deck: {\n        title: String(deck.title || \"Study Aura Slide Deck\"),\n        description: String(deck.description || \"Generated slide outline.\"),\n        slides\n      },\n      fallback,\n      provider: $json.provider || \"openrouter\"\n    }\n  }\n];"
+      },
+      "id": "clean-openrouter-slides-json",
+      "name": "Clean OpenRouter Slides JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-384, 768]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"deck\": $json.deck,\n    \"provider\": \"openrouter\",\n    \"fallback\": true\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-openrouter-slides-response",
+      "name": "Return OpenRouter Slides Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [-112, 768]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$node[\"Prepare Slides Agent Prompt\"].json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+        }
+      },
+      "id": "slides-mistral-ai-agent",
+      "name": "Slides Mistral AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [-112, 976],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "mistral-small-latest",
+        "options": {
+          "temperature": 0.4,
+          "maxTokens": 2600
+        }
+      },
+      "id": "slides-mistral-chat-model",
+      "name": "Slides Mistral Cloud Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+      "typeVersion": 1,
+      "position": [-112, 1200],
+      "credentials": {
+        "mistralCloudApi": {
+          "id": "REPLACE_WITH_MISTRAL_CREDENTIAL_ID",
+          "name": "Study Aura Mistral Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "mistral-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "mistral-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "slides-mistral-succeeded",
+      "name": "Slides Mistral Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [224, 976]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet deck;\nlet fallback = false;\n\ntry {\n  deck = JSON.parse(cleaned);\n\n  if (!deck.title || !Array.isArray(deck.slides)) {\n    throw new Error(\"Invalid slides format\");\n  }\n} catch (error) {\n  fallback = true;\n  deck = {\n    title: \"Study Aura Slide Deck\",\n    description: \"A quick fallback slide outline for presenting a study topic.\",\n    slides: [\n      {\n        slideNumber: 1,\n        title: \"Topic Overview\",\n        subtitle: \"Start with the main idea\",\n        bullets: [\"Define the topic\", \"Explain why it matters\", \"Preview the key points\"],\n        speakerNotes: \"Introduce the topic clearly and connect it to the learner's goal.\",\n        visualIdea: \"Title slide with a simple topic icon and clean background\"\n      }\n    ]\n  };\n}\n\nconst slides = Array.isArray(deck.slides)\n  ? deck.slides.map((slide, index) => {\n      const bullets = Array.isArray(slide.bullets)\n        ? slide.bullets.map((bullet) => String(bullet)).slice(0, 5)\n        : [\"Review the key idea\", \"Explain one example\", \"Summarize the takeaway\"];\n\n      while (bullets.length < 3) {\n        bullets.push(\"Add one supporting detail\");\n      }\n\n      return {\n        slideNumber: Number(slide.slideNumber || index + 1),\n        title: String(slide.title || `Slide ${index + 1}`),\n        subtitle: String(slide.subtitle || \"Study Aura slide\"),\n        bullets,\n        speakerNotes: String(slide.speakerNotes || \"Explain this concept clearly.\"),\n        visualIdea: String(slide.visualIdea || \"Use a simple educational visual.\")\n      };\n    })\n  : [];\n\nreturn [\n  {\n    json: {\n      deck: {\n        title: String(deck.title || \"Study Aura Slide Deck\"),\n        description: String(deck.description || \"Generated slide outline.\"),\n        slides\n      },\n      fallback,\n      provider: $json.provider || \"mistral\"\n    }\n  }\n];"
+      },
+      "id": "clean-mistral-slides-json",
+      "name": "Clean Mistral Slides JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [528, 896]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"deck\": $json.deck,\n    \"provider\": \"mistral\",\n    \"fallback\": true\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-mistral-slides-response",
+      "name": "Return Mistral Slides Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [800, 896]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$node[\"Prepare Slides Agent Prompt\"].json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+        }
+      },
+      "id": "slides-deepseek-ai-agent",
+      "name": "Slides DeepSeek AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [800, 1088],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "deepseek-v4-flash",
+        "options": {
+          "temperature": 0.4,
+          "maxTokens": 2600
+        }
+      },
+      "id": "slides-deepseek-chat-model",
+      "name": "Slides DeepSeek Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [800, 1312],
+      "credentials": {
+        "deepSeekApi": {
+          "id": "REPLACE_WITH_DEEPSEEK_CREDENTIAL_ID",
+          "name": "Study Aura DeepSeek Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "deepseek-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "deepseek-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "slides-deepseek-succeeded",
+      "name": "Slides DeepSeek Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1136, 1088]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet deck;\nlet fallback = false;\n\ntry {\n  deck = JSON.parse(cleaned);\n\n  if (!deck.title || !Array.isArray(deck.slides)) {\n    throw new Error(\"Invalid slides format\");\n  }\n} catch (error) {\n  fallback = true;\n  deck = {\n    title: \"Study Aura Slide Deck\",\n    description: \"A quick fallback slide outline for presenting a study topic.\",\n    slides: [\n      {\n        slideNumber: 1,\n        title: \"Topic Overview\",\n        subtitle: \"Start with the main idea\",\n        bullets: [\"Define the topic\", \"Explain why it matters\", \"Preview the key points\"],\n        speakerNotes: \"Introduce the topic clearly and connect it to the learner's goal.\",\n        visualIdea: \"Title slide with a simple topic icon and clean background\"\n      }\n    ]\n  };\n}\n\nconst slides = Array.isArray(deck.slides)\n  ? deck.slides.map((slide, index) => {\n      const bullets = Array.isArray(slide.bullets)\n        ? slide.bullets.map((bullet) => String(bullet)).slice(0, 5)\n        : [\"Review the key idea\", \"Explain one example\", \"Summarize the takeaway\"];\n\n      while (bullets.length < 3) {\n        bullets.push(\"Add one supporting detail\");\n      }\n\n      return {\n        slideNumber: Number(slide.slideNumber || index + 1),\n        title: String(slide.title || `Slide ${index + 1}`),\n        subtitle: String(slide.subtitle || \"Study Aura slide\"),\n        bullets,\n        speakerNotes: String(slide.speakerNotes || \"Explain this concept clearly.\"),\n        visualIdea: String(slide.visualIdea || \"Use a simple educational visual.\")\n      };\n    })\n  : [];\n\nreturn [\n  {\n    json: {\n      deck: {\n        title: String(deck.title || \"Study Aura Slide Deck\"),\n        description: String(deck.description || \"Generated slide outline.\"),\n        slides\n      },\n      fallback,\n      provider: $json.provider || \"deepseek\"\n    }\n  }\n];"
+      },
+      "id": "clean-deepseek-slides-json",
+      "name": "Clean DeepSeek Slides JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 1008]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"deck\": $json.deck,\n    \"provider\": \"deepseek\",\n    \"fallback\": true\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-deepseek-slides-response",
+      "name": "Return DeepSeek Slides Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1712, 1008]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"deck\": {\n      \"title\": \"Study Aura Slide Deck\",\n      \"description\": \"A quick fallback slide outline for presenting a study topic.\",\n      \"slides\": [\n        {\n          \"slideNumber\": 1,\n          \"title\": \"Topic Overview\",\n          \"subtitle\": \"Start with the main idea\",\n          \"bullets\": [\"Define the topic\", \"Explain why it matters\", \"Preview the key points\"],\n          \"speakerNotes\": \"Introduce the topic clearly and connect it to the learner's goal.\",\n          \"visualIdea\": \"Title slide with a simple topic icon and clean background\"\n        },\n        {\n          \"slideNumber\": 2,\n          \"title\": \"Key Concepts\",\n          \"subtitle\": \"Focus on what matters most\",\n          \"bullets\": [\"Identify the main terms\", \"Connect ideas with examples\", \"Use short review notes\"],\n          \"speakerNotes\": \"Explain the most important concepts using simple examples.\",\n          \"visualIdea\": \"Three-card layout with icons for terms, examples, and review\"\n        }\n      ]\n    },\n    \"provider\": \"static-fallback\",\n    \"fallback\": true\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-static-slides-fallback",
+      "name": "Return Static Slides Fallback",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1712, 1216]
     }
   ],
   "connections": {
     "Slides Agent Webhook": {
-      "main": [
-        [
-          {
-            "node": "Prepare Slides Agent Prompt",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Prepare Slides Agent Prompt", "type": "main", "index": 0 }]]
     },
     "Prepare Slides Agent Prompt": {
-      "main": [
-        [
-          {
-            "node": "Slides AI Agent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Slides Gemini AI Agent", "type": "main", "index": 0 }]]
     },
     "Slides Gemini Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Slides AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
+      "ai_languageModel": [[{ "node": "Slides Gemini AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Slides Gemini AI Agent": {
+      "main": [[{ "node": "Slides Gemini Succeeded?", "type": "main", "index": 0 }]]
+    },
+    "Slides Gemini Succeeded?": {
+      "main": [
+        [{ "node": "Clean Gemini Slides JSON", "type": "main", "index": 0 }],
+        [{ "node": "Slides Groq AI Agent", "type": "main", "index": 0 }]
       ]
     },
-    "Slides AI Agent": {
+    "Clean Gemini Slides JSON": {
+      "main": [[{ "node": "Return Gemini Slides Response", "type": "main", "index": 0 }]]
+    },
+    "Slides Groq Chat Model": {
+      "ai_languageModel": [[{ "node": "Slides Groq AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Slides Groq AI Agent": {
+      "main": [[{ "node": "Slides Groq Succeeded?", "type": "main", "index": 0 }]]
+    },
+    "Slides Groq Succeeded?": {
       "main": [
-        [
-          {
-            "node": "Slides Agent Succeeded?",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Clean Groq Slides JSON", "type": "main", "index": 0 }],
+        [{ "node": "Slides OpenRouter AI Agent", "type": "main", "index": 0 }]
       ]
     },
-    "Slides Agent Succeeded?": {
+    "Clean Groq Slides JSON": {
+      "main": [[{ "node": "Return Groq Slides Response", "type": "main", "index": 0 }]]
+    },
+    "Slides OpenRouter Chat Model": {
+      "ai_languageModel": [[{ "node": "Slides OpenRouter AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Slides OpenRouter AI Agent": {
+      "main": [[{ "node": "Slides OpenRouter Succeeded?", "type": "main", "index": 0 }]]
+    },
+    "Slides OpenRouter Succeeded?": {
       "main": [
-        [
-          {
-            "node": "Clean Slides Agent JSON",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Return Slides Agent Fallback",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Clean OpenRouter Slides JSON", "type": "main", "index": 0 }],
+        [{ "node": "Slides Mistral AI Agent", "type": "main", "index": 0 }]
       ]
     },
-    "Clean Slides Agent JSON": {
+    "Clean OpenRouter Slides JSON": {
+      "main": [[{ "node": "Return OpenRouter Slides Response", "type": "main", "index": 0 }]]
+    },
+    "Slides Mistral Cloud Chat Model": {
+      "ai_languageModel": [[{ "node": "Slides Mistral AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Slides Mistral AI Agent": {
+      "main": [[{ "node": "Slides Mistral Succeeded?", "type": "main", "index": 0 }]]
+    },
+    "Slides Mistral Succeeded?": {
       "main": [
-        [
-          {
-            "node": "Return Slides Agent Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Clean Mistral Slides JSON", "type": "main", "index": 0 }],
+        [{ "node": "Slides DeepSeek AI Agent", "type": "main", "index": 0 }]
       ]
+    },
+    "Clean Mistral Slides JSON": {
+      "main": [[{ "node": "Return Mistral Slides Response", "type": "main", "index": 0 }]]
+    },
+    "Slides DeepSeek Chat Model": {
+      "ai_languageModel": [[{ "node": "Slides DeepSeek AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Slides DeepSeek AI Agent": {
+      "main": [[{ "node": "Slides DeepSeek Succeeded?", "type": "main", "index": 0 }]]
+    },
+    "Slides DeepSeek Succeeded?": {
+      "main": [
+        [{ "node": "Clean DeepSeek Slides JSON", "type": "main", "index": 0 }],
+        [{ "node": "Return Static Slides Fallback", "type": "main", "index": 0 }]
+      ]
+    },
+    "Clean DeepSeek Slides JSON": {
+      "main": [[{ "node": "Return DeepSeek Slides Response", "type": "main", "index": 0 }]]
     }
   },
   "settings": {

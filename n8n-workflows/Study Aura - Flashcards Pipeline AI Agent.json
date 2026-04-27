@@ -12,7 +12,10 @@
       "name": "Flashcards Agent Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [120, 260],
+      "position": [
+        -3184,
+        912
+      ],
       "webhookId": "study-aura-flashcards"
     },
     {
@@ -22,7 +25,37 @@
             {
               "id": "flashcards-prompt",
               "name": "prompt",
-              "value": "={{\"You are Study Aura, an educational flashcard generator. Create exactly \" + ($json.body.cardCount || 10) + \" interactive flashcards for the topic: \" + ($json.body.topic || \"General Study\") + \". Difficulty: \" + ($json.body.difficulty || \"easy\") + \". Return ONLY valid JSON. No markdown. No code fences. Format: {\\\"title\\\": string, \\\"cards\\\": [{\\\"type\\\": \\\"question\\\" | \\\"fill_blank\\\", \\\"prompt\\\": string, \\\"answer\\\": string, \\\"hint\\\": string, \\\"explanation\\\": string}]}. Mix question and fill_blank card types. Keep answers short enough for typed input. The answer should be a concise phrase, not a full paragraph.\"}}",
+              "value": "={{\n\"You are Study Aura, an educational flashcard generator. Create exactly \" + ($json.body.cardCount || 10) + \" interactive flashcards for the topic: \" + ($json.body.topic || \"General Study\") + \". Difficulty: \" + ($json.body.difficulty || \"easy\") + \".\\n\\n\" +\n\"Selected source context:\\n\" +\n(\n  Array.isArray($json.body.selectedSources) && $json.body.selectedSources.length > 0\n    ? $json.body.selectedSources.map((source, index) => {\n        return (index + 1) + \". \" + (source.title || \"Untitled Source\") + \" [\" + (source.type || \"source\") + \"]\\n\" +\n          \"Summary or content: \" + (source.summary || source.value || \"No summary provided.\");\n      }).join(\"\\n\\n\")\n    : \"No selected sources were provided. Use the topic only.\"\n) +\n\"\\n\\nReturn ONLY valid JSON. No markdown. No code fences.\\n\" +\n\"Required JSON format: {\\\"title\\\": string, \\\"cards\\\": [{\\\"type\\\": \\\"question\\\" | \\\"fill_blank\\\", \\\"prompt\\\": string, \\\"answer\\\": string, \\\"hint\\\": string, \\\"explanation\\\": string}]}.\\n\" +\n\"Rules:\\n\" +\n\"- Mix question and fill_blank card types.\\n\" +\n\"- Keep answers short enough for typed input.\\n\" +\n\"- The answer should be a concise phrase, not a full paragraph.\\n\" +\n\"- Hints should help but not reveal the full answer.\\n\" +\n\"- Explanations should be short and student-friendly.\\n\" +\n\"- Prioritize selected source context when available.\\n\" +\n\"- Do not include markdown, comments, or text outside JSON.\"\n}}",
+              "type": "string"
+            },
+            {
+              "id": "topic",
+              "name": "topic",
+              "value": "={{$json.body.topic || \"General Study\"}}",
+              "type": "string"
+            },
+            {
+              "id": "difficulty",
+              "name": "difficulty",
+              "value": "={{$json.body.difficulty || \"easy\"}}",
+              "type": "string"
+            },
+            {
+              "id": "card-count",
+              "name": "cardCount",
+              "value": "={{$json.body.cardCount || 10}}",
+              "type": "number"
+            },
+            {
+              "id": "module-id",
+              "name": "moduleId",
+              "value": "={{$json.body.moduleId || \"demo-module\"}}",
+              "type": "string"
+            },
+            {
+              "id": "user-id",
+              "name": "userId",
+              "value": "={{$json.body.userId || \"demo-user\"}}",
               "type": "string"
             }
           ]
@@ -33,7 +66,10 @@
       "name": "Prepare Flashcards Agent Prompt",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [400, 260]
+      "position": [
+        -2896,
+        912
+      ]
     },
     {
       "parameters": {
@@ -43,11 +79,14 @@
           "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
         }
       },
-      "id": "flashcards-ai-agent",
-      "name": "Flashcards AI Agent",
+      "id": "flashcards-gemini-ai-agent",
+      "name": "Flashcards Gemini AI Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
-      "position": [700, 260],
+      "position": [
+        -2576,
+        608
+      ],
       "continueOnFail": true
     },
     {
@@ -55,17 +94,20 @@
         "modelName": "models/gemini-3.1-flash-lite-preview",
         "options": {
           "temperature": 0.4,
-          "maxOutputTokens": 1800
+          "maxOutputTokens": 2200
         }
       },
       "id": "flashcards-gemini-chat-model",
       "name": "Flashcards Gemini Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
-      "position": [700, 520],
+      "position": [
+        -2576,
+        832
+      ],
       "credentials": {
         "googlePalmApi": {
-          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "id": "REPLACE_WITH_GEMINI_CREDENTIAL_ID",
           "name": "Study Aura Gemini Key"
         }
       }
@@ -81,12 +123,22 @@
           },
           "conditions": [
             {
-              "id": "agent-output-exists",
+              "id": "gemini-output-exists",
               "leftValue": "={{$json.output}}",
               "rightValue": "",
               "operator": {
                 "type": "string",
                 "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "gemini-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
                 "singleValue": true
               }
             }
@@ -95,45 +147,508 @@
         },
         "options": {}
       },
-      "id": "flashcards-agent-succeeded",
-      "name": "Flashcards Agent Succeeded?",
+      "id": "flashcards-gemini-succeeded",
+      "name": "Flashcards Gemini Succeeded?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [1020, 260]
+      "position": [
+        -2240,
+        608
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet deck;\n\ntry {\n  deck = JSON.parse(cleaned);\n\n  if (!deck.cards || !Array.isArray(deck.cards)) {\n    throw new Error(\"Invalid deck format\");\n  }\n} catch (error) {\n  deck = {\n    title: \"Generated Flashcards\",\n    cards: [\n      {\n        type: \"question\",\n        prompt: \"Study Aura generated a flashcard response, but it could not be parsed. What should you do?\",\n        answer: \"Try again\",\n        hint: \"Repeat the generation process.\",\n        explanation: \"Sometimes AI output formatting can fail. Retrying usually fixes the JSON structure.\"\n      }\n    ]\n  };\n}\n\nconst normalizedCards = deck.cards.map((card) => ({\n  type: card.type === \"fill_blank\" ? \"fill_blank\" : \"question\",\n  prompt: String(card.prompt || \"Untitled flashcard\"),\n  answer: String(card.answer || \"No answer provided\"),\n  hint: String(card.hint || \"Think about the key idea.\"),\n  explanation: String(card.explanation || \"Review the related lesson content.\")\n}));\n\nreturn [\n  {\n    json: {\n      deck: {\n        title: String(deck.title || \"Study Aura Flashcards\"),\n        cards: normalizedCards\n      },\n      fallback: false\n    }\n  }\n];"
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet deck;\nlet fallback = false;\n\ntry {\n  deck = JSON.parse(cleaned);\n\n  if (!deck.title || !deck.cards || !Array.isArray(deck.cards)) {\n    throw new Error(\"Invalid deck format\");\n  }\n} catch (error) {\n  fallback = true;\n  deck = {\n    title: \"Study Aura Flashcards\",\n    cards: [\n      {\n        type: \"question\",\n        prompt: \"What is the best first step when reviewing a new topic?\",\n        answer: \"Break it into smaller parts\",\n        hint: \"Think of making the topic easier to handle.\",\n        explanation: \"Breaking a topic into smaller parts helps you understand and remember it more easily.\"\n      }\n    ]\n  };\n}\n\nconst normalizedCards = deck.cards.map((card) => ({\n  type: card.type === \"fill_blank\" ? \"fill_blank\" : \"question\",\n  prompt: String(card.prompt || \"Untitled flashcard\"),\n  answer: String(card.answer || \"No answer provided\"),\n  hint: String(card.hint || \"Think about the key idea.\"),\n  explanation: String(card.explanation || \"Review the related lesson content.\")\n}));\n\nreturn [\n  {\n    json: {\n      deck: {\n        title: String(deck.title || \"Study Aura Flashcards\"),\n        cards: normalizedCards\n      },\n      fallback,\n      provider: $json.provider || \"gemini\"\n    }\n  }\n];"
       },
-      "id": "clean-flashcards-agent-json",
-      "name": "Clean Flashcards Agent JSON",
+      "id": "clean-gemini-flashcards-json",
+      "name": "Clean Gemini Flashcards JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1260, 140]
+      "position": [
+        -1936,
+        528
+      ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{\n  {\n    \"deck\": $json.deck,\n    \"fallback\": $json.fallback\n  }\n}}",
+        "responseBody": "={{\n  {\n    \"deck\": $json.deck,\n    \"provider\": \"gemini\",\n    \"fallback\": $json.fallback\n  }\n}}",
         "options": {}
       },
-      "id": "return-flashcards-agent-response",
-      "name": "Return Flashcards Agent Response",
+      "id": "return-gemini-flashcards-response",
+      "name": "Return Gemini Flashcards Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1540, 140]
+      "position": [
+        -1664,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$node[\"Prepare Flashcards Agent Prompt\"].json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+        }
+      },
+      "id": "flashcards-groq-ai-agent",
+      "name": "Flashcards Groq AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -1936,
+        736
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "id": "flashcards-groq-chat-model",
+      "name": "Flashcards Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1936,
+        960
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "REPLACE_WITH_GROQ_CREDENTIAL_ID",
+          "name": "Study Aura Groq Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "groq-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "groq-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "flashcards-groq-succeeded",
+      "name": "Flashcards Groq Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1600,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet deck;\nlet fallback = false;\n\ntry {\n  deck = JSON.parse(cleaned);\n\n  if (!deck.title || !deck.cards || !Array.isArray(deck.cards)) {\n    throw new Error(\"Invalid deck format\");\n  }\n} catch (error) {\n  fallback = true;\n  deck = {\n    title: \"Study Aura Flashcards\",\n    cards: [\n      {\n        type: \"question\",\n        prompt: \"What is the best first step when reviewing a new topic?\",\n        answer: \"Break it into smaller parts\",\n        hint: \"Think of making the topic easier to handle.\",\n        explanation: \"Breaking a topic into smaller parts helps you understand and remember it more easily.\"\n      }\n    ]\n  };\n}\n\nconst normalizedCards = deck.cards.map((card) => ({\n  type: card.type === \"fill_blank\" ? \"fill_blank\" : \"question\",\n  prompt: String(card.prompt || \"Untitled flashcard\"),\n  answer: String(card.answer || \"No answer provided\"),\n  hint: String(card.hint || \"Think about the key idea.\"),\n  explanation: String(card.explanation || \"Review the related lesson content.\")\n}));\n\nreturn [\n  {\n    json: {\n      deck: {\n        title: String(deck.title || \"Study Aura Flashcards\"),\n        cards: normalizedCards\n      },\n      fallback,\n      provider: $json.provider || \"groq\"\n    }\n  }\n];"
+      },
+      "id": "clean-groq-flashcards-json",
+      "name": "Clean Groq Flashcards JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1296,
+        656
+      ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "{\n  \"deck\": {\n    \"title\": \"Demo Fallback Flashcards\",\n    \"cards\": [\n      {\n        \"type\": \"question\",\n        \"prompt\": \"What is Study Aura designed to help students create?\",\n        \"answer\": \"Study tools\",\n        \"hint\": \"Think about quizzes and flashcards.\",\n        \"explanation\": \"Study Aura helps students generate learning tools such as quizzes, flashcards, tables, and summaries.\"\n      },\n      {\n        \"type\": \"fill_blank\",\n        \"prompt\": \"Dolphins are intelligent marine ________.\",\n        \"answer\": \"mammals\",\n        \"hint\": \"They breathe air and nurse their young.\",\n        \"explanation\": \"Dolphins are mammals because they breathe air, are warm-blooded, and feed milk to their young.\"\n      }\n    ]\n  },\n  \"fallback\": true\n}",
+        "responseBody": "={{\n  {\n    \"deck\": $json.deck,\n    \"provider\": \"groq\",\n    \"fallback\": true\n  }\n}}",
         "options": {}
       },
-      "id": "return-flashcards-agent-fallback",
-      "name": "Return Flashcards Agent Fallback",
+      "id": "return-groq-flashcards-response",
+      "name": "Return Groq Flashcards Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1260, 380]
+      "position": [
+        -1024,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$node[\"Prepare Flashcards Agent Prompt\"].json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+        }
+      },
+      "id": "flashcards-openrouter-ai-agent",
+      "name": "Flashcards OpenRouter AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -1024,
+        848
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3-coder:free",
+        "options": {
+          "temperature": 0.4,
+          "maxTokens": 2200
+        }
+      },
+      "id": "flashcards-openrouter-chat-model",
+      "name": "Flashcards OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -1024,
+        1072
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "REPLACE_WITH_OPENROUTER_CREDENTIAL_ID",
+          "name": "Study Aura OpenRouter Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "openrouter-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "openrouter-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "flashcards-openrouter-succeeded",
+      "name": "Flashcards OpenRouter Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -688,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet deck;\nlet fallback = false;\n\ntry {\n  deck = JSON.parse(cleaned);\n\n  if (!deck.title || !deck.cards || !Array.isArray(deck.cards)) {\n    throw new Error(\"Invalid deck format\");\n  }\n} catch (error) {\n  fallback = true;\n  deck = {\n    title: \"Study Aura Flashcards\",\n    cards: [\n      {\n        type: \"question\",\n        prompt: \"What is the best first step when reviewing a new topic?\",\n        answer: \"Break it into smaller parts\",\n        hint: \"Think of making the topic easier to handle.\",\n        explanation: \"Breaking a topic into smaller parts helps you understand and remember it more easily.\"\n      }\n    ]\n  };\n}\n\nconst normalizedCards = deck.cards.map((card) => ({\n  type: card.type === \"fill_blank\" ? \"fill_blank\" : \"question\",\n  prompt: String(card.prompt || \"Untitled flashcard\"),\n  answer: String(card.answer || \"No answer provided\"),\n  hint: String(card.hint || \"Think about the key idea.\"),\n  explanation: String(card.explanation || \"Review the related lesson content.\")\n}));\n\nreturn [\n  {\n    json: {\n      deck: {\n        title: String(deck.title || \"Study Aura Flashcards\"),\n        cards: normalizedCards\n      },\n      fallback,\n      provider: $json.provider || \"openrouter\"\n    }\n  }\n];"
+      },
+      "id": "clean-openrouter-flashcards-json",
+      "name": "Clean OpenRouter Flashcards JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"deck\": $json.deck,\n    \"provider\": \"openrouter\",\n    \"fallback\": true\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-openrouter-flashcards-response",
+      "name": "Return OpenRouter Flashcards Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$node[\"Prepare Flashcards Agent Prompt\"].json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+        }
+      },
+      "id": "flashcards-mistral-ai-agent",
+      "name": "Flashcards Mistral AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -112,
+        976
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "mistral-small-latest",
+        "options": {
+          "temperature": 0.4,
+          "maxTokens": 2200
+        }
+      },
+      "id": "flashcards-mistral-chat-model",
+      "name": "Flashcards Mistral Cloud Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        1200
+      ],
+      "credentials": {
+        "mistralCloudApi": {
+          "id": "REPLACE_WITH_MISTRAL_CREDENTIAL_ID",
+          "name": "Study Aura Mistral Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "mistral-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "mistral-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "flashcards-mistral-succeeded",
+      "name": "Flashcards Mistral Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        976
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet deck;\nlet fallback = false;\n\ntry {\n  deck = JSON.parse(cleaned);\n\n  if (!deck.title || !deck.cards || !Array.isArray(deck.cards)) {\n    throw new Error(\"Invalid deck format\");\n  }\n} catch (error) {\n  fallback = true;\n  deck = {\n    title: \"Study Aura Flashcards\",\n    cards: [\n      {\n        type: \"question\",\n        prompt: \"What is the best first step when reviewing a new topic?\",\n        answer: \"Break it into smaller parts\",\n        hint: \"Think of making the topic easier to handle.\",\n        explanation: \"Breaking a topic into smaller parts helps you understand and remember it more easily.\"\n      }\n    ]\n  };\n}\n\nconst normalizedCards = deck.cards.map((card) => ({\n  type: card.type === \"fill_blank\" ? \"fill_blank\" : \"question\",\n  prompt: String(card.prompt || \"Untitled flashcard\"),\n  answer: String(card.answer || \"No answer provided\"),\n  hint: String(card.hint || \"Think about the key idea.\"),\n  explanation: String(card.explanation || \"Review the related lesson content.\")\n}));\n\nreturn [\n  {\n    json: {\n      deck: {\n        title: String(deck.title || \"Study Aura Flashcards\"),\n        cards: normalizedCards\n      },\n      fallback,\n      provider: $json.provider || \"mistral\"\n    }\n  }\n];"
+      },
+      "id": "clean-mistral-flashcards-json",
+      "name": "Clean Mistral Flashcards JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"deck\": $json.deck,\n    \"provider\": \"mistral\",\n    \"fallback\": true\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-mistral-flashcards-response",
+      "name": "Return Mistral Flashcards Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        800,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$node[\"Prepare Flashcards Agent Prompt\"].json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+        }
+      },
+      "id": "flashcards-deepseek-ai-agent",
+      "name": "Flashcards DeepSeek AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        800,
+        1088
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "deepseek-v4-flash",
+        "options": {
+          "temperature": 0.4,
+          "maxTokens": 2200
+        }
+      },
+      "id": "flashcards-deepseek-chat-model",
+      "name": "Flashcards DeepSeek Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        800,
+        1312
+      ],
+      "credentials": {
+        "deepSeekApi": {
+          "id": "REPLACE_WITH_DEEPSEEK_CREDENTIAL_ID",
+          "name": "Study Aura DeepSeek Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "deepseek-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "deepseek-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "flashcards-deepseek-succeeded",
+      "name": "Flashcards DeepSeek Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1136,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet deck;\nlet fallback = false;\n\ntry {\n  deck = JSON.parse(cleaned);\n\n  if (!deck.title || !deck.cards || !Array.isArray(deck.cards)) {\n    throw new Error(\"Invalid deck format\");\n  }\n} catch (error) {\n  fallback = true;\n  deck = {\n    title: \"Study Aura Flashcards\",\n    cards: [\n      {\n        type: \"question\",\n        prompt: \"What is the best first step when reviewing a new topic?\",\n        answer: \"Break it into smaller parts\",\n        hint: \"Think of making the topic easier to handle.\",\n        explanation: \"Breaking a topic into smaller parts helps you understand and remember it more easily.\"\n      }\n    ]\n  };\n}\n\nconst normalizedCards = deck.cards.map((card) => ({\n  type: card.type === \"fill_blank\" ? \"fill_blank\" : \"question\",\n  prompt: String(card.prompt || \"Untitled flashcard\"),\n  answer: String(card.answer || \"No answer provided\"),\n  hint: String(card.hint || \"Think about the key idea.\"),\n  explanation: String(card.explanation || \"Review the related lesson content.\")\n}));\n\nreturn [\n  {\n    json: {\n      deck: {\n        title: String(deck.title || \"Study Aura Flashcards\"),\n        cards: normalizedCards\n      },\n      fallback,\n      provider: $json.provider || \"deepseek\"\n    }\n  }\n];"
+      },
+      "id": "clean-deepseek-flashcards-json",
+      "name": "Clean DeepSeek Flashcards JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        1008
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"deck\": $json.deck,\n    \"provider\": \"deepseek\",\n    \"fallback\": true\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-deepseek-flashcards-response",
+      "name": "Return DeepSeek Flashcards Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1712,
+        1008
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"deck\": {\n      \"title\": \"Study Aura Flashcards\",\n      \"cards\": [\n        {\n          \"type\": \"question\",\n          \"prompt\": \"What is the best first step when reviewing a new topic?\",\n          \"answer\": \"Break it into smaller parts\",\n          \"hint\": \"Think of making the topic easier to handle.\",\n          \"explanation\": \"Breaking a topic into smaller parts helps you understand and remember it more easily.\"\n        },\n        {\n          \"type\": \"fill_blank\",\n          \"prompt\": \"Reviewing key terms helps strengthen your ________.\",\n          \"answer\": \"recall\",\n          \"hint\": \"It means remembering information later.\",\n          \"explanation\": \"Recall improves when you repeatedly practice retrieving important information.\"\n        }\n      ]\n    },\n    \"provider\": \"static-fallback\",\n    \"fallback\": true\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-static-flashcards-fallback",
+      "name": "Return Static Flashcards Fallback",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1712,
+        1216
+      ]
     }
   ],
   "connections": {
@@ -152,7 +667,7 @@
       "main": [
         [
           {
-            "node": "Flashcards AI Agent",
+            "node": "Flashcards Gemini AI Agent",
             "type": "main",
             "index": 0
           }
@@ -163,47 +678,251 @@
       "ai_languageModel": [
         [
           {
-            "node": "Flashcards AI Agent",
+            "node": "Flashcards Gemini AI Agent",
             "type": "ai_languageModel",
             "index": 0
           }
         ]
       ]
     },
-    "Flashcards AI Agent": {
+    "Flashcards Gemini AI Agent": {
       "main": [
         [
           {
-            "node": "Flashcards Agent Succeeded?",
+            "node": "Flashcards Gemini Succeeded?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Flashcards Agent Succeeded?": {
+    "Flashcards Gemini Succeeded?": {
       "main": [
         [
           {
-            "node": "Clean Flashcards Agent JSON",
+            "node": "Clean Gemini Flashcards JSON",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Return Flashcards Agent Fallback",
+            "node": "Flashcards Groq AI Agent",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Clean Flashcards Agent JSON": {
+    "Clean Gemini Flashcards JSON": {
       "main": [
         [
           {
-            "node": "Return Flashcards Agent Response",
+            "node": "Return Gemini Flashcards Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flashcards Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Flashcards Groq AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flashcards Groq AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Flashcards Groq Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flashcards Groq Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Clean Groq Flashcards JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Flashcards OpenRouter AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Groq Flashcards JSON": {
+      "main": [
+        [
+          {
+            "node": "Return Groq Flashcards Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flashcards OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Flashcards OpenRouter AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flashcards OpenRouter AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Flashcards OpenRouter Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flashcards OpenRouter Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Clean OpenRouter Flashcards JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Flashcards Mistral AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean OpenRouter Flashcards JSON": {
+      "main": [
+        [
+          {
+            "node": "Return OpenRouter Flashcards Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flashcards Mistral Cloud Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Flashcards Mistral AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flashcards Mistral AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Flashcards Mistral Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flashcards Mistral Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Clean Mistral Flashcards JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Flashcards DeepSeek AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Mistral Flashcards JSON": {
+      "main": [
+        [
+          {
+            "node": "Return Mistral Flashcards Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flashcards DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Flashcards DeepSeek AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flashcards DeepSeek AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Flashcards DeepSeek Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flashcards DeepSeek Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Clean DeepSeek Flashcards JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Static Flashcards Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean DeepSeek Flashcards JSON": {
+      "main": [
+        [
+          {
+            "node": "Return DeepSeek Flashcards Response",
             "type": "main",
             "index": 0
           }

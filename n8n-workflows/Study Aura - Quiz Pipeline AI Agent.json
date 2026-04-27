@@ -12,7 +12,10 @@
       "name": "Quiz Agent Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [120, 260],
+      "position": [
+        -3184,
+        912
+      ],
       "webhookId": "study-aura-quiz"
     },
     {
@@ -22,7 +25,37 @@
             {
               "id": "quiz-prompt",
               "name": "prompt",
-              "value": "={{\"You are Study Aura, an educational quiz generator. Create exactly \" + ($json.body.questionCount || 10) + \" multiple-choice questions for the topic: \" + ($json.body.topic || \"General Study\") + \". Difficulty: \" + ($json.body.difficulty || \"easy\") + \". Return ONLY valid JSON. No markdown. No code fences. Format: {\\\"title\\\": string, \\\"questions\\\": [{\\\"question\\\": string, \\\"choices\\\": string[], \\\"answer\\\": string, \\\"explanation\\\": string}]}. Each question must have exactly 4 choices. The answer must exactly match one of the choices.\"}}",
+              "value": "={{\n\"You are Study Aura, an educational quiz generator. Create exactly \" + ($json.body.questionCount || 10) + \" multiple-choice questions for the topic: \" + ($json.body.topic || \"General Study\") + \". Difficulty: \" + ($json.body.difficulty || \"easy\") + \".\\n\\n\" +\n\"Selected source context:\\n\" +\n(\n  Array.isArray($json.body.selectedSources) && $json.body.selectedSources.length > 0\n    ? $json.body.selectedSources.map((source, index) => {\n        return (index + 1) + \". \" + (source.title || \"Untitled Source\") + \" [\" + (source.type || \"source\") + \"]\\n\" +\n          \"Summary or content: \" + (source.summary || source.value || \"No summary provided.\");\n      }).join(\"\\n\\n\")\n    : \"No selected sources were provided. Use the topic only.\"\n) +\n\"\\n\\nReturn ONLY valid JSON. No markdown. No code fences.\\n\" +\n\"Required JSON format: {\\\"title\\\": string, \\\"questions\\\": [{\\\"question\\\": string, \\\"choices\\\": string[], \\\"answer\\\": string, \\\"explanation\\\": string}]}.\\n\" +\n\"Rules:\\n\" +\n\"- Each question must have exactly 4 choices.\\n\" +\n\"- The answer must exactly match one of the choices.\\n\" +\n\"- Explanations should be short and student-friendly.\\n\" +\n\"- Prioritize selected source context when available.\\n\" +\n\"- Do not include markdown, comments, or text outside JSON.\"\n}}",
+              "type": "string"
+            },
+            {
+              "id": "topic",
+              "name": "topic",
+              "value": "={{$json.body.topic || \"General Study\"}}",
+              "type": "string"
+            },
+            {
+              "id": "difficulty",
+              "name": "difficulty",
+              "value": "={{$json.body.difficulty || \"easy\"}}",
+              "type": "string"
+            },
+            {
+              "id": "question-count",
+              "name": "questionCount",
+              "value": "={{$json.body.questionCount || 10}}",
+              "type": "number"
+            },
+            {
+              "id": "module-id",
+              "name": "moduleId",
+              "value": "={{$json.body.moduleId || \"demo-module\"}}",
+              "type": "string"
+            },
+            {
+              "id": "user-id",
+              "name": "userId",
+              "value": "={{$json.body.userId || \"demo-user\"}}",
               "type": "string"
             }
           ]
@@ -33,7 +66,10 @@
       "name": "Prepare Quiz Agent Prompt",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [400, 260]
+      "position": [
+        -2896,
+        912
+      ]
     },
     {
       "parameters": {
@@ -43,11 +79,14 @@
           "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown or explanations outside JSON."
         }
       },
-      "id": "quiz-ai-agent",
-      "name": "Quiz AI Agent",
+      "id": "quiz-gemini-ai-agent",
+      "name": "Quiz Gemini AI Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
-      "position": [700, 260],
+      "position": [
+        -2576,
+        608
+      ],
       "continueOnFail": true
     },
     {
@@ -55,17 +94,20 @@
         "modelName": "models/gemini-3.1-flash-lite-preview",
         "options": {
           "temperature": 0.35,
-          "maxOutputTokens": 1800
+          "maxOutputTokens": 2200
         }
       },
       "id": "quiz-gemini-chat-model",
       "name": "Quiz Gemini Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
-      "position": [700, 520],
+      "position": [
+        -2576,
+        832
+      ],
       "credentials": {
         "googlePalmApi": {
-          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "id": "REPLACE_WITH_GEMINI_CREDENTIAL_ID",
           "name": "Study Aura Gemini Key"
         }
       }
@@ -81,12 +123,22 @@
           },
           "conditions": [
             {
-              "id": "agent-output-exists",
+              "id": "gemini-output-exists",
               "leftValue": "={{$json.output}}",
               "rightValue": "",
               "operator": {
                 "type": "string",
                 "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "gemini-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
                 "singleValue": true
               }
             }
@@ -95,68 +147,787 @@
         },
         "options": {}
       },
-      "id": "quiz-agent-succeeded",
-      "name": "Quiz Agent Succeeded?",
+      "id": "quiz-gemini-succeeded",
+      "name": "Quiz Gemini Succeeded?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [1020, 260]
+      "position": [
+        -2240,
+        608
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet quiz;\n\ntry {\n  quiz = JSON.parse(cleaned);\n\n  if (!quiz.questions || !Array.isArray(quiz.questions)) {\n    throw new Error(\"Invalid quiz format\");\n  }\n} catch (error) {\n  quiz = {\n    title: \"Generated Quiz\",\n    questions: [\n      {\n        question: \"Study Aura generated a quiz response, but it could not be parsed. What should you do?\",\n        choices: [\"Try again\", \"Close the app\", \"Delete the workflow\", \"Ignore the topic\"],\n        answer: \"Try again\",\n        explanation: \"The AI response was not valid JSON, so retrying usually fixes the generated format.\"\n      }\n    ]\n  };\n}\n\nreturn [\n  {\n    json: {\n      quiz,\n      fallback: false\n    }\n  }\n];"
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet quiz;\nlet fallback = false;\n\ntry {\n  quiz = JSON.parse(cleaned);\n\n  if (!quiz.title || !quiz.questions || !Array.isArray(quiz.questions)) {\n    throw new Error(\"Invalid quiz format\");\n  }\n\n  quiz.questions = quiz.questions.map((item, index) => {\n    const choices = Array.isArray(item.choices) ? item.choices.slice(0, 4) : [];\n\n    while (choices.length < 4) {\n      choices.push(`Option ${choices.length + 1}`);\n    }\n\n    const answer = choices.includes(item.answer) ? item.answer : choices[0];\n\n    return {\n      question: String(item.question || `Question ${index + 1}`),\n      choices,\n      answer,\n      explanation: String(item.explanation || \"Review the related concept and compare the choices carefully.\")\n    };\n  });\n} catch (error) {\n  fallback = true;\n  quiz = {\n    title: \"Study Aura Quick Quiz\",\n    questions: [\n      {\n        question: \"What is the best first step when studying a new topic?\",\n        choices: [\"Break it into smaller parts\", \"Memorize everything immediately\", \"Skip examples\", \"Avoid review\"],\n        answer: \"Break it into smaller parts\",\n        explanation: \"Breaking a topic into smaller parts makes it easier to understand and remember.\"\n      }\n    ]\n  };\n}\n\nreturn [\n  {\n    json: {\n      quiz,\n      fallback,\n      provider: $json.provider || \"unknown\"\n    }\n  }\n];"
       },
-      "id": "clean-quiz-agent-json",
-      "name": "Clean Quiz Agent JSON",
+      "id": "clean-gemini-quiz-json",
+      "name": "Clean Gemini Quiz JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1260, 140]
+      "position": [
+        -1936,
+        528
+      ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{\n  {\n    \"quiz\": $json.quiz,\n    \"fallback\": $json.fallback\n  }\n}}",
+        "responseBody": "={{\n  {\n    \"quiz\": $json.quiz,\n    \"provider\": \"gemini\",\n    \"fallback\": $json.fallback\n  }\n}}",
         "options": {}
       },
-      "id": "return-quiz-agent-response",
-      "name": "Return Quiz Agent Response",
+      "id": "return-gemini-quiz-response",
+      "name": "Return Gemini Quiz Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1540, 140]
+      "position": [
+        -1664,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$node[\"Prepare Quiz Agent Prompt\"].json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown or explanations outside JSON."
+        }
+      },
+      "id": "quiz-groq-ai-agent",
+      "name": "Quiz Groq AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -1936,
+        736
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "temperature": 0.35
+        }
+      },
+      "id": "quiz-groq-chat-model",
+      "name": "Quiz Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1936,
+        960
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "REPLACE_WITH_GROQ_CREDENTIAL_ID",
+          "name": "Study Aura Groq Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "groq-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "groq-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "quiz-groq-succeeded",
+      "name": "Quiz Groq Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1600,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet quiz;\nlet fallback = false;\n\ntry {\n  quiz = JSON.parse(cleaned);\n\n  if (!quiz.title || !quiz.questions || !Array.isArray(quiz.questions)) {\n    throw new Error(\"Invalid quiz format\");\n  }\n\n  quiz.questions = quiz.questions.map((item, index) => {\n    const choices = Array.isArray(item.choices) ? item.choices.slice(0, 4) : [];\n\n    while (choices.length < 4) {\n      choices.push(`Option ${choices.length + 1}`);\n    }\n\n    const answer = choices.includes(item.answer) ? item.answer : choices[0];\n\n    return {\n      question: String(item.question || `Question ${index + 1}`),\n      choices,\n      answer,\n      explanation: String(item.explanation || \"Review the related concept and compare the choices carefully.\")\n    };\n  });\n} catch (error) {\n  fallback = true;\n  quiz = {\n    title: \"Study Aura Quick Quiz\",\n    questions: [\n      {\n        question: \"What is the best first step when studying a new topic?\",\n        choices: [\"Break it into smaller parts\", \"Memorize everything immediately\", \"Skip examples\", \"Avoid review\"],\n        answer: \"Break it into smaller parts\",\n        explanation: \"Breaking a topic into smaller parts makes it easier to understand and remember.\"\n      }\n    ]\n  };\n}\n\nreturn [\n  {\n    json: {\n      quiz,\n      fallback,\n      provider: $json.provider || \"groq\"\n    }\n  }\n];"
+      },
+      "id": "clean-groq-quiz-json",
+      "name": "Clean Groq Quiz JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1296,
+        656
+      ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "{\n  \"quiz\": {\n    \"title\": \"Demo Fallback Quiz\",\n    \"questions\": [\n      {\n        \"question\": \"What is the best first step when studying a new topic?\",\n        \"choices\": [\"Memorize everything\", \"Break it into smaller parts\", \"Skip examples\", \"Avoid review\"],\n        \"answer\": \"Break it into smaller parts\",\n        \"explanation\": \"Breaking a topic into smaller parts makes it easier to understand and remember.\"\n      }\n    ]\n  },\n  \"fallback\": true\n}",
+        "responseBody": "={{\n  {\n    \"quiz\": $json.quiz,\n    \"provider\": \"groq\",\n    \"fallback\": true\n  }\n}}",
         "options": {}
       },
-      "id": "return-quiz-agent-fallback",
-      "name": "Return Quiz Agent Fallback",
+      "id": "return-groq-quiz-response",
+      "name": "Return Groq Quiz Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1260, 380]
+      "position": [
+        -1024,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$node[\"Prepare Quiz Agent Prompt\"].json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown or explanations outside JSON."
+        }
+      },
+      "id": "quiz-openrouter-ai-agent",
+      "name": "Quiz OpenRouter AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -1024,
+        848
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3-coder:free",
+        "options": {
+          "temperature": 0.35,
+          "maxTokens": 2200
+        }
+      },
+      "id": "quiz-openrouter-chat-model",
+      "name": "Quiz OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -1024,
+        1072
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "REPLACE_WITH_OPENROUTER_CREDENTIAL_ID",
+          "name": "Study Aura OpenRouter Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "openrouter-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "openrouter-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "quiz-openrouter-succeeded",
+      "name": "Quiz OpenRouter Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -688,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet quiz;\nlet fallback = false;\n\ntry {\n  quiz = JSON.parse(cleaned);\n\n  if (!quiz.title || !quiz.questions || !Array.isArray(quiz.questions)) {\n    throw new Error(\"Invalid quiz format\");\n  }\n\n  quiz.questions = quiz.questions.map((item, index) => {\n    const choices = Array.isArray(item.choices) ? item.choices.slice(0, 4) : [];\n\n    while (choices.length < 4) {\n      choices.push(`Option ${choices.length + 1}`);\n    }\n\n    const answer = choices.includes(item.answer) ? item.answer : choices[0];\n\n    return {\n      question: String(item.question || `Question ${index + 1}`),\n      choices,\n      answer,\n      explanation: String(item.explanation || \"Review the related concept and compare the choices carefully.\")\n    };\n  });\n} catch (error) {\n  fallback = true;\n  quiz = {\n    title: \"Study Aura Quick Quiz\",\n    questions: [\n      {\n        question: \"What is the best first step when studying a new topic?\",\n        choices: [\"Break it into smaller parts\", \"Memorize everything immediately\", \"Skip examples\", \"Avoid review\"],\n        answer: \"Break it into smaller parts\",\n        explanation: \"Breaking a topic into smaller parts makes it easier to understand and remember.\"\n      }\n    ]\n  };\n}\n\nreturn [\n  {\n    json: {\n      quiz,\n      fallback,\n      provider: $json.provider || \"openrouter\"\n    }\n  }\n];"
+      },
+      "id": "clean-openrouter-quiz-json",
+      "name": "Clean OpenRouter Quiz JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"quiz\": $json.quiz,\n    \"provider\": \"openrouter\",\n    \"fallback\": true\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-openrouter-quiz-response",
+      "name": "Return OpenRouter Quiz Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$node[\"Prepare Quiz Agent Prompt\"].json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown or explanations outside JSON."
+        }
+      },
+      "id": "quiz-mistral-ai-agent",
+      "name": "Quiz Mistral AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -112,
+        976
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "mistral-small-latest",
+        "options": {
+          "temperature": 0.35,
+          "maxTokens": 2200
+        }
+      },
+      "id": "quiz-mistral-chat-model",
+      "name": "Quiz Mistral Cloud Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        1200
+      ],
+      "credentials": {
+        "mistralCloudApi": {
+          "id": "REPLACE_WITH_MISTRAL_CREDENTIAL_ID",
+          "name": "Study Aura Mistral Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "mistral-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "mistral-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "quiz-mistral-succeeded",
+      "name": "Quiz Mistral Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        976
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet quiz;\nlet fallback = false;\n\ntry {\n  quiz = JSON.parse(cleaned);\n\n  if (!quiz.title || !quiz.questions || !Array.isArray(quiz.questions)) {\n    throw new Error(\"Invalid quiz format\");\n  }\n\n  quiz.questions = quiz.questions.map((item, index) => {\n    const choices = Array.isArray(item.choices) ? item.choices.slice(0, 4) : [];\n\n    while (choices.length < 4) {\n      choices.push(`Option ${choices.length + 1}`);\n    }\n\n    const answer = choices.includes(item.answer) ? item.answer : choices[0];\n\n    return {\n      question: String(item.question || `Question ${index + 1}`),\n      choices,\n      answer,\n      explanation: String(item.explanation || \"Review the related concept and compare the choices carefully.\")\n    };\n  });\n} catch (error) {\n  fallback = true;\n  quiz = {\n    title: \"Study Aura Quick Quiz\",\n    questions: [\n      {\n        question: \"What is the best first step when studying a new topic?\",\n        choices: [\"Break it into smaller parts\", \"Memorize everything immediately\", \"Skip examples\", \"Avoid review\"],\n        answer: \"Break it into smaller parts\",\n        explanation: \"Breaking a topic into smaller parts makes it easier to understand and remember.\"\n      }\n    ]\n  };\n}\n\nreturn [\n  {\n    json: {\n      quiz,\n      fallback,\n      provider: $json.provider || \"mistral\"\n    }\n  }\n];"
+      },
+      "id": "clean-mistral-quiz-json",
+      "name": "Clean Mistral Quiz JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"quiz\": $json.quiz,\n    \"provider\": \"mistral\",\n    \"fallback\": true\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-mistral-quiz-response",
+      "name": "Return Mistral Quiz Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        800,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$node[\"Prepare Quiz Agent Prompt\"].json.prompt}}",
+        "options": {
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown or explanations outside JSON."
+        }
+      },
+      "id": "quiz-deepseek-ai-agent",
+      "name": "Quiz DeepSeek AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        800,
+        1088
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "deepseek-v4-flash",
+        "options": {
+          "temperature": 0.35,
+          "maxTokens": 2200
+        }
+      },
+      "id": "quiz-deepseek-chat-model",
+      "name": "Quiz DeepSeek Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        800,
+        1312
+      ],
+      "credentials": {
+        "deepSeekApi": {
+          "id": "REPLACE_WITH_DEEPSEEK_CREDENTIAL_ID",
+          "name": "Study Aura DeepSeek Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "deepseek-output-exists",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "deepseek-output-not-empty",
+              "leftValue": "={{$json.output}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "quiz-deepseek-succeeded",
+      "name": "Quiz DeepSeek Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1136,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet quiz;\nlet fallback = false;\n\ntry {\n  quiz = JSON.parse(cleaned);\n\n  if (!quiz.title || !quiz.questions || !Array.isArray(quiz.questions)) {\n    throw new Error(\"Invalid quiz format\");\n  }\n\n  quiz.questions = quiz.questions.map((item, index) => {\n    const choices = Array.isArray(item.choices) ? item.choices.slice(0, 4) : [];\n\n    while (choices.length < 4) {\n      choices.push(`Option ${choices.length + 1}`);\n    }\n\n    const answer = choices.includes(item.answer) ? item.answer : choices[0];\n\n    return {\n      question: String(item.question || `Question ${index + 1}`),\n      choices,\n      answer,\n      explanation: String(item.explanation || \"Review the related concept and compare the choices carefully.\")\n    };\n  });\n} catch (error) {\n  fallback = true;\n  quiz = {\n    title: \"Study Aura Quick Quiz\",\n    questions: [\n      {\n        question: \"What is the best first step when studying a new topic?\",\n        choices: [\"Break it into smaller parts\", \"Memorize everything immediately\", \"Skip examples\", \"Avoid review\"],\n        answer: \"Break it into smaller parts\",\n        explanation: \"Breaking a topic into smaller parts makes it easier to understand and remember.\"\n      }\n    ]\n  };\n}\n\nreturn [\n  {\n    json: {\n      quiz,\n      fallback,\n      provider: $json.provider || \"deepseek\"\n    }\n  }\n];"
+      },
+      "id": "clean-deepseek-quiz-json",
+      "name": "Clean DeepSeek Quiz JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        1008
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"quiz\": $json.quiz,\n    \"provider\": \"deepseek\",\n    \"fallback\": true\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-deepseek-quiz-response",
+      "name": "Return DeepSeek Quiz Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1712,
+        1008
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"quiz\": {\n      \"title\": \"Study Aura Quick Quiz\",\n      \"questions\": [\n        {\n          \"question\": \"What is the best first step when studying a new topic?\",\n          \"choices\": [\"Break it into smaller parts\", \"Memorize everything immediately\", \"Skip examples\", \"Avoid review\"],\n          \"answer\": \"Break it into smaller parts\",\n          \"explanation\": \"Breaking a topic into smaller parts makes it easier to understand and remember.\"\n        },\n        {\n          \"question\": \"Why should you review key terms after learning?\",\n          \"choices\": [\"To strengthen recall\", \"To make learning harder\", \"To avoid understanding\", \"To remove context\"],\n          \"answer\": \"To strengthen recall\",\n          \"explanation\": \"Reviewing key terms helps your brain retrieve and organize information more easily.\"\n        }\n      ]\n    },\n    \"provider\": \"static-fallback\",\n    \"fallback\": true\n  }\n}}",
+        "options": {}
+      },
+      "id": "return-static-quiz-fallback",
+      "name": "Return Static Quiz Fallback",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1712,
+        1216
+      ]
     }
   ],
   "connections": {
     "Quiz Agent Webhook": {
-      "main": [[{ "node": "Prepare Quiz Agent Prompt", "type": "main", "index": 0 }]]
-    },
-    "Prepare Quiz Agent Prompt": {
-      "main": [[{ "node": "Quiz AI Agent", "type": "main", "index": 0 }]]
-    },
-    "Quiz Gemini Chat Model": {
-      "ai_languageModel": [[{ "node": "Quiz AI Agent", "type": "ai_languageModel", "index": 0 }]]
-    },
-    "Quiz AI Agent": {
-      "main": [[{ "node": "Quiz Agent Succeeded?", "type": "main", "index": 0 }]]
-    },
-    "Quiz Agent Succeeded?": {
       "main": [
-        [{ "node": "Clean Quiz Agent JSON", "type": "main", "index": 0 }],
-        [{ "node": "Return Quiz Agent Fallback", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Prepare Quiz Agent Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Clean Quiz Agent JSON": {
-      "main": [[{ "node": "Return Quiz Agent Response", "type": "main", "index": 0 }]]
+    "Prepare Quiz Agent Prompt": {
+      "main": [
+        [
+          {
+            "node": "Quiz Gemini AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Quiz Gemini AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz Gemini AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Quiz Gemini Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz Gemini Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Clean Gemini Quiz JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Quiz Groq AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Gemini Quiz JSON": {
+      "main": [
+        [
+          {
+            "node": "Return Gemini Quiz Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Quiz Groq AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz Groq AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Quiz Groq Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz Groq Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Clean Groq Quiz JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Quiz OpenRouter AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Groq Quiz JSON": {
+      "main": [
+        [
+          {
+            "node": "Return Groq Quiz Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Quiz OpenRouter AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz OpenRouter AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Quiz OpenRouter Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz OpenRouter Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Clean OpenRouter Quiz JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Quiz Mistral AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean OpenRouter Quiz JSON": {
+      "main": [
+        [
+          {
+            "node": "Return OpenRouter Quiz Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz Mistral Cloud Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Quiz Mistral AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz Mistral AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Quiz Mistral Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz Mistral Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Clean Mistral Quiz JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Quiz DeepSeek AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Mistral Quiz JSON": {
+      "main": [
+        [
+          {
+            "node": "Return Mistral Quiz Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Quiz DeepSeek AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz DeepSeek AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Quiz DeepSeek Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz DeepSeek Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Clean DeepSeek Quiz JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Static Quiz Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean DeepSeek Quiz JSON": {
+      "main": [
+        [
+          {
+            "node": "Return DeepSeek Quiz Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
