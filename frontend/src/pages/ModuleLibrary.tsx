@@ -40,7 +40,7 @@ const ModuleLibrary = ({
   );
 
   return (
-    <div className="min-h-dvh bg-aura-bg text-aura-text">
+    <div className="h-dvh overflow-y-auto bg-aura-bg text-aura-text aura-scrollbar">
       <header className="sticky top-0 z-20 border-b border-aura-border bg-aura-panel/90 px-6 py-4 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <button
@@ -80,7 +80,7 @@ const ModuleLibrary = ({
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-8">
+      <main className="mx-auto max-w-7xl px-6 py-8 pb-16">
         <section className="overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel p-8 shadow-[0_30px_90px_rgba(0,0,0,0.25)]">
           <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
             <div>

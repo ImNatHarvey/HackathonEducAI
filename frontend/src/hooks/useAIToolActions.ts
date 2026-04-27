@@ -27,7 +27,42 @@ type UseAIToolActionsParams = {
   selectedSources: StudySource[];
 };
 
+export type AIToolGenerationOptions = {
+  difficulty: QuizDifficulty;
+  tableType: StudyTableType;
+  audioStyle: AudioOverviewStyle;
+  audioLength: AudioOverviewLength;
+};
+
 type ToolStatus = "idle" | "loading" | "success" | "error";
+
+const generationDefaults = {
+  quiz: {
+    easy: 10,
+    medium: 20,
+    hard: 30,
+  },
+  flashcards: {
+    easy: 10,
+    medium: 15,
+    hard: 20,
+  },
+  tables: {
+    easy: 5,
+    medium: 8,
+    hard: 10,
+  },
+  mindMap: {
+    easy: 4,
+    medium: 6,
+    hard: 8,
+  },
+  slides: {
+    easy: 5,
+    medium: 8,
+    hard: 10,
+  },
+} as const;
 
 export const useAIToolActions = ({
   topic,
@@ -46,7 +81,10 @@ export const useAIToolActions = ({
     summary: source.summary,
   }));
 
-  const runTool = async (toolName: AIToolName) => {
+  const runTool = async (
+    toolName: AIToolName,
+    options: AIToolGenerationOptions,
+  ) => {
     setStatus("loading");
     setError("");
     setResult(null);
@@ -59,8 +97,8 @@ export const useAIToolActions = ({
           topic,
           moduleId,
           selectedSources: selectedSourcePayload,
-          difficulty: "medium" satisfies QuizDifficulty,
-          questionCount: 5,
+          difficulty: options.difficulty satisfies QuizDifficulty,
+          questionCount: generationDefaults.quiz[options.difficulty],
           userId: currentUser.id,
         });
       }
@@ -70,8 +108,8 @@ export const useAIToolActions = ({
           topic,
           moduleId,
           selectedSources: selectedSourcePayload,
-          difficulty: "medium" satisfies FlashcardDifficulty,
-          cardCount: 8,
+          difficulty: options.difficulty satisfies FlashcardDifficulty,
+          cardCount: generationDefaults.flashcards[options.difficulty],
           userId: currentUser.id,
         });
       }
@@ -81,9 +119,9 @@ export const useAIToolActions = ({
           topic,
           moduleId,
           selectedSources: selectedSourcePayload,
-          difficulty: "medium" satisfies TableDifficulty,
-          tableType: "concept_comparison" satisfies StudyTableType,
-          rowCount: 6,
+          difficulty: options.difficulty satisfies TableDifficulty,
+          tableType: options.tableType,
+          rowCount: generationDefaults.tables[options.difficulty],
           userId: currentUser.id,
         });
       }
@@ -93,8 +131,8 @@ export const useAIToolActions = ({
           topic,
           moduleId,
           selectedSources: selectedSourcePayload,
-          difficulty: "medium" satisfies MindMapDifficulty,
-          branchCount: 6,
+          difficulty: options.difficulty satisfies MindMapDifficulty,
+          branchCount: generationDefaults.mindMap[options.difficulty],
           userId: currentUser.id,
         });
       }
@@ -104,8 +142,8 @@ export const useAIToolActions = ({
           topic,
           moduleId,
           selectedSources: selectedSourcePayload,
-          difficulty: "medium" satisfies SlidesDifficulty,
-          slideCount: 6,
+          difficulty: options.difficulty satisfies SlidesDifficulty,
+          slideCount: generationDefaults.slides[options.difficulty],
           userId: currentUser.id,
         });
       }
@@ -115,8 +153,8 @@ export const useAIToolActions = ({
           topic,
           moduleId,
           selectedSources: selectedSourcePayload,
-          style: "podcast" satisfies AudioOverviewStyle,
-          length: "standard" satisfies AudioOverviewLength,
+          style: options.audioStyle,
+          length: options.audioLength,
           userId: currentUser.id,
         });
       }
@@ -139,11 +177,39 @@ export const useAIToolActions = ({
     setResult(null);
   };
 
+  const getLockedCountLabel = (
+    toolName: AIToolName,
+    difficulty: QuizDifficulty,
+  ) => {
+    if (toolName === "Quiz") {
+      return `${generationDefaults.quiz[difficulty]} questions`;
+    }
+
+    if (toolName === "Cards") {
+      return `${generationDefaults.flashcards[difficulty]} cards`;
+    }
+
+    if (toolName === "Tables") {
+      return `${generationDefaults.tables[difficulty]} rows`;
+    }
+
+    if (toolName === "Mind Map") {
+      return `${generationDefaults.mindMap[difficulty]} branches`;
+    }
+
+    if (toolName === "Slides") {
+      return `${generationDefaults.slides[difficulty]} slides`;
+    }
+
+    return "Based on audio length";
+  };
+
   return {
     status,
     error,
     result,
     runTool,
     resetTool,
+    getLockedCountLabel,
   };
 };
