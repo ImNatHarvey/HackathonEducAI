@@ -35,7 +35,7 @@ const difficultyOptions: {
   },
 ];
 
-const normalize = (value: string) => {
+const normalizeAnswer = (value: string) => {
   return value.trim().toLowerCase().replace(/[^\w\s]/g, "");
 };
 
@@ -53,10 +53,11 @@ const FlashcardsModal = ({ topic }: Props) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [fallback, setFallback] = useState(false);
-  const [score, setScore] = useState(0);
+  const [provider, setProvider] = useState("");
   const [answeredCards, setAnsweredCards] = useState<Record<number, boolean>>(
     {},
   );
+  const [correctCards, setCorrectCards] = useState<Record<number, boolean>>({});
 
   const selectedDifficulty = useMemo(() => {
     return (
@@ -67,26 +68,47 @@ const FlashcardsModal = ({ topic }: Props) => {
 
   const currentCard = cards[currentIndex];
 
+  const answeredCount = Object.keys(answeredCards).length;
+  const score = Object.values(correctCards).filter(Boolean).length;
+
+  const progressPercentage = cards.length
+    ? Math.round(((currentIndex + 1) / cards.length) * 100)
+    : 0;
+
+  const providerLabel = provider
+    ? provider
+        .split("-")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ")
+    : "";
+
   const isAnswerCorrect = useMemo(() => {
     if (!currentCard) return false;
 
-    const userAnswer = normalize(typedAnswer);
-    const correctAnswer = normalize(currentCard.answer);
+    const userAnswer = normalizeAnswer(typedAnswer);
+    const correctAnswer = normalizeAnswer(currentCard.answer);
 
-    return userAnswer.length > 0 && correctAnswer.includes(userAnswer);
+    if (!userAnswer) return false;
+
+    return (
+      userAnswer === correctAnswer ||
+      correctAnswer.includes(userAnswer) ||
+      userAnswer.includes(correctAnswer)
+    );
   }, [currentCard, typedAnswer]);
 
   const resetStudyProgress = () => {
     setCurrentIndex(0);
     setTypedAnswer("");
     setIsFlipped(false);
-    setScore(0);
     setAnsweredCards({});
+    setCorrectCards({});
   };
 
   const handleGenerateFlashcards = async () => {
     setError("");
     setFallback(false);
+    setProvider("");
     setIsGenerating(true);
 
     try {
@@ -100,6 +122,7 @@ const FlashcardsModal = ({ topic }: Props) => {
       setDeckTitle(response.deck.title);
       setCards(response.deck.cards);
       setFallback(Boolean(response.fallback));
+      setProvider(response.provider ?? "");
       resetStudyProgress();
     } catch (error) {
       setError(
@@ -117,15 +140,32 @@ const FlashcardsModal = ({ topic }: Props) => {
 
     setIsFlipped(true);
 
-    if (answeredCards[currentIndex]) return;
-
     setAnsweredCards((current) => ({
       ...current,
       [currentIndex]: true,
     }));
 
-    if (isAnswerCorrect) {
-      setScore((current) => current + 1);
+    setCorrectCards((current) => ({
+      ...current,
+      [currentIndex]: isAnswerCorrect,
+    }));
+  };
+
+  const handleRevealAnswer = () => {
+    if (!currentCard) return;
+
+    setIsFlipped(true);
+
+    if (!answeredCards[currentIndex]) {
+      setAnsweredCards((current) => ({
+        ...current,
+        [currentIndex]: true,
+      }));
+
+      setCorrectCards((current) => ({
+        ...current,
+        [currentIndex]: false,
+      }));
     }
   };
 
@@ -142,9 +182,10 @@ const FlashcardsModal = ({ topic }: Props) => {
     setCurrentIndex(0);
     setTypedAnswer("");
     setIsFlipped(false);
-    setScore(0);
     setAnsweredCards({});
+    setCorrectCards({});
     setFallback(false);
+    setProvider("");
     setError("");
   };
 
@@ -245,42 +286,50 @@ const FlashcardsModal = ({ topic }: Props) => {
         </>
       )}
 
-      {fallback && cards.length > 0 && (
-        <div className="rounded-2xl border border-aura-gold/30 bg-aura-gold/10 p-4 text-sm leading-6 text-aura-gold">
-          Demo fallback mode is active. Study Aura returned a safe flashcard
-          deck.
-        </div>
-      )}
-
       {currentCard && (
         <div className="rounded-[1.75rem] border border-aura-border bg-aura-bg-soft p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="mb-5 grid gap-4 xl:grid-cols-[1fr_420px]">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
-                Flashcard Deck
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-cyan">
+                Interactive Flashcards
               </p>
-              <h4 className="mt-1 text-lg font-black text-aura-text">
+              <h4 className="mt-1 text-2xl font-black text-aura-text">
                 {deckTitle || "Study Aura Flashcards"}
               </h4>
               <p className="mt-1 text-sm text-aura-muted">
-                {topic} • Card {currentIndex + 1} of {cards.length} • Score{" "}
-                {score}/{Object.keys(answeredCards).length}
+                {topic} • Card {currentIndex + 1} of {cards.length}
               </p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {providerLabel && (
+                  <span className="rounded-full border border-aura-cyan/40 bg-aura-cyan/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-aura-cyan">
+                    {fallback
+                      ? `Generated by ${providerLabel} fallback`
+                      : `Generated by ${providerLabel}`}
+                  </span>
+                )}
+
+                {fallback && (
+                  <span className="rounded-full border border-aura-gold/40 bg-aura-gold/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-aura-gold">
+                    Safe fallback output
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-3">
               <button
                 type="button"
                 onClick={handleShuffleDeck}
-                className="rounded-2xl border border-aura-gold/40 bg-aura-gold/10 px-4 py-2 text-sm font-black text-aura-gold transition hover:-translate-y-0.5"
+                className="rounded-2xl border border-aura-gold/40 bg-aura-gold/10 px-4 py-3 text-sm font-black text-aura-gold transition hover:-translate-y-0.5"
               >
-                Shuffle Deck
+                Shuffle
               </button>
 
               <button
                 type="button"
                 onClick={resetStudyProgress}
-                className="rounded-2xl border border-aura-border bg-aura-panel px-4 py-2 text-sm font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-cyan"
+                className="rounded-2xl border border-aura-border bg-aura-panel px-4 py-3 text-sm font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-cyan"
               >
                 Reset
               </button>
@@ -288,142 +337,231 @@ const FlashcardsModal = ({ topic }: Props) => {
               <button
                 type="button"
                 onClick={handleNewDeck}
-                className="rounded-2xl border border-aura-pink/40 bg-aura-pink/10 px-4 py-2 text-sm font-black text-aura-pink transition hover:-translate-y-0.5"
+                className="rounded-2xl border border-aura-pink/40 bg-aura-pink/10 px-4 py-3 text-sm font-black text-aura-pink transition hover:-translate-y-0.5"
               >
                 New Deck
               </button>
             </div>
           </div>
 
-          <div className="[perspective:1200px]">
-            <button
-              type="button"
-              onClick={() => setIsFlipped((current) => !current)}
-              className="group min-h-[260px] w-full text-left outline-none"
-            >
-              <div
-                className={`relative min-h-[260px] w-full transition-transform duration-500 [transform-style:preserve-3d] ${
-                  isFlipped ? "[transform:rotateY(180deg)]" : ""
-                }`}
-              >
-                <div className="absolute inset-0 rounded-[1.75rem] border border-aura-border bg-gradient-to-br from-aura-panel to-aura-bg-soft p-6 shadow-aura-soft transition group-hover:border-aura-cyan/50 [backface-visibility:hidden]">
-                  <div className="flex h-full min-h-[210px] flex-col justify-between">
-                    <div>
-                      <div className="mb-4 flex items-center justify-between gap-3">
-                        <span className="rounded-full border border-aura-cyan/30 bg-aura-cyan/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-aura-cyan">
-                          {currentCard.type === "fill_blank"
-                            ? "Fill in the blank"
-                            : "Question"}
-                        </span>
+          <div className="mb-5 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-aura-border bg-aura-panel p-4">
+              <p className="text-2xl font-black text-aura-text">
+                {answeredCount}/{cards.length}
+              </p>
+              <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-aura-dim">
+                Answered
+              </p>
+            </div>
 
-                        <span className="text-xs font-bold text-aura-dim">
-                          Click card to reveal
-                        </span>
+            <div className="rounded-2xl border border-aura-border bg-aura-panel p-4">
+              <p className="text-2xl font-black text-aura-text">
+                {score}/{answeredCount || 0}
+              </p>
+              <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-aura-dim">
+                Score
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-aura-border bg-aura-panel p-4">
+              <p className="text-2xl font-black text-aura-text">
+                {progressPercentage}%
+              </p>
+              <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-aura-dim">
+                Progress
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-5 xl:grid-cols-[1fr_420px]">
+            <div>
+              <div className="[perspective:1200px]">
+                <button
+                  type="button"
+                  onClick={() => setIsFlipped((current) => !current)}
+                  className="group min-h-[340px] w-full text-left outline-none"
+                >
+                  <div
+                    className={`relative min-h-[340px] w-full transition-transform duration-500 [transform-style:preserve-3d] ${
+                      isFlipped ? "[transform:rotateY(180deg)]" : ""
+                    }`}
+                  >
+                    <div className="absolute inset-0 rounded-[1.75rem] border border-aura-border bg-gradient-to-br from-aura-panel to-aura-bg-soft p-7 shadow-aura-soft transition group-hover:border-aura-cyan/50 [backface-visibility:hidden]">
+                      <div className="flex h-full min-h-[286px] flex-col justify-between">
+                        <div>
+                          <div className="mb-5 flex items-center justify-between gap-3">
+                            <span className="rounded-full border border-aura-cyan/30 bg-aura-cyan/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-aura-cyan">
+                              {currentCard.type === "fill_blank"
+                                ? "Fill in the blank"
+                                : "Question"}
+                            </span>
+
+                            <span className="text-xs font-bold text-aura-dim">
+                              Click card to flip
+                            </span>
+                          </div>
+
+                          <p className="text-2xl font-black leading-9 text-aura-text">
+                            {currentCard.prompt}
+                          </p>
+                        </div>
+
+                        <p className="rounded-2xl border border-aura-border bg-aura-bg-soft p-4 text-sm leading-6 text-aura-muted">
+                          <span className="font-black text-aura-text">
+                            Hint:
+                          </span>{" "}
+                          {currentCard.hint}
+                        </p>
                       </div>
+                    </div>
 
-                      <p className="text-xl font-black leading-8 text-aura-text">
-                        {currentCard.prompt}
-                      </p>
+                    <div className="absolute inset-0 rounded-[1.75rem] border border-aura-cyan/40 bg-gradient-to-br from-aura-bg-soft to-aura-panel p-7 shadow-[0_0_40px_rgba(34,211,238,0.12)] [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                      <div className="flex h-full min-h-[286px] flex-col justify-between">
+                        <div>
+                          <div className="mb-5 flex items-center justify-between gap-3">
+                            <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-200">
+                              Answer Revealed
+                            </span>
 
-                      <p className="mt-4 text-sm leading-6 text-aura-muted">
-                        Hint: {currentCard.hint}
-                      </p>
+                            <span className="text-xs font-bold text-aura-dim">
+                              Click card to hide
+                            </span>
+                          </div>
+
+                          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
+                            Correct Answer
+                          </p>
+                          <p className="mt-2 text-3xl font-black text-aura-cyan">
+                            {currentCard.answer}
+                          </p>
+                          <p className="mt-5 text-sm leading-7 text-aura-muted">
+                            {currentCard.explanation}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                <div className="absolute inset-0 rounded-[1.75rem] border border-aura-cyan/40 bg-gradient-to-br from-aura-bg-soft to-aura-panel p-6 shadow-[0_0_40px_rgba(34,211,238,0.12)] [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                  <div className="flex h-full min-h-[210px] flex-col justify-between">
-                    <div>
-                      <div className="mb-4 flex items-center justify-between gap-3">
-                        <span className="rounded-full border border-aura-green/30 bg-aura-green/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-aura-green">
-                          Answer Revealed
-                        </span>
-
-                        <span className="text-xs font-bold text-aura-dim">
-                          Click card to hide
-                        </span>
-                      </div>
-
-                      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
-                        Correct Answer
-                      </p>
-                      <p className="mt-2 text-2xl font-black text-aura-cyan">
-                        {currentCard.answer}
-                      </p>
-                      <p className="mt-4 text-sm leading-6 text-aura-muted">
-                        {currentCard.explanation}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                </button>
               </div>
-            </button>
-          </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto]">
-            <input
-              value={typedAnswer}
-              onChange={(event) => setTypedAnswer(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  handleCheckAnswer();
-                }
-              }}
-              placeholder="Type your answer before revealing..."
-              className="rounded-2xl border border-aura-border bg-aura-panel px-4 py-3 text-sm text-aura-text outline-none transition placeholder:text-aura-dim focus:border-aura-cyan/60"
-            />
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  type="button"
+                  onClick={handlePrevious}
+                  disabled={currentIndex === 0}
+                  className="rounded-2xl border border-aura-border bg-aura-panel px-5 py-3 text-sm font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-cyan disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  ← Previous
+                </button>
 
-            <button
-              type="button"
-              onClick={handleCheckAnswer}
-              className="rounded-2xl bg-gradient-to-r from-aura-primary to-aura-cyan px-5 py-3 text-sm font-black text-white transition hover:-translate-y-0.5"
-            >
-              Check Answer
-            </button>
-          </div>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {cards.map((card, index) => {
+                    const isActive = index === currentIndex;
+                    const isAnswered = answeredCards[index];
+                    const isCorrectCard = correctCards[index];
 
-          {isFlipped && (
-            <div
-              className={`mt-4 rounded-2xl border p-4 text-sm font-bold ${
-                isAnswerCorrect
-                  ? "border-aura-green/40 bg-aura-green/10 text-aura-green"
-                  : "border-aura-pink/40 bg-aura-pink/10 text-aura-pink"
-              }`}
-            >
-              {isAnswerCorrect
-                ? "Nice! Your typed answer matches the correct answer."
-                : "Not quite. Review the revealed answer and try the next card."}
+                    return (
+                      <button
+                        key={`${card.prompt}-${index}`}
+                        type="button"
+                        onClick={() => {
+                          setCurrentIndex(index);
+                          setTypedAnswer("");
+                          setIsFlipped(false);
+                        }}
+                        className={`h-3 w-3 rounded-full transition ${
+                          isActive
+                            ? "bg-aura-cyan"
+                            : isAnswered && isCorrectCard
+                              ? "bg-emerald-400"
+                              : isAnswered
+                                ? "bg-aura-pink"
+                                : "bg-aura-border"
+                        }`}
+                        aria-label={`Go to card ${index + 1}`}
+                      />
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={currentIndex === cards.length - 1}
+                  className="rounded-2xl border border-aura-cyan/40 bg-aura-cyan/10 px-5 py-3 text-sm font-black text-aura-cyan transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Next →
+                </button>
+              </div>
             </div>
-          )}
 
-          <div className="mt-5 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={handlePrevious}
-              disabled={currentIndex === 0}
-              className="rounded-2xl border border-aura-border bg-aura-panel px-4 py-2 text-sm font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-cyan disabled:opacity-40"
-            >
-              Previous
-            </button>
+            <div className="rounded-[1.5rem] border border-aura-border bg-aura-panel p-5">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-aura-cyan">
+                Answer Check
+              </p>
 
-            <div className="h-2 flex-1 overflow-hidden rounded-full bg-black/40">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-aura-primary to-aura-cyan"
-                style={{
-                  width: `${((currentIndex + 1) / cards.length) * 100}%`,
+              <p className="mt-2 text-sm leading-6 text-aura-muted">
+                Type your answer before flipping. You can also reveal the card if
+                you want to review.
+              </p>
+
+              <textarea
+                value={typedAnswer}
+                onChange={(event) => setTypedAnswer(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    handleCheckAnswer();
+                  }
                 }}
+                placeholder="Type your answer here..."
+                className="mt-4 min-h-[130px] w-full resize-none rounded-2xl border border-aura-border bg-aura-bg-soft px-4 py-3 text-sm leading-6 text-aura-text outline-none transition placeholder:text-aura-dim focus:border-aura-cyan/60"
               />
-            </div>
 
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={currentIndex === cards.length - 1}
-              className="rounded-2xl border border-aura-border bg-aura-panel px-4 py-2 text-sm font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-cyan disabled:opacity-40"
-            >
-              Next
-            </button>
+              <div className="mt-3 grid gap-2">
+                <button
+                  type="button"
+                  onClick={handleCheckAnswer}
+                  disabled={!typedAnswer.trim()}
+                  className="rounded-2xl bg-gradient-to-r from-aura-primary to-aura-cyan px-5 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Check Answer
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleRevealAnswer}
+                  className="rounded-2xl border border-aura-border bg-aura-bg-soft px-5 py-3 text-sm font-black text-aura-muted transition hover:border-aura-gold/50 hover:text-aura-gold"
+                >
+                  Reveal Answer
+                </button>
+              </div>
+
+              {isFlipped && (
+                <div
+                  className={`mt-4 rounded-2xl border p-4 text-sm font-bold leading-6 ${
+                    isAnswerCorrect
+                      ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-200"
+                      : "border-aura-pink/40 bg-aura-pink/10 text-aura-pink"
+                  }`}
+                >
+                  {isAnswerCorrect
+                    ? "Nice! Your typed answer matches the correct answer."
+                    : "Review the revealed answer. You can continue to the next card when ready."}
+                </div>
+              )}
+
+              <div className="mt-4 h-2 overflow-hidden rounded-full bg-aura-bg-soft">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold transition-all"
+                  style={{ width: `${progressPercentage}%` }}
+                />
+              </div>
+
+              <p className="mt-2 text-center text-[10px] font-black uppercase tracking-wider text-aura-dim">
+                Card {currentIndex + 1} of {cards.length}
+              </p>
+            </div>
           </div>
         </div>
       )}
