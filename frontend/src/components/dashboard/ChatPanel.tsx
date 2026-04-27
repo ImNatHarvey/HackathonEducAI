@@ -1,6 +1,6 @@
 import ErrorState from "../states/ErrorState";
 import LoadingState from "../states/LoadingState";
-import { currentUser } from "../user/userMock";
+import type { AuthProfile } from "../../services/authService";
 
 type ChatMessage = {
   id: string;
@@ -11,6 +11,7 @@ type ChatMessage = {
 type ChatPanelProps = {
   topic: string;
   selectedSourceCount: number;
+  profile: AuthProfile | null;
   inputValue: string;
   onInputChange: (value: string) => void;
   messages: ChatMessage[];
@@ -29,6 +30,7 @@ const promptSuggestions = [
 const ChatPanel = ({
   topic,
   selectedSourceCount,
+  profile,
   inputValue,
   onInputChange,
   messages,
@@ -48,6 +50,7 @@ const ChatPanel = ({
   };
 
   const hasMessages = messages.length > 0;
+  const userTitle = profile?.title ?? "Aura Farmer";
 
   return (
     <main className="flex h-full min-h-0 min-w-0 flex-col bg-aura-bg">
@@ -73,7 +76,7 @@ const ChatPanel = ({
                 Title
               </p>
               <p className="mt-1 text-sm font-black text-aura-text">
-                {currentUser.title}
+                {userTitle}
               </p>
             </div>
 

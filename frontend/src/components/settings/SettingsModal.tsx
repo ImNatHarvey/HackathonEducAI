@@ -6,10 +6,12 @@ import PersonalPreferencePanel from "./PersonalPreferencePanel";
 import ProfilePanel from "./ProfilePanel";
 import SafeLearningFilterPanel from "./SafeLearningFilterPanel";
 import SettingsHome from "./SettingsHome";
+import type { AuthProfile } from "../../services/authService";
 import type { SettingsModalProps, SettingsPanel } from "./settingsTypes";
 
 type ExtendedSettingsModalProps = SettingsModalProps & {
   initialPanel?: SettingsPanel;
+  profile?: AuthProfile | null;
 };
 
 const panelTitles: Record<SettingsPanel, string> = {
@@ -26,6 +28,7 @@ const SettingsModal = ({
   isOpen,
   onClose,
   initialPanel = "home",
+  profile = null,
 }: ExtendedSettingsModalProps) => {
   const [activePanel, setActivePanel] = useState<SettingsPanel>(initialPanel);
 
@@ -47,7 +50,7 @@ const SettingsModal = ({
   const renderPanel = () => {
     switch (activePanel) {
       case "profile":
-        return <ProfilePanel />;
+        return <ProfilePanel profile={profile} />;
       case "preferences":
         return <PersonalPreferencePanel />;
       case "audio":

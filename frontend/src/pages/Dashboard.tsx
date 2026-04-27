@@ -8,6 +8,7 @@ import AIStudioPanel from "../components/dashboard/AIStudioPanel";
 import AddSourceModal from "../components/dashboard/AddSourceModal";
 import { useDashboardActions } from "../hooks/useDashboardActions";
 import type { SettingsPanel } from "../components/settings/settingsTypes";
+import type { AuthProfile } from "../services/authService";
 import type {
   AIToolName,
   SourceUploadPayload,
@@ -18,6 +19,7 @@ import type {
 interface DashboardProps {
   topic: string;
   modules: StudyModule[];
+  profile: AuthProfile | null;
   onModulesChange: (modules: StudyModule[]) => void;
   onNavigate: (topic: string) => void;
   onAddSourceToModule: (params: {
@@ -49,6 +51,7 @@ interface DashboardProps {
 const Dashboard = ({
   topic,
   modules,
+  profile,
   onModulesChange,
   onAddSourceToModule,
   onAddSourcesToModule,
@@ -259,6 +262,7 @@ const Dashboard = ({
   return (
     <div className="flex h-dvh max-h-dvh w-full flex-col overflow-hidden bg-aura-bg text-aura-text">
       <DashboardNavbar
+        profile={profile}
         onOpenSettings={openSettings}
         onOpenLibrary={onOpenLibrary}
         onOpenCreateModule={onOpenCreateModule}
@@ -285,6 +289,7 @@ const Dashboard = ({
           <ChatPanel
             topic={currentModule?.title ?? topic}
             selectedSourceCount={selectedSourceCount}
+            profile={profile}
             inputValue={inputValue}
             onInputChange={setInputValue}
             messages={messages}
@@ -305,6 +310,7 @@ const Dashboard = ({
       <SettingsModal
         isOpen={isSettingsOpen}
         initialPanel={settingsInitialPanel}
+        profile={profile}
         onClose={() => setIsSettingsOpen(false)}
       />
 

@@ -1,19 +1,37 @@
 import type { SettingsPanel } from "../settings/settingsTypes";
-import { currentUser } from "../user/userMock";
+import type { AuthProfile } from "../../services/authService";
 
 type DashboardNavbarProps = {
+  profile: AuthProfile | null;
   onOpenSettings: (panel?: SettingsPanel) => void;
   onOpenLibrary: () => void;
   onOpenCreateModule: () => void;
   onLogout: () => void;
 };
 
+const getInitials = (name: string) => {
+  const parts = name.trim().split(/\s+/);
+
+  if (parts.length === 0 || !parts[0]) return "SA";
+
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+};
+
 const DashboardNavbar = ({
+  profile,
   onOpenSettings,
   onOpenLibrary,
   onOpenCreateModule,
   onLogout,
 }: DashboardNavbarProps) => {
+  const displayName = profile?.displayName ?? "Study Aura User";
+  const title = profile?.title ?? "Aura Farmer";
+  const initials = getInitials(displayName);
+
   return (
     <header className="shrink-0 border-b border-aura-border bg-aura-panel/90 px-3 py-3 backdrop-blur-xl sm:px-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -79,20 +97,20 @@ const DashboardNavbar = ({
           <button
             type="button"
             onClick={() => onOpenSettings("profile")}
-            className="flex min-w-[210px] items-center gap-3 rounded-2xl border border-aura-border bg-aura-bg-soft px-3 py-2 transition hover:border-aura-cyan/60 hover:bg-aura-cyan/5 max-sm:min-w-0"
+            className="flex min-w-[230px] items-center gap-3 rounded-2xl border border-aura-border bg-aura-bg-soft px-3 py-2 transition hover:border-aura-cyan/60 hover:bg-aura-cyan/5 max-sm:min-w-0"
             aria-label="Open profile settings"
-            title={`${currentUser.name} • ${currentUser.title}`}
+            title={`${displayName} • ${title}`}
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-aura-primary to-aura-cyan text-xs font-black text-white">
-              {currentUser.initials}
+              {initials}
             </div>
 
             <div className="min-w-0 text-left max-sm:hidden">
               <p className="truncate text-sm font-black leading-4 text-aura-text">
-                {currentUser.name}
+                {displayName}
               </p>
               <p className="mt-1 truncate text-[11px] font-black leading-3 text-aura-gold">
-                {currentUser.title}
+                {title}
               </p>
             </div>
           </button>

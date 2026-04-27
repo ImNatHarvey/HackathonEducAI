@@ -40,6 +40,7 @@ function App() {
   const {
     user,
     session,
+    profile,
     authError,
     authNotice,
     isLoadingAuth,
@@ -113,11 +114,6 @@ function App() {
     try {
       await register(credentials);
 
-      /*
-        If email confirmation is ON, Supabase may create the account but return
-        no active session. Keep the user on Login so they can see the
-        verification notice instead of being redirected away.
-      */
       if (session || user) {
         setView("dashboard");
       } else {
@@ -227,6 +223,7 @@ function App() {
         <Dashboard
           topic={selectedTopic}
           modules={modules}
+          profile={profile}
           onModulesChange={setModules}
           onNavigate={setSelectedTopic}
           onAddSourceToModule={addSourceToModule}
