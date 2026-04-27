@@ -25,11 +25,19 @@ const sourceIcons: Record<StudySource["type"], string> = {
 };
 
 const sourceLabels: Record<StudySource["type"], string> = {
-  text: "Text note",
+  text: "Text Note",
   youtube: "YouTube",
   website: "Website",
   pdf: "PDF",
   image: "Image",
+};
+
+const sourceAccentClasses: Record<StudySource["type"], string> = {
+  text: "bg-aura-cyan/10 text-aura-cyan border-aura-cyan/30",
+  youtube: "bg-red-500/10 text-red-200 border-red-400/30",
+  website: "bg-emerald-500/10 text-emerald-200 border-emerald-400/30",
+  pdf: "bg-aura-gold/10 text-aura-gold border-aura-gold/30",
+  image: "bg-fuchsia-500/10 text-fuchsia-200 border-fuchsia-400/30",
 };
 
 const SourcesPanel = ({
@@ -54,30 +62,46 @@ const SourcesPanel = ({
           type="button"
           onClick={onUpload}
           disabled={isUploadingSource}
-          className="w-full rounded-2xl bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold px-4 py-3 text-sm font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(34,211,238,0.22)] disabled:opacity-60"
+          className="w-full rounded-2xl bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold px-4 py-3 text-sm font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(34,211,238,0.22)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isUploadingSource ? "Adding source..." : "+ Add Sources"}
         </button>
 
-        <div className="mt-4 rounded-2xl border border-dashed border-aura-border bg-aura-bg-soft/70 p-4 text-center transition hover:border-aura-cyan/70 hover:bg-aura-cyan/5">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-aura-cyan/10 text-xl">
-            📥
+        <div className="mt-4 rounded-2xl border border-aura-border bg-aura-bg-soft/80 p-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
+            Current Module
+          </p>
+
+          <p className="mt-2 line-clamp-2 text-base font-black leading-5 text-aura-text">
+            {moduleTitle}
+          </p>
+
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="rounded-xl border border-aura-border bg-aura-panel px-3 py-2">
+              <p className="text-lg font-black text-aura-text">
+                {sources.length}
+              </p>
+              <p className="text-[9px] font-black uppercase tracking-wider text-aura-dim">
+                Total
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-aura-cyan/30 bg-aura-cyan/10 px-3 py-2">
+              <p className="text-lg font-black text-aura-text">
+                {selectedSourceCount}
+              </p>
+              <p className="text-[9px] font-black uppercase tracking-wider text-aura-cyan">
+                Active
+              </p>
+            </div>
           </div>
-
-          <p className="mt-3 text-sm font-bold text-aura-text">
-            Sources for this module
-          </p>
-
-          <p className="mt-1 text-xs leading-5 text-aura-muted">
-            Add notes, YouTube links, websites, PDFs, or images as AI context.
-          </p>
         </div>
 
         {isUploadingSource && (
           <div className="mt-4">
             <LoadingState
               title="Adding source..."
-              description="Study Aura is preparing your material."
+              description="Preparing your source as module context."
             />
           </div>
         )}
@@ -87,7 +111,7 @@ const SourcesPanel = ({
             <ErrorState
               title="Upload failed"
               description={uploadError}
-              actionLabel="Try upload again"
+              actionLabel="Try again"
               onRetry={onUpload}
             />
           </div>
@@ -96,18 +120,17 @@ const SourcesPanel = ({
 
       <div className="shrink-0 border-b border-aura-border px-4 py-3">
         <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
-              Context Sources
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-aura-cyan">
+              Sources
             </p>
-
-            <p className="mt-1 max-w-[210px] truncate text-sm font-black text-aura-text">
-              {moduleTitle}
+            <p className="mt-1 text-xs text-aura-muted">
+              Check sources to include in AI context.
             </p>
           </div>
 
-          <div className="rounded-full border border-aura-cyan/30 bg-aura-cyan/10 px-3 py-1 text-[10px] font-black text-aura-cyan">
-            {selectedSourceCount}/{sources.length} selected
+          <div className="rounded-full border border-aura-border bg-aura-bg-soft px-3 py-1 text-[10px] font-black text-aura-muted">
+            {selectedSourceCount}/{sources.length}
           </div>
         </div>
 
@@ -139,7 +162,7 @@ const SourcesPanel = ({
           <EmptyState
             icon="📚"
             title="No sources yet"
-            description="Add sources to give Study Aura context for chat, quizzes, flashcards, slides, mind maps, tables, and audio overviews."
+            description="Add notes, links, PDFs, or images to give Aura context for this module."
           />
         ) : (
           <div className="space-y-3 pb-4">
@@ -153,22 +176,26 @@ const SourcesPanel = ({
                 }`}
               >
                 <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={source.selected}
-                    onChange={() => onToggleSource(source.id)}
-                    className="mt-1 h-4 w-4 shrink-0 accent-aura-cyan"
-                    aria-label={`Use ${source.title} as AI context`}
-                  />
-
                   <button
                     type="button"
                     onClick={() => onToggleSource(source.id)}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-aura-panel text-base"
+                    className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-[10px] font-black transition ${
+                      source.selected
+                        ? "border-aura-cyan bg-aura-cyan text-aura-bg"
+                        : "border-aura-border bg-aura-panel text-transparent hover:border-aura-cyan/70"
+                    }`}
                     aria-label={`Toggle ${source.title}`}
                   >
-                    {sourceIcons[source.type]}
+                    ✓
                   </button>
+
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border text-lg ${
+                      sourceAccentClasses[source.type]
+                    }`}
+                  >
+                    {sourceIcons[source.type]}
+                  </div>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
@@ -187,22 +214,39 @@ const SourcesPanel = ({
                         onClick={() => onDeleteSource(source.id)}
                         className="shrink-0 rounded-lg px-2 py-1 text-xs text-aura-dim opacity-0 transition hover:bg-red-500/10 hover:text-red-200 group-hover:opacity-100"
                         aria-label={`Delete ${source.title}`}
+                        title="Delete source"
                       >
                         ✕
                       </button>
                     </div>
 
-                    <span className="mt-2 inline-flex rounded-full border border-aura-border bg-aura-panel px-2 py-1 text-[9px] font-black uppercase tracking-wider text-aura-dim">
-                      {sourceLabels[source.type]}
-                    </span>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span
+                        className={`inline-flex rounded-full border px-2 py-1 text-[9px] font-black uppercase tracking-wider ${
+                          sourceAccentClasses[source.type]
+                        }`}
+                      >
+                        {sourceLabels[source.type]}
+                      </span>
+
+                      <span
+                        className={`inline-flex rounded-full border px-2 py-1 text-[9px] font-black uppercase tracking-wider ${
+                          source.selected
+                            ? "border-aura-cyan/30 bg-aura-cyan/10 text-aura-cyan"
+                            : "border-aura-border bg-aura-panel text-aura-dim"
+                        }`}
+                      >
+                        {source.selected ? "Using as context" : "Not active"}
+                      </span>
+                    </div>
 
                     {source.summary && (
-                      <p className="mt-2 line-clamp-3 text-xs leading-5 text-aura-muted">
+                      <p className="mt-3 line-clamp-3 text-xs leading-5 text-aura-muted">
                         {source.summary}
                       </p>
                     )}
 
-                    <p className="mt-2 truncate text-[10px] font-semibold text-aura-dim">
+                    <p className="mt-3 truncate text-[10px] font-semibold text-aura-dim">
                       {source.type === "text" ? "Text content" : source.value}
                     </p>
                   </div>
