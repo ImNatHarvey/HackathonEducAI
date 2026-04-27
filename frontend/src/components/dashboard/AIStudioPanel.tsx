@@ -13,7 +13,7 @@ const AIStudioPanel = ({
   const hasSelectedSources = selectedSourceCount > 0;
 
   return (
-    <aside className="flex min-h-0 min-w-0 flex-col border-l border-aura-border bg-aura-panel/95">
+    <aside className="flex h-full min-h-0 min-w-0 flex-col border-l border-aura-border bg-aura-panel/95">
       <div className="shrink-0 border-b border-aura-border p-4">
         <p className="text-xs font-black uppercase tracking-[0.24em] text-aura-cyan">
           AI Studio
@@ -66,7 +66,7 @@ const AIStudioPanel = ({
           </span>
         </div>
 
-        <div className="space-y-3 pb-4">
+        <div className="space-y-3 pb-6">
           {studioTools.map((tool) => (
             <button
               key={tool.name}

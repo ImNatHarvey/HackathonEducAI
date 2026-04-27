@@ -7,6 +7,7 @@ import ChatPanel from "../components/dashboard/ChatPanel";
 import AIStudioPanel from "../components/dashboard/AIStudioPanel";
 import AddSourceModal from "../components/dashboard/AddSourceModal";
 import { useDashboardActions } from "../hooks/useDashboardActions";
+import type { SettingsPanel } from "../components/settings/settingsTypes";
 import type {
   AIToolName,
   SourceUploadPayload,
@@ -34,6 +35,8 @@ const Dashboard = ({
 }: DashboardProps) => {
   const [inputValue, setInputValue] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsInitialPanel, setSettingsInitialPanel] =
+    useState<SettingsPanel>("home");
   const [activeTool, setActiveTool] = useState<AIToolName | null>(null);
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
 
@@ -52,6 +55,11 @@ const Dashboard = ({
   }, [currentSources]);
 
   const selectedSourceCount = selectedSources.length;
+
+  const openSettings = (panel: SettingsPanel = "home") => {
+    setSettingsInitialPanel(panel);
+    setIsSettingsOpen(true);
+  };
 
   const updateCurrentModule = (
     updater: (module: StudyModule) => StudyModule,
@@ -174,45 +182,52 @@ const Dashboard = ({
   return (
     <div className="flex h-dvh max-h-dvh w-full flex-col overflow-hidden bg-aura-bg text-aura-text">
       <DashboardNavbar
-        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenSettings={openSettings}
         onOpenLibrary={onOpenLibrary}
         onOpenCreateModule={onOpenCreateModule}
         onLogout={onLogout}
       />
 
-      <div className="grid min-h-0 flex-1 grid-cols-[20%_60%_20%] overflow-hidden">
-        <SourcesPanel
-          moduleTitle={currentModule?.title ?? topic}
-          sources={currentSources}
-          selectedSourceCount={selectedSourceCount}
-          isUploadingSource={isUploadingSource}
-          uploadError={uploadError}
-          onUpload={() => setIsAddSourceOpen(true)}
-          onToggleSource={handleToggleSource}
-          onSelectAllSources={handleSelectAllSources}
-          onClearSelectedSources={handleClearSelectedSources}
-          onDeleteSource={handleDeleteSource}
-        />
+      <div className="aura-scrollbar grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[25%_50%_25%] xl:overflow-hidden">
+        <div className="min-h-[420px] overflow-hidden xl:min-h-0">
+          <SourcesPanel
+            moduleTitle={currentModule?.title ?? topic}
+            sources={currentSources}
+            selectedSourceCount={selectedSourceCount}
+            isUploadingSource={isUploadingSource}
+            uploadError={uploadError}
+            onUpload={() => setIsAddSourceOpen(true)}
+            onToggleSource={handleToggleSource}
+            onSelectAllSources={handleSelectAllSources}
+            onClearSelectedSources={handleClearSelectedSources}
+            onDeleteSource={handleDeleteSource}
+          />
+        </div>
 
-        <ChatPanel
-          topic={currentModule?.title ?? topic}
-          selectedSourceCount={selectedSourceCount}
-          inputValue={inputValue}
-          onInputChange={setInputValue}
-          messages={messages}
-          isChatLoading={isChatLoading}
-          chatError={chatError}
-          onSend={handleSendMessage}
-        />
+        <div className="min-h-[620px] overflow-hidden xl:min-h-0">
+          <ChatPanel
+            topic={currentModule?.title ?? topic}
+            selectedSourceCount={selectedSourceCount}
+            inputValue={inputValue}
+            onInputChange={setInputValue}
+            messages={messages}
+            isChatLoading={isChatLoading}
+            chatError={chatError}
+            onSend={handleSendMessage}
+          />
+        </div>
 
-        <AIStudioPanel
-          selectedSourceCount={selectedSourceCount}
-          onOpenTool={setActiveTool}
-        />
+        <div className="min-h-[420px] overflow-hidden lg:col-span-2 xl:col-span-1 xl:min-h-0">
+          <AIStudioPanel
+            selectedSourceCount={selectedSourceCount}
+            onOpenTool={setActiveTool}
+          />
+        </div>
       </div>
 
       <SettingsModal
         isOpen={isSettingsOpen}
+        initialPanel={settingsInitialPanel}
         onClose={() => setIsSettingsOpen(false)}
       />
 

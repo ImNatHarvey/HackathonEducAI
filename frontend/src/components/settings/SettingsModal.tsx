@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ActivityLogPanel from "./ActivityLogPanel";
 import AudioOverviewPanel from "./AudioOverviewPanel";
 import GenerationDefaultsPanel from "./GenerationDefaultsPanel";
@@ -7,6 +7,10 @@ import ProfilePanel from "./ProfilePanel";
 import SafeLearningFilterPanel from "./SafeLearningFilterPanel";
 import SettingsHome from "./SettingsHome";
 import type { SettingsModalProps, SettingsPanel } from "./settingsTypes";
+
+type ExtendedSettingsModalProps = SettingsModalProps & {
+  initialPanel?: SettingsPanel;
+};
 
 const panelTitles: Record<SettingsPanel, string> = {
   home: "Personal Learning Space",
@@ -18,8 +22,18 @@ const panelTitles: Record<SettingsPanel, string> = {
   activity: "Activity Log",
 };
 
-const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
-  const [activePanel, setActivePanel] = useState<SettingsPanel>("home");
+const SettingsModal = ({
+  isOpen,
+  onClose,
+  initialPanel = "home",
+}: ExtendedSettingsModalProps) => {
+  const [activePanel, setActivePanel] = useState<SettingsPanel>(initialPanel);
+
+  useEffect(() => {
+    if (isOpen) {
+      setActivePanel(initialPanel);
+    }
+  }, [isOpen, initialPanel]);
 
   if (!isOpen) return null;
 
