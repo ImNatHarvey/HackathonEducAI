@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -10,8 +10,29 @@ import { useSupabaseModules } from "./hooks/useSupabaseModules";
 
 type AppView = "landing" | "login" | "dashboard" | "library";
 
+const APP_VIEW_STORAGE_KEY = "study-aura-app-view";
+
+const getStoredView = (): AppView => {
+  const storedView = localStorage.getItem(APP_VIEW_STORAGE_KEY);
+
+  if (
+    storedView === "landing" ||
+    storedView === "login" ||
+    storedView === "dashboard" ||
+    storedView === "library"
+  ) {
+    return storedView;
+  }
+
+  return "landing";
+};
+
+const saveView = (view: AppView) => {
+  localStorage.setItem(APP_VIEW_STORAGE_KEY, view);
+};
+
 function App() {
-  const [view, setView] = useState<AppView>("landing");
+  const [view, setViewState] = useState<AppView>(getStoredView);
   const [isCreateModuleOpen, setIsCreateModuleOpen] = useState(false);
 
   const {
@@ -28,6 +49,15 @@ function App() {
     updateAllSourcesSelected,
     deleteSource,
   } = useSupabaseModules();
+
+  const setView = (nextView: AppView) => {
+    setViewState(nextView);
+    saveView(nextView);
+  };
+
+  useEffect(() => {
+    saveView(view);
+  }, [view]);
 
   const activeModule = modules.find((module) => module.title === selectedTopic);
 
@@ -53,6 +83,7 @@ function App() {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem(APP_VIEW_STORAGE_KEY);
     setView("landing");
   };
 

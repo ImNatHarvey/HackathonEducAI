@@ -16,13 +16,28 @@ import type {
   StudySource,
 } from "../components/dashboard/dashboardTypes";
 
+const SELECTED_TOPIC_STORAGE_KEY = "study-aura-selected-topic";
+
+const getStoredSelectedTopic = () => {
+  return localStorage.getItem(SELECTED_TOPIC_STORAGE_KEY);
+};
+
+const saveSelectedTopic = (topic: string) => {
+  localStorage.setItem(SELECTED_TOPIC_STORAGE_KEY, topic);
+};
+
 export const useSupabaseModules = () => {
   const [modules, setModules] = useState<StudyModule[]>([]);
-  const [selectedTopic, setSelectedTopic] = useState(
-    generatedLessons[0]?.title ?? "Neural Networks",
+  const [selectedTopic, setSelectedTopicState] = useState(
+    getStoredSelectedTopic() ?? generatedLessons[0]?.title ?? "Neural Networks",
   );
   const [isLoadingModules, setIsLoadingModules] = useState(true);
   const [moduleError, setModuleError] = useState("");
+
+  const setSelectedTopic = (topic: string) => {
+    setSelectedTopicState(topic);
+    saveSelectedTopic(topic);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -37,6 +52,16 @@ export const useSupabaseModules = () => {
         if (!isMounted) return;
 
         setModules(loadedModules);
+
+        const storedTopic = getStoredSelectedTopic();
+        const storedTopicExists = loadedModules.some(
+          (module) => module.title === storedTopic,
+        );
+
+        if (storedTopic && storedTopicExists) {
+          setSelectedTopicState(storedTopic);
+          return;
+        }
 
         if (loadedModules[0]) {
           setSelectedTopic(loadedModules[0].title);
