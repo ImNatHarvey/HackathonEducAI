@@ -38,6 +38,7 @@ export type N8nWebSearchPayload = {
 export type N8nChatResponse = {
   answer: string;
   sources?: string[];
+  fallback?: boolean;
 };
 
 export type N8nUploadResponse = {
@@ -50,6 +51,7 @@ export type N8nUploadResponse = {
     subtitle: string;
     progress: number;
   };
+  fallback?: boolean;
 };
 
 export type N8nSummarizeSourceResponse = {
@@ -248,6 +250,20 @@ export type N8nAudioResponse = {
   fallback?: boolean;
 };
 
+type N8nWebhookName =
+  | "Chat"
+  | "Source Upload"
+  | "Source Summary"
+  | "Web Search"
+  | "Quiz"
+  | "Flashcards"
+  | "Tables"
+  | "Mind Map"
+  | "Slides"
+  | "Audio Overview";
+
+const DEFAULT_WEBHOOK_TIMEOUT_MS = 90_000;
+
 const getRequiredEnv = (key: string) => {
   const value = import.meta.env[key];
 
@@ -258,23 +274,158 @@ const getRequiredEnv = (key: string) => {
   return value;
 };
 
-const postToWebhook = async <TResponse>(
-  url: string,
-  payload: unknown,
-): Promise<TResponse> => {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+const getPayloadPreview = (payload: unknown) => {
+  try {
+    const serialized = JSON.stringify(payload);
 
-  if (!response.ok) {
-    throw new Error(`n8n request failed with status ${response.status}`);
+    if (serialized.length <= 800) return serialized;
+
+    return `${serialized.slice(0, 800)}...`;
+  } catch {
+    return "Unable to serialize payload preview.";
+  }
+};
+
+const parseResponseBody = async (response: Response) => {
+  const rawText = await response.text();
+
+  if (!rawText.trim()) {
+    return {
+      rawText: "",
+      parsedJson: null as unknown,
+    };
   }
 
-  return response.json() as Promise<TResponse>;
+  try {
+    return {
+      rawText,
+      parsedJson: JSON.parse(rawText) as unknown,
+    };
+  } catch {
+    return {
+      rawText,
+      parsedJson: null as unknown,
+    };
+  }
+};
+
+const getN8nErrorMessage = ({
+  webhookName,
+  status,
+  statusText,
+  rawText,
+}: {
+  webhookName: N8nWebhookName;
+  status: number;
+  statusText: string;
+  rawText: string;
+}) => {
+  const normalizedBody = rawText.toLowerCase();
+
+  if (status === 404) {
+    return `${webhookName} webhook was not found. Check that the workflow is active and the webhook URL in .env is correct.`;
+  }
+
+  if (status === 405) {
+    return `${webhookName} webhook rejected the request method. Make sure the n8n Webhook node accepts POST requests.`;
+  }
+
+  if (status === 500) {
+    return `${webhookName} workflow failed inside n8n. Check the latest n8n execution log for the failing node.`;
+  }
+
+  if (status === 502 || status === 503 || status === 504) {
+    if (
+      normalizedBody.includes("high demand") ||
+      normalizedBody.includes("service unavailable") ||
+      normalizedBody.includes("overloaded")
+    ) {
+      return `${webhookName} workflow reached the AI model, but the model is temporarily under high demand. Retry shortly or enable retries/fallback model in n8n.`;
+    }
+
+    return `${webhookName} workflow is temporarily unavailable. Check n8n, Gemini, and retry settings.`;
+  }
+
+  if (status === 429) {
+    return `${webhookName} workflow hit a rate limit. Wait a moment, reduce requests, or add retry/backoff in n8n.`;
+  }
+
+  return `${webhookName} request failed with status ${status}${
+    statusText ? ` (${statusText})` : ""
+  }.`;
+};
+
+const postToWebhook = async <TResponse>({
+  webhookName,
+  url,
+  payload,
+  timeoutMs = DEFAULT_WEBHOOK_TIMEOUT_MS,
+}: {
+  webhookName: N8nWebhookName;
+  url: string;
+  payload: unknown;
+  timeoutMs?: number;
+}): Promise<TResponse> => {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+
+    const { rawText, parsedJson } = await parseResponseBody(response);
+
+    if (!response.ok) {
+      const friendlyMessage = getN8nErrorMessage({
+        webhookName,
+        status: response.status,
+        statusText: response.statusText,
+        rawText,
+      });
+
+      const details = rawText ? ` Details: ${rawText.slice(0, 600)}` : "";
+      const payloadPreview = getPayloadPreview(payload);
+
+      throw new Error(
+        `${friendlyMessage}${details} Payload preview: ${payloadPreview}`,
+      );
+    }
+
+    if (!rawText.trim()) {
+      throw new Error(
+        `${webhookName} workflow returned an empty response. Make sure the workflow ends with a Respond to Webhook node returning JSON.`,
+      );
+    }
+
+    if (!parsedJson) {
+      throw new Error(
+        `${webhookName} workflow returned non-JSON output. Make sure the Respond to Webhook node returns valid JSON.`,
+      );
+    }
+
+    return parsedJson as TResponse;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(
+        `${webhookName} workflow timed out after ${Math.round(
+          timeoutMs / 1000,
+        )} seconds. Enable retries or simplify the workflow response.`,
+      );
+    }
+
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 };
 
 export const sendChatToN8n = async (
@@ -282,7 +433,11 @@ export const sendChatToN8n = async (
 ): Promise<N8nChatResponse> => {
   const url = getRequiredEnv("VITE_N8N_CHAT_WEBHOOK_URL");
 
-  return postToWebhook<N8nChatResponse>(url, payload);
+  return postToWebhook<N8nChatResponse>({
+    webhookName: "Chat",
+    url,
+    payload,
+  });
 };
 
 export const uploadSourceToN8n = async (
@@ -290,7 +445,11 @@ export const uploadSourceToN8n = async (
 ): Promise<N8nUploadResponse> => {
   const url = getRequiredEnv("VITE_N8N_UPLOAD_WEBHOOK_URL");
 
-  return postToWebhook<N8nUploadResponse>(url, payload);
+  return postToWebhook<N8nUploadResponse>({
+    webhookName: "Source Upload",
+    url,
+    payload,
+  });
 };
 
 export const summarizeSourceWithN8n = async (
@@ -298,7 +457,11 @@ export const summarizeSourceWithN8n = async (
 ): Promise<N8nSummarizeSourceResponse> => {
   const url = getRequiredEnv("VITE_N8N_SOURCE_SUMMARY_WEBHOOK_URL");
 
-  return postToWebhook<N8nSummarizeSourceResponse>(url, payload);
+  return postToWebhook<N8nSummarizeSourceResponse>({
+    webhookName: "Source Summary",
+    url,
+    payload,
+  });
 };
 
 export const searchWebSourcesWithN8n = async (
@@ -306,7 +469,11 @@ export const searchWebSourcesWithN8n = async (
 ): Promise<N8nWebSearchResponse> => {
   const url = getRequiredEnv("VITE_N8N_WEB_SEARCH_WEBHOOK_URL");
 
-  return postToWebhook<N8nWebSearchResponse>(url, payload);
+  return postToWebhook<N8nWebSearchResponse>({
+    webhookName: "Web Search",
+    url,
+    payload,
+  });
 };
 
 export const generateQuizWithN8n = async (
@@ -314,7 +481,11 @@ export const generateQuizWithN8n = async (
 ): Promise<N8nQuizResponse> => {
   const url = getRequiredEnv("VITE_N8N_QUIZ_WEBHOOK_URL");
 
-  return postToWebhook<N8nQuizResponse>(url, payload);
+  return postToWebhook<N8nQuizResponse>({
+    webhookName: "Quiz",
+    url,
+    payload,
+  });
 };
 
 export const generateFlashcardsWithN8n = async (
@@ -322,7 +493,11 @@ export const generateFlashcardsWithN8n = async (
 ): Promise<N8nFlashcardsResponse> => {
   const url = getRequiredEnv("VITE_N8N_FLASHCARDS_WEBHOOK_URL");
 
-  return postToWebhook<N8nFlashcardsResponse>(url, payload);
+  return postToWebhook<N8nFlashcardsResponse>({
+    webhookName: "Flashcards",
+    url,
+    payload,
+  });
 };
 
 export const generateTablesWithN8n = async (
@@ -330,7 +505,11 @@ export const generateTablesWithN8n = async (
 ): Promise<N8nTablesResponse> => {
   const url = getRequiredEnv("VITE_N8N_TABLES_WEBHOOK_URL");
 
-  return postToWebhook<N8nTablesResponse>(url, payload);
+  return postToWebhook<N8nTablesResponse>({
+    webhookName: "Tables",
+    url,
+    payload,
+  });
 };
 
 export const generateMindMapWithN8n = async (
@@ -338,7 +517,11 @@ export const generateMindMapWithN8n = async (
 ): Promise<N8nMindMapResponse> => {
   const url = getRequiredEnv("VITE_N8N_MINDMAP_WEBHOOK_URL");
 
-  return postToWebhook<N8nMindMapResponse>(url, payload);
+  return postToWebhook<N8nMindMapResponse>({
+    webhookName: "Mind Map",
+    url,
+    payload,
+  });
 };
 
 export const generateSlidesWithN8n = async (
@@ -346,7 +529,11 @@ export const generateSlidesWithN8n = async (
 ): Promise<N8nSlidesResponse> => {
   const url = getRequiredEnv("VITE_N8N_SLIDES_WEBHOOK_URL");
 
-  return postToWebhook<N8nSlidesResponse>(url, payload);
+  return postToWebhook<N8nSlidesResponse>({
+    webhookName: "Slides",
+    url,
+    payload,
+  });
 };
 
 export const generateAudioOverviewWithN8n = async (
@@ -354,5 +541,9 @@ export const generateAudioOverviewWithN8n = async (
 ): Promise<N8nAudioResponse> => {
   const url = getRequiredEnv("VITE_N8N_AUDIO_WEBHOOK_URL");
 
-  return postToWebhook<N8nAudioResponse>(url, payload);
+  return postToWebhook<N8nAudioResponse>({
+    webhookName: "Audio Overview",
+    url,
+    payload,
+  });
 };
