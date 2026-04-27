@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { sendChatToN8n, uploadSourceToN8n } from "../lib/n8n";
+import { chatWithN8n, readSourceWithN8n } from "../lib/n8n";
 import {
   createChatMessage,
   fetchChatMessages,
@@ -77,19 +77,56 @@ const getFriendlyChatError = (error: unknown) => {
   return rawMessage;
 };
 
+const isUrlSource = (payload: SourceUploadPayload) => {
+  return (
+    payload.sourceType === "website" ||
+    payload.sourceType === "youtube" ||
+    payload.sourceType === "pdf" ||
+    payload.sourceType === "image"
+  );
+};
+
 const buildSourceFromUpload = (
   payload: SourceUploadPayload,
   summary?: string,
 ): StudySource => {
+  const now = new Date().toISOString();
+
   return {
     id: crypto.randomUUID(),
     title: payload.title,
     type: payload.sourceType,
     value: payload.value,
-    summary,
+    summary: summary ?? payload.summary,
+    extractedText: payload.extractedText,
+    originalUrl: payload.originalUrl,
+    status: payload.status ?? "ready",
+    statusMessage: payload.statusMessage,
+    parserProvider: payload.parserProvider,
+    fileName: payload.fileName,
+    fileType: payload.fileType,
+    fileSize: payload.fileSize,
     selected: true,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
   };
+};
+
+const buildFailedSourceFromUpload = (
+  payload: SourceUploadPayload,
+  error: unknown,
+): StudySource => {
+  const message =
+    error instanceof Error
+      ? error.message
+      : "Source reader failed. The source was saved, but extraction did not finish.";
+
+  return buildSourceFromUpload({
+    ...payload,
+    originalUrl: payload.originalUrl ?? (isUrlSource(payload) ? payload.value : undefined),
+    status: "failed",
+    statusMessage: message,
+    parserProvider: payload.parserProvider ?? "source-reader-error",
+  });
 };
 
 export const useDashboardActions = ({
@@ -157,8 +194,13 @@ export const useDashboardActions = ({
       id: source.id,
       title: source.title,
       type: source.type,
-      value: source.value,
+      value: source.extractedText || source.value,
       summary: source.summary,
+      extractedText: source.extractedText,
+      originalUrl: source.originalUrl,
+      status: source.status,
+      statusMessage: source.statusMessage,
+      parserProvider: source.parserProvider,
     }));
   }, [selectedSources]);
 
@@ -189,6 +231,50 @@ export const useDashboardActions = ({
       role: savedMessage.role,
       content: savedMessage.content,
     };
+  };
+
+  const readSourceBeforeSaving = async (
+    payload: SourceUploadPayload,
+  ): Promise<StudySource> => {
+    if (payload.sourceType === "text") {
+      return buildSourceFromUpload({
+        ...payload,
+        extractedText: payload.extractedText ?? payload.value,
+        summary: payload.summary ?? payload.value.slice(0, 180),
+        status: payload.status ?? "ready",
+        statusMessage:
+          payload.statusMessage ?? "Copied text is ready to use as context.",
+        parserProvider: payload.parserProvider ?? "manual-input",
+      });
+    }
+
+    if (!isUrlSource(payload)) {
+      return buildSourceFromUpload(payload);
+    }
+
+    try {
+      const response = await readSourceWithN8n({
+        sourceType: payload.sourceType,
+        title: payload.title,
+        value: payload.value,
+        moduleId: activeModule?.id,
+        userId,
+      });
+
+      return buildSourceFromUpload({
+        sourceType: response.sourceType,
+        title: response.title || payload.title,
+        value: response.value || payload.value,
+        summary: response.summary,
+        extractedText: response.extractedText,
+        originalUrl: response.originalUrl ?? payload.originalUrl ?? payload.value,
+        status: response.status,
+        statusMessage: response.statusMessage,
+        parserProvider: response.parserProvider,
+      });
+    } catch (error) {
+      return buildFailedSourceFromUpload(payload, error);
+    }
   };
 
   const handleSendMessage = async () => {
@@ -224,7 +310,7 @@ export const useDashboardActions = ({
         ),
       );
 
-      const response = await sendChatToN8n({
+      const response = await chatWithN8n({
         message: trimmedMessage,
         topic,
         moduleId: activeModule?.id,
@@ -282,18 +368,16 @@ export const useDashboardActions = ({
     setUploadError("");
 
     try {
-      const response = await uploadSourceToN8n({
-        ...payload,
-        moduleId: activeModule?.id,
-        userId,
-      });
+      const sourceToSave = await readSourceBeforeSaving(payload);
 
-      const uploadedSource = buildSourceFromUpload(
-        payload,
-        response.sourceSummary,
-      );
+      if (sourceToSave.status === "failed") {
+        setUploadError(
+          sourceToSave.statusMessage ||
+            "The source was saved, but extraction failed.",
+        );
+      }
 
-      await onSourceAdded(uploadedSource);
+      await onSourceAdded(sourceToSave);
     } catch (error) {
       setUploadError(
         error instanceof Error ? error.message : "Failed to upload source.",
@@ -311,14 +395,17 @@ export const useDashboardActions = ({
       const uploadedSources: StudySource[] = [];
 
       for (const payload of payloads) {
-        const response = await uploadSourceToN8n({
-          ...payload,
-          moduleId: activeModule?.id,
-          userId,
-        });
+        const sourceToSave = await readSourceBeforeSaving(payload);
+        uploadedSources.push(sourceToSave);
+      }
 
-        uploadedSources.push(
-          buildSourceFromUpload(payload, response.sourceSummary),
+      const failedSources = uploadedSources.filter(
+        (source) => source.status === "failed",
+      );
+
+      if (failedSources.length > 0) {
+        setUploadError(
+          `${failedSources.length} source${failedSources.length === 1 ? "" : "s"} saved, but extraction failed. You can retry the reader pipeline later.`,
         );
       }
 

@@ -4,6 +4,11 @@ export type N8nSelectedSource = {
   type: "text" | "youtube" | "website" | "pdf" | "image";
   value: string;
   summary?: string;
+  extractedText?: string;
+  originalUrl?: string;
+  status?: "ready" | "reading" | "failed" | "pending";
+  statusMessage?: string;
+  parserProvider?: string;
 };
 
 export type N8nChatPayload = {
@@ -25,6 +30,14 @@ export type N8nUploadPayload = {
 export type N8nSummarizeSourcePayload = {
   moduleId?: string;
   source: N8nSelectedSource;
+  userId?: string;
+};
+
+export type N8nSourceReaderPayload = {
+  sourceType: "text" | "youtube" | "website" | "pdf" | "image";
+  title: string;
+  value: string;
+  moduleId?: string;
   userId?: string;
 };
 
@@ -62,6 +75,18 @@ export type N8nSummarizeSourceResponse = N8nBaseResponse & {
   summary: string;
   keyPoints?: string[];
   message?: string;
+};
+
+export type N8nSourceReaderResponse = N8nBaseResponse & {
+  sourceType: "text" | "youtube" | "website" | "pdf" | "image";
+  title: string;
+  value: string;
+  originalUrl?: string;
+  extractedText?: string;
+  summary?: string;
+  status: "ready" | "reading" | "failed" | "pending";
+  statusMessage?: string;
+  parserProvider?: string;
 };
 
 export type WebSearchResult = {
@@ -256,6 +281,7 @@ type N8nWebhookName =
   | "Chat"
   | "Source Upload"
   | "Source Summary"
+  | "Source Reader"
   | "Web Search"
   | "Quiz"
   | "Flashcards"
@@ -311,74 +337,58 @@ const parseResponseBody = async (response: Response) => {
   }
 };
 
-const getN8nErrorMessage = ({
+const buildErrorMessage = ({
   webhookName,
-  status,
-  statusText,
+  response,
   rawText,
 }: {
   webhookName: N8nWebhookName;
-  status: number;
-  statusText: string;
+  response: Response;
   rawText: string;
 }) => {
-  const normalizedBody = rawText.toLowerCase();
+  const fallbackMessage = `${webhookName} workflow failed with status ${response.status}.`;
 
-  if (status === 404) {
-    return `${webhookName} webhook was not found. Check that the workflow is active and the webhook URL in .env is correct.`;
+  if (!rawText.trim()) return fallbackMessage;
+
+  try {
+    const parsed = JSON.parse(rawText) as {
+      message?: string;
+      error?: string;
+      errorMessage?: string;
+    };
+
+    return (
+      parsed.errorMessage ||
+      parsed.message ||
+      parsed.error ||
+      rawText ||
+      fallbackMessage
+    );
+  } catch {
+    return rawText || fallbackMessage;
   }
-
-  if (status === 405) {
-    return `${webhookName} webhook rejected the request method. Make sure the n8n Webhook node accepts POST requests.`;
-  }
-
-  if (status === 500) {
-    return `${webhookName} workflow failed inside n8n. Check the latest n8n execution log for the failing node.`;
-  }
-
-  if (status === 502 || status === 503 || status === 504) {
-    if (
-      normalizedBody.includes("high demand") ||
-      normalizedBody.includes("service unavailable") ||
-      normalizedBody.includes("overloaded")
-    ) {
-      return `${webhookName} workflow reached the AI model, but the model is temporarily under high demand. Retry shortly or enable retries/fallback model in n8n.`;
-    }
-
-    return `${webhookName} workflow is temporarily unavailable. Check n8n, Gemini, and retry settings.`;
-  }
-
-  if (status === 429) {
-    return `${webhookName} workflow hit a rate limit. Wait a moment, reduce requests, or add retry/backoff in n8n.`;
-  }
-
-  return `${webhookName} request failed with status ${status}${
-    statusText ? ` (${statusText})` : ""
-  }.`;
 };
 
-const postToWebhook = async <TResponse>({
+const postToWebhook = async <TResponse, TPayload extends object>({
   webhookName,
-  url,
+  envKey,
   payload,
   timeoutMs = DEFAULT_WEBHOOK_TIMEOUT_MS,
 }: {
   webhookName: N8nWebhookName;
-  url: string;
-  payload: unknown;
+  envKey: string;
+  payload: TPayload;
   timeoutMs?: number;
 }): Promise<TResponse> => {
+  const webhookUrl = getRequiredEnv(envKey);
   const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => {
-    controller.abort();
-  }, timeoutMs);
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(webhookUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Accept: "application/json",
       },
       body: JSON.stringify(payload),
       signal: controller.signal,
@@ -387,165 +397,296 @@ const postToWebhook = async <TResponse>({
     const { rawText, parsedJson } = await parseResponseBody(response);
 
     if (!response.ok) {
-      const friendlyMessage = getN8nErrorMessage({
-        webhookName,
-        status: response.status,
-        statusText: response.statusText,
-        rawText,
-      });
-
-      const details = rawText ? ` Details: ${rawText.slice(0, 600)}` : "";
-      const payloadPreview = getPayloadPreview(payload);
-
       throw new Error(
-        `${friendlyMessage}${details} Payload preview: ${payloadPreview}`,
-      );
-    }
-
-    if (!rawText.trim()) {
-      throw new Error(
-        `${webhookName} workflow returned an empty response. Make sure the workflow ends with a Respond to Webhook node returning JSON.`,
+        buildErrorMessage({
+          webhookName,
+          response,
+          rawText,
+        }),
       );
     }
 
     if (!parsedJson) {
-      throw new Error(
-        `${webhookName} workflow returned non-JSON output. Make sure the Respond to Webhook node returns valid JSON.`,
-      );
+      throw new Error(`${webhookName} workflow returned an empty response.`);
     }
 
     return parsedJson as TResponse;
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new Error(
-        `${webhookName} workflow timed out after ${Math.round(
-          timeoutMs / 1000,
-        )} seconds. Enable retries or simplify the workflow response.`,
+        `${webhookName} workflow timed out. Check if the n8n workflow is active and reachable.`,
       );
     }
 
-    throw error;
+    if (error instanceof TypeError) {
+      throw new Error(
+        `${webhookName} workflow could not be reached. Check your webhook URL, n8n status, and CORS settings.`,
+      );
+    }
+
+    if (error instanceof Error) {
+      throw error;
+    }
+
+    throw new Error(`${webhookName} workflow failed.`);
   } finally {
     window.clearTimeout(timeoutId);
   }
 };
 
-export const sendChatToN8n = async (
-  payload: N8nChatPayload,
-): Promise<N8nChatResponse> => {
-  const url = getRequiredEnv("VITE_N8N_CHAT_WEBHOOK_URL");
+const validateQuizResponse = (response: N8nQuizResponse) => {
+  if (!response.quiz || !Array.isArray(response.quiz.questions)) {
+    throw new Error("Quiz workflow returned an invalid quiz response.");
+  }
 
-  return postToWebhook<N8nChatResponse>({
-    webhookName: "Chat",
-    url,
-    payload,
-  });
+  return response;
 };
 
-export const uploadSourceToN8n = async (
-  payload: N8nUploadPayload,
-): Promise<N8nUploadResponse> => {
-  const url = getRequiredEnv("VITE_N8N_UPLOAD_WEBHOOK_URL");
+const validateFlashcardsResponse = (response: N8nFlashcardsResponse) => {
+  if (!response.deck || !Array.isArray(response.deck.cards)) {
+    throw new Error("Flashcards workflow returned an invalid deck response.");
+  }
 
-  return postToWebhook<N8nUploadResponse>({
+  return response;
+};
+
+const validateTablesResponse = (response: N8nTablesResponse) => {
+  if (!response.table || !Array.isArray(response.table.rows)) {
+    throw new Error("Tables workflow returned an invalid table response.");
+  }
+
+  return response;
+};
+
+const validateMindMapResponse = (response: N8nMindMapResponse) => {
+  if (!response.mindMap || !Array.isArray(response.mindMap.branches)) {
+    throw new Error("Mind Map workflow returned an invalid mind map response.");
+  }
+
+  return response;
+};
+
+const validateSlidesResponse = (response: N8nSlidesResponse) => {
+  if (!response.deck || !Array.isArray(response.deck.slides)) {
+    throw new Error("Slides workflow returned an invalid slide deck response.");
+  }
+
+  return response;
+};
+
+const validateAudioResponse = (response: N8nAudioResponse) => {
+  if (
+    !response.audioOverview ||
+    !Array.isArray(response.audioOverview.segments)
+  ) {
+    throw new Error(
+      "Audio Overview workflow returned an invalid audio response.",
+    );
+  }
+
+  return response;
+};
+
+const validateSourceReaderResponse = (response: N8nSourceReaderResponse) => {
+  if (!response.sourceType || !response.title || !response.status) {
+    throw new Error("Source Reader workflow returned an invalid response.");
+  }
+
+  return response;
+};
+
+const validateWebSearchResponse = (response: N8nWebSearchResponse) => {
+  if (!Array.isArray(response.results)) {
+    throw new Error("Web Search workflow returned an invalid response.");
+  }
+
+  return response;
+};
+
+export const chatWithN8n = async (payload: N8nChatPayload) => {
+  console.log("[Study Aura] Sending chat payload to n8n:", payload);
+
+  const response = await postToWebhook<N8nChatResponse, N8nChatPayload>({
+    webhookName: "Chat",
+    envKey: "VITE_N8N_CHAT_WEBHOOK_URL",
+    payload,
+  });
+
+  if (!response.answer) {
+    throw new Error("Chat workflow returned an empty answer.");
+  }
+
+  return response;
+};
+
+export const uploadSourceWithN8n = async (payload: N8nUploadPayload) => {
+  console.log(
+    "[Study Aura] Sending source upload payload to n8n:",
+    getPayloadPreview(payload),
+  );
+
+  return postToWebhook<N8nUploadResponse, N8nUploadPayload>({
     webhookName: "Source Upload",
-    url,
+    envKey: "VITE_N8N_UPLOAD_WEBHOOK_URL",
     payload,
   });
 };
 
 export const summarizeSourceWithN8n = async (
   payload: N8nSummarizeSourcePayload,
-): Promise<N8nSummarizeSourceResponse> => {
-  const url = getRequiredEnv("VITE_N8N_SOURCE_SUMMARY_WEBHOOK_URL");
+) => {
+  console.log(
+    "[Study Aura] Sending source summary payload to n8n:",
+    getPayloadPreview(payload),
+  );
 
-  return postToWebhook<N8nSummarizeSourceResponse>({
+  const response = await postToWebhook<
+    N8nSummarizeSourceResponse,
+    N8nSummarizeSourcePayload
+  >({
     webhookName: "Source Summary",
-    url,
+    envKey: "VITE_N8N_SUMMARIZE_SOURCE_WEBHOOK_URL",
     payload,
   });
+
+  if (!response.summary) {
+    throw new Error("Source Summary workflow returned an empty summary.");
+  }
+
+  return response;
+};
+
+export const readSourceWithN8n = async (payload: N8nSourceReaderPayload) => {
+  console.log(
+    "[Study Aura] Sending source reader payload to n8n:",
+    getPayloadPreview(payload),
+  );
+
+  const response = await postToWebhook<
+    N8nSourceReaderResponse,
+    N8nSourceReaderPayload
+  >({
+    webhookName: "Source Reader",
+    envKey: "VITE_N8N_SOURCE_READER_WEBHOOK_URL",
+    payload,
+  });
+
+  return validateSourceReaderResponse(response);
 };
 
 export const searchWebSourcesWithN8n = async (
   payload: N8nWebSearchPayload,
-): Promise<N8nWebSearchResponse> => {
-  const url = getRequiredEnv("VITE_N8N_WEB_SEARCH_WEBHOOK_URL");
+) => {
+  console.log(
+    "[Study Aura] Sending web search payload to n8n:",
+    getPayloadPreview(payload),
+  );
 
-  return postToWebhook<N8nWebSearchResponse>({
+  const response = await postToWebhook<
+    N8nWebSearchResponse,
+    N8nWebSearchPayload
+  >({
     webhookName: "Web Search",
-    url,
+    envKey: "VITE_N8N_WEB_SEARCH_WEBHOOK_URL",
     payload,
   });
+
+  return validateWebSearchResponse(response);
 };
 
-export const generateQuizWithN8n = async (
-  payload: N8nQuizPayload,
-): Promise<N8nQuizResponse> => {
-  const url = getRequiredEnv("VITE_N8N_QUIZ_WEBHOOK_URL");
+export const generateQuizWithN8n = async (payload: N8nQuizPayload) => {
+  console.log(
+    "[Study Aura] Sending quiz payload to n8n:",
+    getPayloadPreview(payload),
+  );
 
-  return postToWebhook<N8nQuizResponse>({
+  const response = await postToWebhook<N8nQuizResponse, N8nQuizPayload>({
     webhookName: "Quiz",
-    url,
+    envKey: "VITE_N8N_QUIZ_WEBHOOK_URL",
     payload,
   });
+
+  return validateQuizResponse(response);
 };
 
 export const generateFlashcardsWithN8n = async (
   payload: N8nFlashcardsPayload,
-): Promise<N8nFlashcardsResponse> => {
-  const url = getRequiredEnv("VITE_N8N_FLASHCARDS_WEBHOOK_URL");
+) => {
+  console.log(
+    "[Study Aura] Sending flashcards payload to n8n:",
+    getPayloadPreview(payload),
+  );
 
-  return postToWebhook<N8nFlashcardsResponse>({
+  const response = await postToWebhook<
+    N8nFlashcardsResponse,
+    N8nFlashcardsPayload
+  >({
     webhookName: "Flashcards",
-    url,
+    envKey: "VITE_N8N_FLASHCARDS_WEBHOOK_URL",
     payload,
   });
+
+  return validateFlashcardsResponse(response);
 };
 
-export const generateTablesWithN8n = async (
-  payload: N8nTablesPayload,
-): Promise<N8nTablesResponse> => {
-  const url = getRequiredEnv("VITE_N8N_TABLES_WEBHOOK_URL");
+export const generateTablesWithN8n = async (payload: N8nTablesPayload) => {
+  console.log(
+    "[Study Aura] Sending tables payload to n8n:",
+    getPayloadPreview(payload),
+  );
 
-  return postToWebhook<N8nTablesResponse>({
+  const response = await postToWebhook<N8nTablesResponse, N8nTablesPayload>({
     webhookName: "Tables",
-    url,
+    envKey: "VITE_N8N_TABLES_WEBHOOK_URL",
     payload,
   });
+
+  return validateTablesResponse(response);
 };
 
-export const generateMindMapWithN8n = async (
-  payload: N8nMindMapPayload,
-): Promise<N8nMindMapResponse> => {
-  const url = getRequiredEnv("VITE_N8N_MINDMAP_WEBHOOK_URL");
+export const generateMindMapWithN8n = async (payload: N8nMindMapPayload) => {
+  console.log(
+    "[Study Aura] Sending mind map payload to n8n:",
+    getPayloadPreview(payload),
+  );
 
-  return postToWebhook<N8nMindMapResponse>({
+  const response = await postToWebhook<N8nMindMapResponse, N8nMindMapPayload>({
     webhookName: "Mind Map",
-    url,
+    envKey: "VITE_N8N_MINDMAP_WEBHOOK_URL",
     payload,
   });
+
+  return validateMindMapResponse(response);
 };
 
-export const generateSlidesWithN8n = async (
-  payload: N8nSlidesPayload,
-): Promise<N8nSlidesResponse> => {
-  const url = getRequiredEnv("VITE_N8N_SLIDES_WEBHOOK_URL");
+export const generateSlidesWithN8n = async (payload: N8nSlidesPayload) => {
+  console.log(
+    "[Study Aura] Sending slides payload to n8n:",
+    getPayloadPreview(payload),
+  );
 
-  return postToWebhook<N8nSlidesResponse>({
+  const response = await postToWebhook<N8nSlidesResponse, N8nSlidesPayload>({
     webhookName: "Slides",
-    url,
+    envKey: "VITE_N8N_SLIDES_WEBHOOK_URL",
     payload,
   });
+
+  return validateSlidesResponse(response);
 };
 
 export const generateAudioOverviewWithN8n = async (
   payload: N8nAudioPayload,
-): Promise<N8nAudioResponse> => {
-  const url = getRequiredEnv("VITE_N8N_AUDIO_WEBHOOK_URL");
+) => {
+  console.log(
+    "[Study Aura] Sending audio overview payload to n8n:",
+    getPayloadPreview(payload),
+  );
 
-  return postToWebhook<N8nAudioResponse>({
+  const response = await postToWebhook<N8nAudioResponse, N8nAudioPayload>({
     webhookName: "Audio Overview",
-    url,
+    envKey: "VITE_N8N_AUDIO_WEBHOOK_URL",
     payload,
   });
+
+  return validateAudioResponse(response);
 };
