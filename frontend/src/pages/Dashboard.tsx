@@ -8,6 +8,7 @@ import AIStudioPanel from "../components/dashboard/AIStudioPanel";
 import AddSourceModal from "../components/dashboard/AddSourceModal";
 import { useDashboardActions } from "../hooks/useDashboardActions";
 import {
+  deleteGeneratedOutput,
   fetchGeneratedOutputs,
   type GeneratedOutput,
 } from "../services/generatedOutputService";
@@ -78,6 +79,7 @@ const Dashboard = ({
   const [recentOutputs, setRecentOutputs] = useState<GeneratedOutput[]>([]);
   const [isLoadingOutputs, setIsLoadingOutputs] = useState(false);
   const [outputError, setOutputError] = useState("");
+  const [deletingOutputId, setDeletingOutputId] = useState<string | null>(null);
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
 
   const currentModule = useMemo(() => {
@@ -313,6 +315,37 @@ const Dashboard = ({
     setActiveTool(output.toolName);
   };
 
+  const handleDeleteSavedOutput = async (outputId: string) => {
+    if (!userId) return;
+
+    setDeletingOutputId(outputId);
+    setOutputError("");
+
+    try {
+      await deleteGeneratedOutput({
+        userId,
+        outputId,
+      });
+
+      setRecentOutputs((currentOutputs) =>
+        currentOutputs.filter((output) => output.id !== outputId),
+      );
+
+      if (savedOutputToView?.id === outputId) {
+        setSavedOutputToView(null);
+        setActiveTool(null);
+      }
+    } catch (error) {
+      setOutputError(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete saved output.",
+      );
+    } finally {
+      setDeletingOutputId(null);
+    }
+  };
+
   const handleCloseToolModal = () => {
     setActiveTool(null);
     setSavedOutputToView(null);
@@ -365,8 +398,10 @@ const Dashboard = ({
             recentOutputs={recentOutputs}
             isLoadingOutputs={isLoadingOutputs}
             outputError={outputError}
+            deletingOutputId={deletingOutputId}
             onOpenTool={handleOpenTool}
             onOpenSavedOutput={handleOpenSavedOutput}
+            onDeleteSavedOutput={handleDeleteSavedOutput}
           />
         </div>
       </div>
