@@ -67,36 +67,6 @@ const SourcesPanel = ({
           {isUploadingSource ? "Adding source..." : "+ Add Sources"}
         </button>
 
-        <div className="mt-4 rounded-2xl border border-aura-border bg-aura-bg-soft/80 p-4">
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
-            Current Module
-          </p>
-
-          <p className="mt-2 line-clamp-2 text-base font-black leading-5 text-aura-text">
-            {moduleTitle}
-          </p>
-
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <div className="rounded-xl border border-aura-border bg-aura-panel px-3 py-2">
-              <p className="text-lg font-black text-aura-text">
-                {sources.length}
-              </p>
-              <p className="text-[9px] font-black uppercase tracking-wider text-aura-dim">
-                Total
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-aura-cyan/30 bg-aura-cyan/10 px-3 py-2">
-              <p className="text-lg font-black text-aura-text">
-                {selectedSourceCount}
-              </p>
-              <p className="text-[9px] font-black uppercase tracking-wider text-aura-cyan">
-                Active
-              </p>
-            </div>
-          </div>
-        </div>
-
         {isUploadingSource && (
           <div className="mt-4">
             <LoadingState
@@ -119,37 +89,41 @@ const SourcesPanel = ({
       </div>
 
       <div className="shrink-0 border-b border-aura-border px-4 py-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-aura-cyan">
               Sources
             </p>
-            <p className="mt-1 text-xs text-aura-muted">
-              Check sources to include in AI context.
+
+            <p className="mt-1 line-clamp-1 text-xs text-aura-muted">
+              Context for{" "}
+              <span className="font-bold text-aura-text">{moduleTitle}</span>
             </p>
           </div>
 
-          <div className="rounded-full border border-aura-border bg-aura-bg-soft px-3 py-1 text-[10px] font-black text-aura-muted">
+          <div className="shrink-0 rounded-full border border-aura-border bg-aura-bg-soft px-3 py-1 text-[10px] font-black text-aura-muted">
             {selectedSourceCount}/{sources.length}
           </div>
         </div>
 
         {hasSources && (
-          <div className="mt-3 flex gap-2">
+          <div className="mt-2 flex items-center gap-2 text-xs font-bold">
             <button
               type="button"
               onClick={onSelectAllSources}
               disabled={allSourcesSelected}
-              className="rounded-lg border border-aura-border bg-aura-bg-soft px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wider text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text disabled:cursor-not-allowed disabled:opacity-40"
+              className="text-aura-cyan transition hover:text-aura-text disabled:cursor-not-allowed disabled:text-aura-dim disabled:opacity-50"
             >
               Select all
             </button>
+
+            <span className="text-aura-dim">·</span>
 
             <button
               type="button"
               onClick={onClearSelectedSources}
               disabled={selectedSourceCount === 0}
-              className="rounded-lg border border-aura-border bg-aura-bg-soft px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wider text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text disabled:cursor-not-allowed disabled:opacity-40"
+              className="text-aura-cyan transition hover:text-aura-text disabled:cursor-not-allowed disabled:text-aura-dim disabled:opacity-50"
             >
               Clear
             </button>
@@ -157,7 +131,7 @@ const SourcesPanel = ({
         )}
       </div>
 
-      <div className="aura-scrollbar min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="aura-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
         {!hasSources ? (
           <EmptyState
             icon="📚"
@@ -165,21 +139,21 @@ const SourcesPanel = ({
             description="Add notes, links, PDFs, or images to give Aura context for this module."
           />
         ) : (
-          <div className="space-y-2.5 pb-6">
+          <div className="space-y-2 pb-6">
             {sources.map((source) => (
               <div
                 key={source.id}
-                className={`group rounded-xl border p-2.5 transition hover:-translate-y-0.5 ${
+                className={`group rounded-xl border px-3 py-2.5 transition ${
                   source.selected
-                    ? "border-aura-cyan/60 bg-aura-cyan/10 shadow-[0_0_24px_rgba(34,211,238,0.08)]"
-                    : "border-aura-border bg-aura-bg-soft hover:border-aura-cyan/40"
+                    ? "border-aura-cyan/55 bg-aura-cyan/10 shadow-[0_0_20px_rgba(34,211,238,0.07)]"
+                    : "border-aura-border bg-aura-bg-soft/80 hover:border-aura-cyan/35"
                 }`}
               >
                 <div className="flex items-start gap-2.5">
                   <button
                     type="button"
                     onClick={() => onToggleSource(source.id)}
-                    className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[9px] font-black transition ${
+                    className={`mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[9px] font-black transition ${
                       source.selected
                         ? "border-aura-cyan bg-aura-cyan text-aura-bg"
                         : "border-aura-border bg-aura-panel text-transparent hover:border-aura-cyan/70"
@@ -190,7 +164,7 @@ const SourcesPanel = ({
                   </button>
 
                   <div
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border text-sm ${
+                    className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-xs ${
                       sourceAccentClasses[source.type]
                     }`}
                   >
@@ -202,9 +176,9 @@ const SourcesPanel = ({
                       <button
                         type="button"
                         onClick={() => onToggleSource(source.id)}
-                        className="min-w-0 text-left"
+                        className="min-w-0 flex-1 text-left"
                       >
-                        <p className="line-clamp-2 text-xs font-black leading-5 text-aura-text">
+                        <p className="line-clamp-2 text-[13px] font-black leading-5 text-aura-text">
                           {source.title}
                         </p>
                       </button>
@@ -212,7 +186,7 @@ const SourcesPanel = ({
                       <button
                         type="button"
                         onClick={() => onDeleteSource(source.id)}
-                        className="shrink-0 rounded-lg px-2 py-1 text-xs text-aura-dim opacity-0 transition hover:bg-red-500/10 hover:text-red-200 group-hover:opacity-100"
+                        className="shrink-0 rounded-lg px-1.5 py-0.5 text-xs text-aura-dim opacity-0 transition hover:bg-red-500/10 hover:text-red-200 group-hover:opacity-100"
                         aria-label={`Delete ${source.title}`}
                         title="Delete source"
                       >
@@ -220,9 +194,9 @@ const SourcesPanel = ({
                       </button>
                     </div>
 
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                       <span
-                        className={`inline-flex rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-wider ${
+                        className={`inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] ${
                           sourceAccentClasses[source.type]
                         }`}
                       >
@@ -230,23 +204,23 @@ const SourcesPanel = ({
                       </span>
 
                       <span
-                        className={`inline-flex rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-wider ${
+                        className={`inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] ${
                           source.selected
                             ? "border-aura-cyan/30 bg-aura-cyan/10 text-aura-cyan"
-                            : "border-aura-border bg-aura-panel text-aura-dim"
+                            : "border-aura-border bg-aura-panel text-aura-muted"
                         }`}
                       >
-                        {source.selected ? "Using as context" : "Not active"}
+                        {source.selected ? "Using" : "Inactive"}
                       </span>
                     </div>
 
                     {source.summary && (
-                      <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-aura-muted">
+                      <p className="mt-1.5 line-clamp-2 text-[11px] leading-4 text-aura-muted">
                         {source.summary}
                       </p>
                     )}
 
-                    <p className="mt-2 truncate text-[9px] font-semibold text-aura-dim">
+                    <p className="mt-1 truncate text-[10px] font-semibold text-aura-dim">
                       {source.type === "text" ? "Text content" : source.value}
                     </p>
                   </div>

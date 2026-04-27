@@ -4,10 +4,7 @@ import {
   type AIToolGenerationOptions,
 } from "../../hooks/useAIToolActions";
 import AIToolResultRenderer from "./AIToolResultRenderer";
-import type {
-  AIToolName,
-  StudySource,
-} from "../dashboard/dashboardTypes";
+import type { AIToolName, StudySource } from "../dashboard/dashboardTypes";
 import type {
   AudioOverviewLength,
   AudioOverviewStyle,
@@ -108,7 +105,6 @@ const AIToolModal = ({
     status,
     error,
     result,
-    savedOutputId,
     saveNotice,
     runTool,
     resetTool,
@@ -144,10 +140,7 @@ const AIToolModal = ({
     onClose();
   };
 
-  const activeCountLabel = getLockedCountLabel(
-    activeTool,
-    options.difficulty,
-  );
+  const activeCountLabel = getLockedCountLabel(activeTool, options.difficulty);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-aura-bg/80 px-3 py-3 backdrop-blur-xl">
@@ -346,47 +339,20 @@ const AIToolModal = ({
           )}
 
           {hasResult && (
-            <div>
-              <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-aura-border bg-aura-bg-soft p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-aura-cyan">
-                    {isViewingSavedOutput ? "Saved Result" : "Generated Result"}
-                  </p>
-
-                  <p className="mt-1 text-sm text-aura-muted">
-                    {isViewingSavedOutput ? (
-                      <>
-                        Saved as:{" "}
-                        <span className="font-bold text-aura-text">
-                          {savedOutput?.title}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        Preset:{" "}
-                        <span className="font-bold text-aura-text">
-                          {activeTool === "Audio"
-                            ? `${options.audioStyle} / ${options.audioLength}`
-                            : `${options.difficulty} • ${activeCountLabel}`}
-                        </span>
-                      </>
-                    )}
-                  </p>
-
-                  {!isViewingSavedOutput && saveNotice && (
-                    <p className="mt-2 text-xs font-black uppercase tracking-[0.18em] text-aura-gold">
-                      {saveNotice}
-                    </p>
-                  )}
-
-                  {!isViewingSavedOutput && savedOutputId && (
-                    <p className="mt-1 text-[10px] font-semibold text-aura-dim">
-                      Output ID: {savedOutputId.slice(0, 8)}
-                    </p>
-                  )}
+            <div className="space-y-4">
+              {!isViewingSavedOutput && saveNotice && (
+                <div className="rounded-2xl border border-aura-gold/30 bg-aura-gold/10 px-4 py-3 text-xs font-black uppercase tracking-[0.18em] text-aura-gold">
+                  {saveNotice}
                 </div>
+              )}
 
-                {!isViewingSavedOutput && (
+              <AIToolResultRenderer
+                toolName={activeTool}
+                result={isViewingSavedOutput ? savedResult : result}
+              />
+
+              {!isViewingSavedOutput && (
+                <div className="flex justify-end">
                   <button
                     type="button"
                     onClick={handleGenerate}
@@ -395,13 +361,8 @@ const AIToolModal = ({
                   >
                     Regenerate
                   </button>
-                )}
-              </div>
-
-              <AIToolResultRenderer
-                toolName={activeTool}
-                result={isViewingSavedOutput ? savedResult : result}
-              />
+                </div>
+              )}
             </div>
           )}
         </div>

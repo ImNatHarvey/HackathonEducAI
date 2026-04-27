@@ -362,8 +362,8 @@ const Dashboard = ({
         onLogout={onLogout}
       />
 
-      <div className="aura-scrollbar grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[25%_50%_25%] xl:overflow-hidden">
-        <div className="min-h-[420px] overflow-hidden xl:min-h-0">
+      <div className="aura-scrollbar grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[25%_50%_25%] lg:overflow-hidden">
+        <div className="min-h-105 overflow-hidden xl:min-h-0">
           <SourcesPanel
             moduleTitle={currentModule?.title ?? topic}
             sources={currentSources}
@@ -378,7 +378,7 @@ const Dashboard = ({
           />
         </div>
 
-        <div className="min-h-[620px] overflow-hidden xl:min-h-0">
+        <div className="min-h-155 overflow-hidden xl:min-h-0">
           <ChatPanel
             topic={currentModule?.title ?? topic}
             selectedSourceCount={selectedSourceCount}
@@ -392,7 +392,7 @@ const Dashboard = ({
           />
         </div>
 
-        <div className="min-h-[420px] overflow-hidden lg:col-span-2 xl:col-span-1 xl:min-h-0">
+        <div className="min-h-105 overflow-hidden lg:col-span-1 lg:min-h-0">
           <AIStudioPanel
             selectedSourceCount={selectedSourceCount}
             recentOutputs={recentOutputs}

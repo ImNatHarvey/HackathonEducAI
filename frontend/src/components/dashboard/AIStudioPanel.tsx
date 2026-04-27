@@ -96,35 +96,35 @@ const AIStudioPanel = ({
           Create study materials from the current module and selected sources.
         </p>
 
-        <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-stretch gap-3">
+        <div className="mt-4 grid grid-cols-2 gap-3">
           <button
             type="button"
             onClick={handleOpenOutputsModal}
             className="group rounded-2xl border border-aura-border bg-aura-bg-soft px-4 py-3 text-left transition hover:-translate-y-0.5 hover:border-aura-gold/60 hover:bg-aura-gold/5"
           >
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-aura-gold">
-                  Recent Outputs
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-aura-gold">
+              Recent Outputs
+            </p>
+
+            <div className="mt-2 flex items-end justify-between gap-3">
+              <div>
+                <p className="text-2xl font-black text-aura-text">
+                  {recentOutputs.length}
                 </p>
 
-                <p className="mt-1 text-sm font-semibold text-aura-muted">
-                  {recentOutputs.length > 0
-                    ? `${recentOutputs.length} saved result${
-                        recentOutputs.length === 1 ? "" : "s"
-                      }`
-                    : "View saved generations"}
+                <p className="mt-0.5 text-[10px] font-bold text-aura-muted">
+                  saved result{recentOutputs.length === 1 ? "" : "s"}
                 </p>
               </div>
 
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-aura-gold/30 bg-aura-gold/10 text-xs font-black text-aura-gold transition group-hover:scale-105">
-                {recentOutputs.length}
+              <span className="text-xs font-black text-aura-gold opacity-0 transition group-hover:opacity-100">
+                Open →
               </span>
             </div>
           </button>
 
           <div
-            className={`flex min-w-[86px] flex-col items-center justify-center rounded-2xl border px-3 py-3 ${
+            className={`rounded-2xl border px-4 py-3 ${
               hasSelectedSources
                 ? "border-aura-cyan/30 bg-aura-cyan/10"
                 : "border-yellow-400/30 bg-yellow-500/10"
@@ -135,17 +135,27 @@ const AIStudioPanel = ({
                 : "Outputs will use the module title only until you check sources on the left."
             }
           >
-            <p className="text-2xl font-black text-aura-text">
-              {selectedSourceCount}
-            </p>
-
             <p
-              className={`mt-1 text-center text-[9px] font-black uppercase tracking-wider ${
+              className={`text-[10px] font-black uppercase tracking-[0.16em] ${
                 hasSelectedSources ? "text-aura-cyan" : "text-yellow-100"
               }`}
             >
-              {hasSelectedSources ? "Active" : "No Sources"}
+              Active Sources
             </p>
+
+            <div className="mt-2">
+              <p className="text-2xl font-black text-aura-text">
+                {selectedSourceCount}
+              </p>
+
+              <p
+                className={`mt-0.5 text-[10px] font-bold ${
+                  hasSelectedSources ? "text-aura-muted" : "text-yellow-100"
+                }`}
+              >
+                {hasSelectedSources ? "using context" : "none selected"}
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -161,32 +171,28 @@ const AIStudioPanel = ({
           </span>
         </div>
 
-        <div className="space-y-3 pb-6">
+        <div className="grid grid-cols-2 gap-3 pb-6">
           {studioTools.map((tool) => (
             <button
               key={tool.name}
               type="button"
               onClick={() => onOpenTool(tool.name)}
-              className="group w-full rounded-2xl border border-aura-border bg-aura-bg-soft p-4 text-left transition hover:-translate-y-0.5 hover:border-aura-cyan/60 hover:bg-aura-cyan/5"
+              className="group min-h-[118px] w-full rounded-2xl border border-aura-border bg-aura-bg-soft p-3 text-left transition hover:-translate-y-0.5 hover:border-aura-cyan/60 hover:bg-aura-cyan/5"
             >
-              <div className="flex items-start gap-3">
+              <div className="flex h-full flex-col gap-2">
                 <div
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${tool.color} text-xl shadow-[0_12px_35px_rgba(0,0,0,0.22)]`}
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${tool.color} text-lg shadow-[0_12px_35px_rgba(0,0,0,0.22)]`}
                 >
                   {tool.icon}
                 </div>
 
                 <div className="min-w-0">
-                  <p className="text-sm font-black text-aura-text">
+                  <p className="text-xs font-black leading-4 text-aura-text">
                     {tool.label}
                   </p>
 
-                  <p className="mt-1 text-xs leading-5 text-aura-muted">
+                  <p className="mt-1 line-clamp-3 text-[11px] leading-4 text-aura-muted">
                     {tool.description}
-                  </p>
-
-                  <p className="mt-3 text-[10px] font-black uppercase tracking-wider text-aura-cyan opacity-0 transition group-hover:opacity-100">
-                    Configure and generate →
                   </p>
                 </div>
               </div>
@@ -237,87 +243,91 @@ const AIStudioPanel = ({
                 </div>
               )}
 
-              {!isLoadingOutputs && !outputError && recentOutputs.length === 0 && (
-                <div className="rounded-[1.5rem] border border-dashed border-aura-border bg-aura-bg-soft/70 p-8 text-center">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-aura-gold/10 text-2xl">
-                    ✦
+              {!isLoadingOutputs &&
+                !outputError &&
+                recentOutputs.length === 0 && (
+                  <div className="rounded-[1.5rem] border border-dashed border-aura-border bg-aura-bg-soft/70 p-8 text-center">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-aura-gold/10 text-2xl">
+                      ✦
+                    </div>
+
+                    <h3 className="mt-4 text-xl font-black text-aura-text">
+                      No saved outputs yet
+                    </h3>
+
+                    <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-aura-muted">
+                      Generate from one of the six tools and your saved result
+                      will appear here.
+                    </p>
                   </div>
+                )}
 
-                  <h3 className="mt-4 text-xl font-black text-aura-text">
-                    No saved outputs yet
-                  </h3>
+              {!isLoadingOutputs &&
+                !outputError &&
+                recentOutputs.length > 0 && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {recentOutputs.map((output) => {
+                      const toolMeta = getToolMeta(output.toolName);
+                      const isDeleting = deletingOutputId === output.id;
 
-                  <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-aura-muted">
-                    Generate from one of the six tools and your saved result
-                    will appear here.
-                  </p>
-                </div>
-              )}
-
-              {!isLoadingOutputs && !outputError && recentOutputs.length > 0 && (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {recentOutputs.map((output) => {
-                    const toolMeta = getToolMeta(output.toolName);
-                    const isDeleting = deletingOutputId === output.id;
-
-                    return (
-                      <div
-                        key={output.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => handleOpenSavedOutput(output)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            handleOpenSavedOutput(output);
-                          }
-                        }}
-                        className="group rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-5 text-left transition hover:-translate-y-0.5 hover:border-aura-gold/60 hover:bg-aura-gold/5"
-                      >
-                        <div className="flex items-start gap-4">
-                          <div
-                            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${
-                              toolMeta?.color ??
-                              "from-aura-primary to-aura-cyan"
-                            } text-xl shadow-[0_12px_35px_rgba(0,0,0,0.2)]`}
-                          >
-                            {toolMeta?.icon ?? "✦"}
-                          </div>
-
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="line-clamp-2 text-base font-black text-aura-text">
-                                  {output.title}
-                                </p>
-
-                                <p className="mt-1 text-xs font-semibold text-aura-muted">
-                                  {formatOutputDate(output.createdAt)}
-                                </p>
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={(event) =>
-                                  handleOpenDeleteDialog(event, output)
-                                }
-                                disabled={isDeleting}
-                                className="shrink-0 rounded-full border border-red-400/30 bg-red-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-200 opacity-75 transition hover:bg-red-500/20 hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
-                                title="Delete saved output"
-                              >
-                                {isDeleting ? "..." : "Delete"}
-                              </button>
+                      return (
+                        <div
+                          key={output.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => handleOpenSavedOutput(output)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              handleOpenSavedOutput(output);
+                            }
+                          }}
+                          className="group rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-5 text-left transition hover:-translate-y-0.5 hover:border-aura-gold/60 hover:bg-aura-gold/5"
+                        >
+                          <div className="flex items-start gap-4">
+                            <div
+                              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${
+                                toolMeta?.color ??
+                                "from-aura-primary to-aura-cyan"
+                              } text-xl shadow-[0_12px_35px_rgba(0,0,0,0.2)]`}
+                            >
+                              {toolMeta?.icon ?? "✦"}
                             </div>
 
-                            <p className="mt-3 text-xs font-black uppercase tracking-wider text-aura-gold opacity-0 transition group-hover:opacity-100">
-                              Open saved output →
-                            </p>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="line-clamp-2 text-base font-black text-aura-text">
+                                    {output.title}
+                                  </p>
+
+                                  <p className="mt-1 text-xs font-semibold text-aura-muted">
+                                    {formatOutputDate(output.createdAt)}
+                                  </p>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={(event) =>
+                                    handleOpenDeleteDialog(event, output)
+                                  }
+                                  disabled={isDeleting}
+                                  className="shrink-0 rounded-full border border-red-400/30 bg-red-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-200 opacity-75 transition hover:bg-red-500/20 hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                  title="Delete saved output"
+                                >
+                                  {isDeleting ? "..." : "Delete"}
+                                </button>
+                              </div>
+
+                              <p className="mt-3 text-xs font-black uppercase tracking-wider text-aura-gold opacity-0 transition group-hover:opacity-100">
+                                Open saved output →
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                )}
             </main>
           </div>
         </div>

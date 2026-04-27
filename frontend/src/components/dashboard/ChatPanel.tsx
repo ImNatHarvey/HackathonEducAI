@@ -27,10 +27,18 @@ const promptSuggestions = [
   "What are the most important concepts?",
 ];
 
+const cleanMarkdown = (value: string) => {
+  return value
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/^[-*]\s+/gm, "• ")
+    .replace(/`/g, "")
+    .trim();
+};
+
 const ChatPanel = ({
   topic,
   selectedSourceCount,
-  profile,
   inputValue,
   onInputChange,
   messages,
@@ -50,45 +58,22 @@ const ChatPanel = ({
   };
 
   const hasMessages = messages.length > 0;
-  const userTitle = profile?.title ?? "Aura Farmer";
 
   return (
     <main className="flex h-full min-h-0 min-w-0 flex-col bg-aura-bg">
       <section className="shrink-0 border-b border-aura-border bg-aura-bg/80 px-6 py-4 backdrop-blur-xl">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-aura-cyan">
-              Current Module
-            </p>
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.26em] text-aura-cyan">
+            Current Module
+          </p>
 
-            <h1 className="mt-1 truncate text-2xl font-black tracking-tight text-aura-text">
-              {topic}
-            </h1>
+          <h1 className="mt-1 truncate text-2xl font-black tracking-tight text-aura-text">
+            {topic}
+          </h1>
 
-            <p className="mt-1 text-sm leading-6 text-aura-muted">
-              Chat with Aura using the checked sources in the left panel.
-            </p>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-3">
-            <div className="hidden rounded-2xl border border-aura-gold/30 bg-aura-gold/10 px-4 py-3 text-right sm:block">
-              <p className="text-xs font-black uppercase tracking-wider text-aura-gold">
-                Title
-              </p>
-              <p className="mt-1 text-sm font-black text-aura-text">
-                {userTitle}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-aura-cyan/30 bg-aura-cyan/10 px-4 py-3 text-right">
-              <p className="text-2xl font-black text-aura-text">
-                {selectedSourceCount}
-              </p>
-              <p className="text-[10px] font-black uppercase tracking-wider text-aura-cyan">
-                Active Sources
-              </p>
-            </div>
-          </div>
+          <p className="mt-1 text-sm leading-6 text-aura-muted">
+            Chat with Aura using checked sources from the left panel.
+          </p>
         </div>
       </section>
 
@@ -183,14 +168,12 @@ const ChatPanel = ({
                     className={`max-w-[82%] rounded-[1.5rem] border px-5 py-4 text-sm leading-7 shadow-aura-soft ${
                       message.role === "user"
                         ? "border-aura-cyan/40 bg-aura-cyan/10 text-aura-text"
-                        : "border-aura-border bg-aura-panel text-aura-muted"
+                        : "border-aura-border bg-aura-panel text-aura-text"
                     }`}
                   >
-                    <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-aura-dim">
-                      {message.role === "user" ? "You" : "Study Aura"}
+                    <p className="whitespace-pre-wrap">
+                      {cleanMarkdown(message.content)}
                     </p>
-
-                    <p className="whitespace-pre-wrap">{message.content}</p>
                   </div>
                 </div>
               ))}

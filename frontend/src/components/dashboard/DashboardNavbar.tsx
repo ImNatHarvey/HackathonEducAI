@@ -97,11 +97,11 @@ const DashboardNavbar = ({
           <button
             type="button"
             onClick={() => onOpenSettings("profile")}
-            className="flex min-w-[230px] items-center gap-3 rounded-2xl border border-aura-border bg-aura-bg-soft px-3 py-2 transition hover:border-aura-cyan/60 hover:bg-aura-cyan/5 max-sm:min-w-0"
+            className="flex min-w-[240px] items-center gap-3 rounded-2xl border border-aura-border bg-aura-bg-soft px-3 py-2 transition hover:border-aura-cyan/60 hover:bg-aura-cyan/5 max-sm:min-w-0"
             aria-label="Open profile settings"
             title={`${displayName} • ${title}`}
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-aura-primary to-aura-cyan text-xs font-black text-white">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-aura-primary to-aura-cyan text-xs font-black text-white shadow-[0_0_22px_rgba(34,211,238,0.18)]">
               {initials}
             </div>
 
@@ -109,8 +109,9 @@ const DashboardNavbar = ({
               <p className="truncate text-sm font-black leading-4 text-aura-text">
                 {displayName}
               </p>
-              <p className="mt-1 truncate text-[11px] font-black leading-3 text-aura-gold">
-                {title}
+
+              <p className="mt-1 inline-flex max-w-full rounded-full border border-aura-gold/35 bg-aura-gold/10 px-2 py-0.5 text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-aura-gold shadow-[0_0_18px_rgba(250,204,21,0.08)]">
+                <span className="truncate">{title}</span>
               </p>
             </div>
           </button>
