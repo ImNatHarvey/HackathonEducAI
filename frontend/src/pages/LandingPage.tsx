@@ -35,7 +35,7 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
         <div className="relative z-10 grid flex-1 items-center gap-10 py-14 lg:grid-cols-[1.05fr_0.95fr]">
           <div>
             <p className="inline-flex rounded-full border border-aura-cyan/40 bg-aura-cyan/10 px-4 py-2 text-xs font-black uppercase tracking-[0.22em] text-aura-cyan">
-              NotebookLM-inspired AI study workspace
+              AI-powered modular study workspace
             </p>
 
             <h1 className="mt-6 max-w-4xl text-5xl font-black tracking-tight text-aura-text md:text-7xl">

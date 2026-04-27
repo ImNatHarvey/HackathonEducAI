@@ -76,8 +76,8 @@ const ModuleLibrary = ({
             </h1>
 
             <p className="mt-4 text-base leading-7 text-aura-muted">
-              Modules work like NotebookLM notebooks. Each module contains its
-              own sources, selected context, AI chat, and generated study tools.
+              Modules are dedicated study spaces. Each module contains its own
+              sources, selected context, AI chat, and generated study tools.
             </p>
           </div>
         </section>

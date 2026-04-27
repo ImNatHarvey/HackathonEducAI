@@ -68,8 +68,8 @@ const CreateModuleModal = ({
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-aura-muted">
-              A module works like a NotebookLM notebook. Sources added later
-              will belong only to this module.
+              A module is a focused study space. Sources added later will belong
+              only to this module.
             </p>
           </div>
 
