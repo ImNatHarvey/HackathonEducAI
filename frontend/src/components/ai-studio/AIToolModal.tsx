@@ -19,6 +19,7 @@ type AIToolModalProps = {
   activeTool: AIToolName | null;
   topic: string;
   moduleId?: string;
+  userId?: string;
   selectedSources: StudySource[];
   onClose: () => void;
 };
@@ -93,6 +94,7 @@ const AIToolModal = ({
   activeTool,
   topic,
   moduleId,
+  userId,
   selectedSources,
   onClose,
 }: AIToolModalProps) => {
@@ -103,12 +105,15 @@ const AIToolModal = ({
     status,
     error,
     result,
+    savedOutputId,
+    saveNotice,
     runTool,
     resetTool,
     getLockedCountLabel,
   } = useAIToolActions({
     topic,
     moduleId,
+    userId,
     selectedSources,
   });
 
@@ -283,7 +288,9 @@ const AIToolModal = ({
                   disabled={isLoading}
                   className="rounded-2xl bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold px-5 py-3 text-sm font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(34,211,238,0.22)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isLoading ? "Generating..." : `Generate ${toolTitles[activeTool]}`}
+                  {isLoading
+                    ? "Generating..."
+                    : `Generate ${toolTitles[activeTool]}`}
                 </button>
               </div>
             </div>
@@ -339,6 +346,18 @@ const AIToolModal = ({
                         : `${options.difficulty} • ${activeCountLabel}`}
                     </span>
                   </p>
+
+                  {saveNotice && (
+                    <p className="mt-2 text-xs font-black uppercase tracking-[0.18em] text-aura-gold">
+                      {saveNotice}
+                    </p>
+                  )}
+
+                  {savedOutputId && (
+                    <p className="mt-1 text-[10px] font-semibold text-aura-dim">
+                      Output ID: {savedOutputId.slice(0, 8)}
+                    </p>
+                  )}
                 </div>
 
                 <button

@@ -15,7 +15,7 @@ import {
   type StudyTableType,
   type TableDifficulty,
 } from "../lib/n8n";
-import { currentUser } from "../components/user/userMock";
+import { createGeneratedOutput } from "../services/generatedOutputService";
 import type {
   AIToolName,
   StudySource,
@@ -24,6 +24,7 @@ import type {
 type UseAIToolActionsParams = {
   topic: string;
   moduleId?: string;
+  userId?: string;
   selectedSources: StudySource[];
 };
 
@@ -64,14 +65,34 @@ const generationDefaults = {
   },
 } as const;
 
+const getOutputTitle = ({
+  toolName,
+  topic,
+}: {
+  toolName: AIToolName;
+  topic: string;
+}) => {
+  const timestamp = new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date());
+
+  return `${toolName} • ${topic} • ${timestamp}`;
+};
+
 export const useAIToolActions = ({
   topic,
   moduleId,
+  userId,
   selectedSources,
 }: UseAIToolActionsParams) => {
   const [status, setStatus] = useState<ToolStatus>("idle");
   const [error, setError] = useState("");
   const [result, setResult] = useState<unknown>(null);
+  const [savedOutputId, setSavedOutputId] = useState<string | null>(null);
+  const [saveNotice, setSaveNotice] = useState("");
 
   const selectedSourcePayload = selectedSources.map((source) => ({
     id: source.id,
@@ -88,6 +109,8 @@ export const useAIToolActions = ({
     setStatus("loading");
     setError("");
     setResult(null);
+    setSavedOutputId(null);
+    setSaveNotice("");
 
     try {
       let response: unknown = null;
@@ -99,7 +122,7 @@ export const useAIToolActions = ({
           selectedSources: selectedSourcePayload,
           difficulty: options.difficulty satisfies QuizDifficulty,
           questionCount: generationDefaults.quiz[options.difficulty],
-          userId: currentUser.id,
+          userId,
         });
       }
 
@@ -110,7 +133,7 @@ export const useAIToolActions = ({
           selectedSources: selectedSourcePayload,
           difficulty: options.difficulty satisfies FlashcardDifficulty,
           cardCount: generationDefaults.flashcards[options.difficulty],
-          userId: currentUser.id,
+          userId,
         });
       }
 
@@ -122,7 +145,7 @@ export const useAIToolActions = ({
           difficulty: options.difficulty satisfies TableDifficulty,
           tableType: options.tableType,
           rowCount: generationDefaults.tables[options.difficulty],
-          userId: currentUser.id,
+          userId,
         });
       }
 
@@ -133,7 +156,7 @@ export const useAIToolActions = ({
           selectedSources: selectedSourcePayload,
           difficulty: options.difficulty satisfies MindMapDifficulty,
           branchCount: generationDefaults.mindMap[options.difficulty],
-          userId: currentUser.id,
+          userId,
         });
       }
 
@@ -144,7 +167,7 @@ export const useAIToolActions = ({
           selectedSources: selectedSourcePayload,
           difficulty: options.difficulty satisfies SlidesDifficulty,
           slideCount: generationDefaults.slides[options.difficulty],
-          userId: currentUser.id,
+          userId,
         });
       }
 
@@ -155,12 +178,38 @@ export const useAIToolActions = ({
           selectedSources: selectedSourcePayload,
           style: options.audioStyle,
           length: options.audioLength,
-          userId: currentUser.id,
+          userId,
         });
+      }
+
+      if (!response) {
+        throw new Error("No AI tool response was returned.");
       }
 
       setResult(response);
       setStatus("success");
+
+      if (userId && moduleId) {
+        const savedOutput = await createGeneratedOutput({
+          userId,
+          moduleId,
+          toolName,
+          title: getOutputTitle({
+            toolName,
+            topic,
+          }),
+          payload: {
+            toolName,
+            topic,
+            options,
+            selectedSources: selectedSourcePayload,
+            result: response,
+          },
+        });
+
+        setSavedOutputId(savedOutput.id);
+        setSaveNotice("Saved to this module.");
+      }
     } catch (toolError) {
       setStatus("error");
       setError(
@@ -175,6 +224,8 @@ export const useAIToolActions = ({
     setStatus("idle");
     setError("");
     setResult(null);
+    setSavedOutputId(null);
+    setSaveNotice("");
   };
 
   const getLockedCountLabel = (
@@ -208,6 +259,8 @@ export const useAIToolActions = ({
     status,
     error,
     result,
+    savedOutputId,
+    saveNotice,
     runTool,
     resetTool,
     getLockedCountLabel,

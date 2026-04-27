@@ -321,6 +321,7 @@ const Dashboard = ({
         activeTool={activeTool}
         topic={currentModule?.title ?? topic}
         moduleId={currentModule?.id}
+        userId={userId}
         selectedSources={selectedSources}
         onClose={() => setActiveTool(null)}
       />
