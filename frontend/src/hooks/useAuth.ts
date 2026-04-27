@@ -16,6 +16,10 @@ type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 const getFriendlyAuthError = (message: string) => {
   const normalizedMessage = message.toLowerCase();
 
+  if (normalizedMessage.includes("rate limit")) {
+    return "Email rate limit exceeded. Please wait a few minutes before trying again.";
+  }
+
   if (
     normalizedMessage.includes("email not confirmed") ||
     normalizedMessage.includes("not confirmed")
@@ -30,7 +34,10 @@ const getFriendlyAuthError = (message: string) => {
     return "Invalid email or password.";
   }
 
-  if (normalizedMessage.includes("already registered")) {
+  if (
+    normalizedMessage.includes("already registered") ||
+    normalizedMessage.includes("user already registered")
+  ) {
     return "This email is already registered. Try logging in instead.";
   }
 
@@ -95,6 +102,7 @@ export const useAuth = () => {
     const loadProfile = async () => {
       if (!user) {
         setProfile(null);
+        setIsProfileLoading(false);
         return;
       }
 
@@ -188,7 +196,7 @@ export const useAuth = () => {
       } else {
         setStatus("unauthenticated");
         setAuthNotice(
-          "Account created. Please check your email and confirm your account before logging in.",
+          "Account created. Please check your email inbox and verify your account before logging in.",
         );
       }
     } catch (error) {

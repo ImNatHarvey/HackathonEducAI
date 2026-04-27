@@ -39,6 +39,7 @@ function App() {
 
   const {
     user,
+    session,
     authError,
     authNotice,
     isLoadingAuth,
@@ -111,7 +112,17 @@ function App() {
 
     try {
       await register(credentials);
-      setView("dashboard");
+
+      /*
+        If email confirmation is ON, Supabase may create the account but return
+        no active session. Keep the user on Login so they can see the
+        verification notice instead of being redirected away.
+      */
+      if (session || user) {
+        setView("dashboard");
+      } else {
+        setView("login");
+      }
     } finally {
       setIsAuthActionLoading(false);
     }
@@ -130,9 +141,7 @@ function App() {
   };
 
   const handleOpenModule = (moduleId: string) => {
-    const module = modules.find(
-      (currentModule) => currentModule.id === moduleId,
-    );
+    const module = modules.find((currentModule) => currentModule.id === moduleId);
 
     if (!module) return;
 
@@ -143,6 +152,7 @@ function App() {
   const handleLogout = async () => {
     await logout();
     localStorage.removeItem(APP_VIEW_STORAGE_KEY);
+    localStorage.removeItem("study-aura-selected-topic");
     setView("landing");
   };
 
