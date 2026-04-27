@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { StudyModule } from "../components/dashboard/dashboardTypes";
 
 type ModuleLibraryProps = {
@@ -5,6 +6,7 @@ type ModuleLibraryProps = {
   activeModuleId?: string;
   onOpenModule: (moduleId: string) => void;
   onCreateModule: () => void;
+  onDeleteModule: (moduleId: string) => Promise<void>;
   onBackToDashboard: () => void;
 };
 
@@ -26,8 +28,14 @@ const ModuleLibrary = ({
   activeModuleId,
   onOpenModule,
   onCreateModule,
+  onDeleteModule,
   onBackToDashboard,
 }: ModuleLibraryProps) => {
+  const [moduleToDelete, setModuleToDelete] = useState<StudyModule | null>(
+    null,
+  );
+  const [deletingModuleId, setDeletingModuleId] = useState<string | null>(null);
+
   const totalSources = modules.reduce(
     (total, module) => total + module.sources.length,
     0,
@@ -38,6 +46,35 @@ const ModuleLibrary = ({
       total + module.sources.filter((source) => source.selected).length,
     0,
   );
+
+  const handleOpenDeleteDialog = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    module: StudyModule,
+  ) => {
+    event.stopPropagation();
+    setModuleToDelete(module);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    if (deletingModuleId) return;
+    setModuleToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!moduleToDelete) return;
+
+    setDeletingModuleId(moduleToDelete.id);
+
+    try {
+      await onDeleteModule(moduleToDelete.id);
+      setModuleToDelete(null);
+    } finally {
+      setDeletingModuleId(null);
+    }
+  };
+
+  const isDeletingSelectedModule =
+    moduleToDelete && deletingModuleId === moduleToDelete.id;
 
   return (
     <div className="h-dvh overflow-y-auto bg-aura-bg text-aura-text aura-scrollbar">
@@ -161,12 +198,19 @@ const ModuleLibrary = ({
               ).length;
 
               const isActive = module.id === activeModuleId;
+              const isDeleting = deletingModuleId === module.id;
 
               return (
-                <button
+                <div
                   key={module.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => onOpenModule(module.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      onOpenModule(module.id);
+                    }
+                  }}
                   className={`group rounded-[1.75rem] border p-5 text-left transition hover:-translate-y-1 ${
                     isActive
                       ? "border-aura-cyan/70 bg-aura-cyan/10 shadow-[0_0_45px_rgba(34,211,238,0.12)]"
@@ -178,11 +222,25 @@ const ModuleLibrary = ({
                       {getModuleIcon(index)}
                     </div>
 
-                    {isActive && (
-                      <span className="rounded-full border border-aura-cyan/40 bg-aura-cyan/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-aura-cyan">
-                        Active
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {isActive && (
+                        <span className="rounded-full border border-aura-cyan/40 bg-aura-cyan/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-aura-cyan">
+                          Active
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={(event) =>
+                          handleOpenDeleteDialog(event, module)
+                        }
+                        disabled={isDeleting}
+                        className="rounded-full border border-red-400/30 bg-red-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-200 opacity-80 transition hover:bg-red-500/20 hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+                        title="Delete module"
+                      >
+                        {isDeleting ? "Deleting" : "Delete"}
+                      </button>
+                    </div>
                   </div>
 
                   <h2 className="mt-5 line-clamp-2 text-xl font-black text-aura-text">
@@ -238,7 +296,7 @@ const ModuleLibrary = ({
                       Open →
                     </span>
                   </div>
-                </button>
+                </div>
               );
             })}
 
@@ -263,6 +321,103 @@ const ModuleLibrary = ({
           </section>
         )}
       </main>
+
+      {moduleToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-aura-bg/80 px-5 backdrop-blur-xl">
+          <div className="w-full max-w-lg overflow-hidden rounded-[2rem] border border-red-400/30 bg-aura-panel shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
+            <div className="relative border-b border-aura-border p-6">
+              <div className="pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full bg-red-500/10 blur-3xl" />
+
+              <div className="relative z-10 flex items-start gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-red-400/30 bg-red-500/10 text-2xl">
+                  ⚠️
+                </div>
+
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.24em] text-red-200">
+                    Delete Module
+                  </p>
+
+                  <h2 className="mt-2 text-2xl font-black text-aura-text">
+                    Are you sure?
+                  </h2>
+
+                  <p className="mt-2 text-sm leading-6 text-aura-muted">
+                    This action will permanently delete this module and all
+                    connected data.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="rounded-2xl border border-aura-border bg-aura-bg-soft p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
+                  Module
+                </p>
+
+                <h3 className="mt-2 line-clamp-2 text-lg font-black text-aura-text">
+                  {moduleToDelete.title}
+                </h3>
+
+                <p className="mt-2 line-clamp-2 text-sm leading-6 text-aura-muted">
+                  {moduleToDelete.subtitle}
+                </p>
+
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <div className="rounded-xl border border-aura-border bg-aura-panel px-3 py-2">
+                    <p className="text-lg font-black text-aura-text">
+                      {moduleToDelete.sources.length}
+                    </p>
+                    <p className="text-[9px] font-black uppercase tracking-wider text-aura-dim">
+                      Sources
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2">
+                    <p className="text-lg font-black text-red-100">All</p>
+                    <p className="text-[9px] font-black uppercase tracking-wider text-red-200">
+                      Chats
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2">
+                    <p className="text-lg font-black text-red-100">All</p>
+                    <p className="text-[9px] font-black uppercase tracking-wider text-red-200">
+                      Outputs
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm font-semibold leading-6 text-red-100">
+                This cannot be undone. Sources, chat history, and generated
+                study outputs connected to this module will also be removed.
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-aura-border bg-aura-bg-soft/80 px-6 py-4">
+              <button
+                type="button"
+                onClick={handleCloseDeleteDialog}
+                disabled={Boolean(isDeletingSelectedModule)}
+                className="rounded-2xl border border-aura-border bg-aura-panel px-5 py-3 text-sm font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={Boolean(isDeletingSelectedModule)}
+                className="rounded-2xl bg-red-400 px-5 py-3 text-sm font-black text-red-950 transition hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(248,113,113,0.22)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isDeletingSelectedModule ? "Deleting..." : "Delete Module"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

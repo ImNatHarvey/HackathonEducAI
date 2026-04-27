@@ -4,6 +4,7 @@ import {
   createModuleInSupabase,
   createSourceInSupabase,
   createSourcesInSupabase,
+  deleteModuleFromSupabase,
   deleteSourceFromSupabase,
   fetchModulesWithSources,
   seedInitialModulesIfEmpty,
@@ -26,6 +27,18 @@ const saveSelectedTopic = (topic: string) => {
   localStorage.setItem(SELECTED_TOPIC_STORAGE_KEY, topic);
 };
 
+const getSeededStorageKey = (userId: string) => {
+  return `study-aura-seeded-modules:${userId}`;
+};
+
+const hasSeededModules = (userId: string) => {
+  return localStorage.getItem(getSeededStorageKey(userId)) === "true";
+};
+
+const markModulesAsSeeded = (userId: string) => {
+  localStorage.setItem(getSeededStorageKey(userId), "true");
+};
+
 export const useSupabaseModules = (userId?: string) => {
   const [modules, setModules] = useState<StudyModule[]>([]);
   const [selectedTopic, setSelectedTopicState] = useState(
@@ -36,7 +49,12 @@ export const useSupabaseModules = (userId?: string) => {
 
   const setSelectedTopic = (topic: string) => {
     setSelectedTopicState(topic);
-    saveSelectedTopic(topic);
+
+    if (topic) {
+      saveSelectedTopic(topic);
+    } else {
+      localStorage.removeItem(SELECTED_TOPIC_STORAGE_KEY);
+    }
   };
 
   useEffect(() => {
@@ -53,14 +71,32 @@ export const useSupabaseModules = (userId?: string) => {
       setModuleError("");
 
       try {
-        const loadedModules = await seedInitialModulesIfEmpty({
-          userId,
-          fallbackModules: generatedLessons,
-        });
+        const existingModules = await fetchModulesWithSources(userId);
+
+        let loadedModules = existingModules;
+
+        if (existingModules.length === 0 && !hasSeededModules(userId)) {
+          loadedModules = await seedInitialModulesIfEmpty({
+            userId,
+            fallbackModules: generatedLessons,
+          });
+
+          markModulesAsSeeded(userId);
+        }
+
+        if (existingModules.length > 0) {
+          markModulesAsSeeded(userId);
+        }
 
         if (!isMounted) return;
 
         setModules(loadedModules);
+
+        if (loadedModules.length === 0) {
+          localStorage.removeItem(SELECTED_TOPIC_STORAGE_KEY);
+          setSelectedTopicState("");
+          return;
+        }
 
         const storedTopic = getStoredSelectedTopic();
         const storedTopicExists = loadedModules.some(
@@ -110,7 +146,14 @@ export const useSupabaseModules = (userId?: string) => {
   const refreshModules = async () => {
     const currentUserId = requireUserId();
     const loadedModules = await fetchModulesWithSources(currentUserId);
+
     setModules(loadedModules);
+
+    if (loadedModules.length === 0) {
+      localStorage.removeItem(SELECTED_TOPIC_STORAGE_KEY);
+      setSelectedTopicState("");
+    }
+
     return loadedModules;
   };
 
@@ -129,6 +172,8 @@ export const useSupabaseModules = (userId?: string) => {
       title: finalTitle,
       subtitle,
     });
+
+    markModulesAsSeeded(currentUserId);
 
     setModules((currentModules) => [newModule, ...currentModules]);
     setSelectedTopic(newModule.title);
@@ -301,6 +346,33 @@ export const useSupabaseModules = (userId?: string) => {
     await deleteSourceFromSupabase(sourceId);
   };
 
+  const deleteModule = async (moduleId: string) => {
+    const currentUserId = requireUserId();
+
+    const nextModules = modules.filter((module) => module.id !== moduleId);
+
+    setModules(nextModules);
+    markModulesAsSeeded(currentUserId);
+
+    if (nextModules.length > 0) {
+      const currentSelectedStillExists = nextModules.some(
+        (module) => module.title === selectedTopic,
+      );
+
+      if (!currentSelectedStillExists) {
+        setSelectedTopic(nextModules[0].title);
+      }
+    } else {
+      localStorage.removeItem(SELECTED_TOPIC_STORAGE_KEY);
+      setSelectedTopicState("");
+    }
+
+    await deleteModuleFromSupabase({
+      userId: currentUserId,
+      moduleId,
+    });
+  };
+
   return {
     modules,
     selectedTopic,
@@ -316,5 +388,6 @@ export const useSupabaseModules = (userId?: string) => {
     updateSourceSelected,
     updateAllSourcesSelected,
     deleteSource,
+    deleteModule,
   };
 };

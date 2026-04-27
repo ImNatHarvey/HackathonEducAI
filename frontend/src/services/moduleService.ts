@@ -142,6 +142,24 @@ export const updateModuleInSupabase = async (
   }
 };
 
+export const deleteModuleFromSupabase = async ({
+  userId,
+  moduleId,
+}: {
+  userId: string;
+  moduleId: string;
+}): Promise<void> => {
+  const { error } = await supabase
+    .from("study_modules")
+    .delete()
+    .eq("user_id", userId)
+    .eq("id", moduleId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+};
+
 export const createSourceInSupabase = async ({
   userId,
   moduleId,

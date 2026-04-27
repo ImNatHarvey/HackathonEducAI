@@ -63,6 +63,7 @@ function App() {
     updateSourceSelected,
     updateAllSourcesSelected,
     deleteSource,
+    deleteModule,
   } = useSupabaseModules(user?.id);
 
   const setView = (nextView: AppView) => {
@@ -215,6 +216,7 @@ function App() {
           activeModuleId={activeModule?.id}
           onOpenModule={handleOpenModule}
           onCreateModule={() => setIsCreateModuleOpen(true)}
+          onDeleteModule={deleteModule}
           onBackToDashboard={() => setView("dashboard")}
         />
       )}
