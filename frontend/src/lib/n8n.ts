@@ -1,13 +1,37 @@
+export type N8nSelectedSource = {
+  id: string;
+  title: string;
+  type: "text" | "youtube" | "website" | "pdf" | "image";
+  value: string;
+  summary?: string;
+};
+
 export type N8nChatPayload = {
   message: string;
   topic: string;
+  moduleId?: string;
+  selectedSources?: N8nSelectedSource[];
   userId?: string;
 };
 
 export type N8nUploadPayload = {
-  sourceType: "pdf" | "image" | "text" | "youtube";
+  sourceType: "text" | "youtube" | "website" | "pdf" | "image";
   value: string;
   title: string;
+  moduleId?: string;
+  userId?: string;
+};
+
+export type N8nSummarizeSourcePayload = {
+  moduleId?: string;
+  source: N8nSelectedSource;
+  userId?: string;
+};
+
+export type N8nWebSearchPayload = {
+  query: string;
+  moduleId?: string;
+  maxResults: number;
   userId?: string;
 };
 
@@ -18,6 +42,7 @@ export type N8nChatResponse = {
 
 export type N8nUploadResponse = {
   success: boolean;
+  sourceSummary?: string;
   lessonId?: string;
   message?: string;
   lesson?: {
@@ -27,10 +52,33 @@ export type N8nUploadResponse = {
   };
 };
 
+export type N8nSummarizeSourceResponse = {
+  success: boolean;
+  summary: string;
+  keyPoints?: string[];
+  message?: string;
+  fallback?: boolean;
+};
+
+export type WebSearchResult = {
+  title: string;
+  url: string;
+  snippet: string;
+};
+
+export type N8nWebSearchResponse = {
+  success: boolean;
+  results: WebSearchResult[];
+  message?: string;
+  fallback?: boolean;
+};
+
 export type QuizDifficulty = "easy" | "medium" | "hard";
 
 export type N8nQuizPayload = {
   topic: string;
+  moduleId?: string;
+  selectedSources?: N8nSelectedSource[];
   difficulty: QuizDifficulty;
   questionCount: number;
   userId?: string;
@@ -57,6 +105,8 @@ export type FlashcardType = "question" | "fill_blank";
 
 export type N8nFlashcardsPayload = {
   topic: string;
+  moduleId?: string;
+  selectedSources?: N8nSelectedSource[];
   difficulty: FlashcardDifficulty;
   cardCount: number;
   userId?: string;
@@ -88,6 +138,8 @@ export type StudyTableType =
 
 export type N8nTablesPayload = {
   topic: string;
+  moduleId?: string;
+  selectedSources?: N8nSelectedSource[];
   difficulty: TableDifficulty;
   tableType: StudyTableType;
   rowCount: number;
@@ -121,6 +173,8 @@ export type MindMapBranch = {
 
 export type N8nMindMapPayload = {
   topic: string;
+  moduleId?: string;
+  selectedSources?: N8nSelectedSource[];
   difficulty: MindMapDifficulty;
   branchCount: number;
   userId?: string;
@@ -149,6 +203,8 @@ export type StudySlide = {
 
 export type N8nSlidesPayload = {
   topic: string;
+  moduleId?: string;
+  selectedSources?: N8nSelectedSource[];
   difficulty: SlidesDifficulty;
   slideCount: number;
   userId?: string;
@@ -167,16 +223,18 @@ export type AudioOverviewStyle = "calm" | "energetic" | "podcast";
 
 export type AudioOverviewLength = "short" | "standard" | "deep";
 
-export type N8nAudioPayload = {
-  topic: string;
-  style: AudioOverviewStyle;
-  length: AudioOverviewLength;
-  userId?: string;
-};
-
 export type AudioSegment = {
   speaker: string;
   text: string;
+};
+
+export type N8nAudioPayload = {
+  topic: string;
+  moduleId?: string;
+  selectedSources?: N8nSelectedSource[];
+  style: AudioOverviewStyle;
+  length: AudioOverviewLength;
+  userId?: string;
 };
 
 export type N8nAudioResponse = {
@@ -233,6 +291,22 @@ export const uploadSourceToN8n = async (
   const url = getRequiredEnv("VITE_N8N_UPLOAD_WEBHOOK_URL");
 
   return postToWebhook<N8nUploadResponse>(url, payload);
+};
+
+export const summarizeSourceWithN8n = async (
+  payload: N8nSummarizeSourcePayload,
+): Promise<N8nSummarizeSourceResponse> => {
+  const url = getRequiredEnv("VITE_N8N_SOURCE_SUMMARY_WEBHOOK_URL");
+
+  return postToWebhook<N8nSummarizeSourceResponse>(url, payload);
+};
+
+export const searchWebSourcesWithN8n = async (
+  payload: N8nWebSearchPayload,
+): Promise<N8nWebSearchResponse> => {
+  const url = getRequiredEnv("VITE_N8N_WEB_SEARCH_WEBHOOK_URL");
+
+  return postToWebhook<N8nWebSearchResponse>(url, payload);
 };
 
 export const generateQuizWithN8n = async (

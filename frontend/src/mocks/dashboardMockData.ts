@@ -1,57 +1,125 @@
 import type {
-  StudyModule,
+  GeneratedLesson,
   StudioTool,
 } from "../components/dashboard/dashboardTypes";
 
-export const generatedLessons: StudyModule[] = [];
+const now = new Date().toISOString();
+
+export const generatedLessons: GeneratedLesson[] = [
+  {
+    id: "module-neural-networks",
+    title: "Neural Networks",
+    subtitle: "Deep learning fundamentals, layers, activation, and training.",
+    progress: 68,
+    createdAt: now,
+    updatedAt: now,
+    sources: [
+      {
+        id: "source-nn-notes",
+        title: "Neural Network Class Notes",
+        type: "text",
+        value:
+          "Neural networks are machine learning models inspired by the structure of biological neurons. They use layers of nodes, weights, biases, activation functions, and optimization methods to learn patterns from data.",
+        selected: true,
+        summary:
+          "Covers core neural network ideas: layers, weights, biases, activation functions, forward pass, and training.",
+        createdAt: now,
+      },
+      {
+        id: "source-nn-video",
+        title: "Intro to Neural Networks Video",
+        type: "youtube",
+        value: "https://www.youtube.com/watch?v=aircAruvnKk",
+        selected: true,
+        summary:
+          "A visual explanation of how neural networks learn through examples and parameter updates.",
+        createdAt: now,
+      },
+      {
+        id: "source-nn-article",
+        title: "Backpropagation Article",
+        type: "website",
+        value: "https://example.com/backpropagation-guide",
+        selected: false,
+        summary:
+          "Explains how backpropagation computes gradients and updates model weights during training.",
+        createdAt: now,
+      },
+    ],
+  },
+  {
+    id: "module-photosynthesis",
+    title: "Photosynthesis",
+    subtitle: "Light reactions, Calvin cycle, chlorophyll, and glucose production.",
+    progress: 42,
+    createdAt: now,
+    updatedAt: now,
+    sources: [
+      {
+        id: "source-photo-note",
+        title: "Photosynthesis Reviewer",
+        type: "text",
+        value:
+          "Photosynthesis is the process where plants convert light energy, carbon dioxide, and water into glucose and oxygen. It happens mainly in chloroplasts.",
+        selected: true,
+        summary:
+          "Summarizes the overall photosynthesis process and main reactants/products.",
+        createdAt: now,
+      },
+    ],
+  },
+  {
+    id: "module-research-methods",
+    title: "Research Methods",
+    subtitle: "Variables, sampling, methodology, validity, and research design.",
+    progress: 24,
+    createdAt: now,
+    updatedAt: now,
+    sources: [],
+  },
+];
 
 export const studioTools: StudioTool[] = [
   {
     name: "Audio",
-    label: "Listen",
+    label: "Audio Overview",
     icon: "🎧",
-    color:
-      "from-aura-cyan/25 to-aura-blue/10 border-aura-cyan/30 hover:text-aura-cyan",
-    description: "Text to speech overview",
+    color: "from-aura-primary to-aura-cyan",
+    description: "Generate a podcast-style explanation from selected sources.",
   },
   {
     name: "Slides",
-    label: "Present",
+    label: "Slides",
     icon: "🖥️",
-    color:
-      "from-aura-primary/25 to-aura-primary-soft/10 border-aura-primary-soft/30 hover:text-aura-primary-soft",
-    description: "Generate presentation",
+    color: "from-aura-cyan to-aura-gold",
+    description: "Turn selected context into a presentation outline.",
   },
   {
     name: "Mind Map",
-    label: "Connect",
+    label: "Mind Map",
     icon: "🧠",
-    color:
-      "from-aura-pink/25 to-aura-primary/10 border-aura-pink/30 hover:text-aura-pink",
-    description: "Visual concept map",
+    color: "from-aura-primary to-fuchsia-400",
+    description: "Map key ideas and relationships visually.",
   },
   {
     name: "Cards",
-    label: "Review",
+    label: "Flashcards",
     icon: "🃏",
-    color:
-      "from-aura-green/25 to-aura-cyan/10 border-aura-green/30 hover:text-aura-green",
-    description: "Flashcards",
+    color: "from-aura-gold to-orange-400",
+    description: "Create active recall cards from your module.",
   },
   {
     name: "Tables",
-    label: "Organize",
+    label: "Tables",
     icon: "📊",
-    color:
-      "from-aura-orange/25 to-aura-gold/10 border-aura-orange/30 hover:text-aura-orange",
-    description: "Illustration tables",
+    color: "from-emerald-400 to-aura-cyan",
+    description: "Compare concepts, terms, steps, or causes and effects.",
   },
   {
     name: "Quiz",
-    label: "Test",
-    icon: "⚡",
-    color:
-      "from-aura-gold/25 to-aura-orange/10 border-aura-gold/30 hover:text-aura-gold",
-    description: "Practice questions",
+    label: "Quiz",
+    icon: "✅",
+    color: "from-aura-cyan to-blue-400",
+    description: "Generate randomized practice questions.",
   },
 ];

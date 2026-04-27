@@ -10,6 +10,7 @@ type ChatMessage = {
 
 type ChatPanelProps = {
   topic: string;
+  selectedSourceCount: number;
   inputValue: string;
   onInputChange: (value: string) => void;
   messages: ChatMessage[];
@@ -18,8 +19,16 @@ type ChatPanelProps = {
   onSend: () => void;
 };
 
+const promptSuggestions = [
+  "Summarize the selected sources",
+  "Explain this module like I am a beginner",
+  "Create a reviewer from my sources",
+  "What are the most important concepts?",
+];
+
 const ChatPanel = ({
   topic,
+  selectedSourceCount,
   inputValue,
   onInputChange,
   messages,
@@ -27,83 +36,139 @@ const ChatPanel = ({
   chatError,
   onSend,
 }: ChatPanelProps) => {
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       onSend();
     }
   };
 
+  const handleSuggestionClick = (suggestion: string) => {
+    onInputChange(suggestion);
+  };
+
+  const hasMessages = messages.length > 0;
+
   return (
     <main className="flex min-h-0 min-w-0 flex-col bg-aura-bg">
-      <section className="shrink-0 border-b border-aura-border bg-aura-bg-soft/70 px-6 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-aura-dim">
-              Current topic
+      <section className="shrink-0 border-b border-aura-border bg-aura-bg/80 px-6 py-4 backdrop-blur-xl">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-aura-cyan">
+              Current Module
             </p>
-            <h2 className="mt-1 text-sm font-black text-aura-text">{topic}</h2>
+
+            <h1 className="mt-1 truncate text-2xl font-black tracking-tight text-aura-text">
+              {topic}
+            </h1>
+
+            <p className="mt-1 text-sm leading-6 text-aura-muted">
+              Chat with Aura using the checked sources in the left panel.
+            </p>
           </div>
 
-          <div className="rounded-full border border-aura-gold/30 bg-aura-gold/10 px-4 py-2 text-xs font-black text-aura-gold">
-            🏆 {currentUser.title}
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="hidden rounded-2xl border border-aura-gold/30 bg-aura-gold/10 px-4 py-3 text-right sm:block">
+              <p className="text-xs font-black uppercase tracking-wider text-aura-gold">
+                Title
+              </p>
+              <p className="mt-1 text-sm font-black text-aura-text">
+                {currentUser.title}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-aura-cyan/30 bg-aura-cyan/10 px-4 py-3 text-right">
+              <p className="text-2xl font-black text-aura-text">
+                {selectedSourceCount}
+              </p>
+              <p className="text-[10px] font-black uppercase tracking-wider text-aura-cyan">
+                Active Sources
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="aura-scrollbar min-h-0 flex-1 overflow-y-auto px-8 py-5">
+      <section className="aura-scrollbar min-h-0 flex-1 overflow-y-auto px-6 py-6">
         <div className="mx-auto max-w-4xl space-y-5">
-          <div className="rounded-[1.75rem] border border-aura-border bg-gradient-to-br from-aura-panel to-aura-bg-soft p-6 shadow-aura-soft">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-aura-primary to-aura-cyan text-xl">
-                ✨
+          {!hasMessages && (
+            <>
+              <div className="overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel shadow-aura-soft">
+                <div className="relative p-8">
+                  <div className="pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full bg-aura-cyan/10 blur-3xl" />
+                  <div className="pointer-events-none absolute bottom-0 left-0 h-40 w-40 rounded-full bg-aura-primary/10 blur-3xl" />
+
+                  <div className="relative z-10 flex items-start gap-5">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.5rem] bg-gradient-to-br from-aura-primary via-aura-cyan to-aura-gold text-3xl shadow-[0_0_40px_rgba(34,211,238,0.22)]">
+                      ✦
+                    </div>
+
+                    <div className="min-w-0">
+                      <h2 className="text-2xl font-black tracking-tight text-aura-text">
+                        Ready to study this module?
+                      </h2>
+
+                      <p className="mt-3 max-w-2xl text-sm leading-7 text-aura-muted">
+                        Aura will prioritize your selected sources. Add more
+                        sources from the left panel, uncheck unrelated sources,
+                        then ask questions or generate study materials.
+                      </p>
+
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        <span className="rounded-full border border-aura-border bg-aura-bg-soft px-3 py-2 text-xs font-bold text-aura-muted">
+                          Module: {topic}
+                        </span>
+
+                        <span className="rounded-full border border-aura-cyan/30 bg-aura-cyan/10 px-3 py-2 text-xs font-bold text-aura-cyan">
+                          {selectedSourceCount} source
+                          {selectedSourceCount === 1 ? "" : "s"} selected
+                        </span>
+
+                        <span className="rounded-full border border-aura-gold/30 bg-aura-gold/10 px-3 py-2 text-xs font-bold text-aura-gold">
+                          n8n AI Agent Ready
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <h3 className="text-lg font-black text-aura-text">
-                  Hi, I’m Study Aura.
-                </h3>
-
-                <p className="mt-2 text-base leading-7 text-aura-muted">
-                  Ask questions, paste a YouTube link, request a quiz, create
-                  flashcards, generate mind maps, or turn text into audio for{" "}
-                  <span className="font-bold text-aura-cyan">{topic}</span>.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-[1.75rem] border border-aura-border bg-aura-panel/70 p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-aura-dim">
-                  Video enrichment
-                </p>
-                <h3 className="mt-1 text-base font-black text-aura-text">
-                  YouTube learning space
-                </h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {promptSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="rounded-[1.25rem] border border-aura-border bg-aura-panel/80 p-4 text-left text-sm font-bold leading-6 text-aura-muted transition hover:-translate-y-0.5 hover:border-aura-cyan/60 hover:bg-aura-cyan/5 hover:text-aura-text"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
               </div>
 
-              <span className="rounded-full bg-aura-cyan/10 px-3 py-1 text-xs font-bold text-aura-cyan">
-                Ready for links
-              </span>
-            </div>
+              <div className="rounded-[1.5rem] border border-dashed border-aura-border bg-aura-bg-soft/60 p-5">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-aura-cyan/10 text-2xl">
+                    📚
+                  </div>
 
-            <div className="flex min-h-[135px] items-center justify-center rounded-2xl border border-dashed border-aura-border bg-aura-bg-soft text-center">
-              <div>
-                <div className="text-4xl">▶️</div>
-                <p className="mt-3 text-sm font-bold text-aura-text">
-                  Paste a YouTube video during chat
-                </p>
-                <p className="mt-1 text-xs text-aura-muted">
-                  Study Aura can use it as extra learning context.
-                </p>
+                  <div>
+                    <h3 className="text-base font-black text-aura-text">
+                      Source-scoped learning
+                    </h3>
+
+                    <p className="mt-2 text-sm leading-6 text-aura-muted">
+                      This workspace now works like a notebook: modules contain
+                      sources, and only checked sources become AI context.
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </>
+          )}
 
-          {messages.length > 0 && (
-            <div className="space-y-3">
+          {hasMessages && (
+            <div className="space-y-4">
               {messages.map((message) => (
                 <div
                   key={message.id}
@@ -112,16 +177,17 @@ const ChatPanel = ({
                   }`}
                 >
                   <div
-                    className={`max-w-[78%] rounded-2xl border px-5 py-4 text-sm leading-6 shadow-aura-soft ${
+                    className={`max-w-[82%] rounded-[1.5rem] border px-5 py-4 text-sm leading-7 shadow-aura-soft ${
                       message.role === "user"
-                        ? "border-aura-cyan/30 bg-aura-cyan/10 text-aura-text"
+                        ? "border-aura-cyan/40 bg-aura-cyan/10 text-aura-text"
                         : "border-aura-border bg-aura-panel text-aura-muted"
                     }`}
                   >
-                    <p className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-aura-dim">
+                    <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-aura-dim">
                       {message.role === "user" ? "You" : "Study Aura"}
                     </p>
-                    <p>{message.content}</p>
+
+                    <p className="whitespace-pre-wrap">{message.content}</p>
                   </div>
                 </div>
               ))}
@@ -130,8 +196,8 @@ const ChatPanel = ({
 
           {isChatLoading && (
             <LoadingState
-              title="Study Aura is thinking..."
-              description="Your question is being prepared for the AI workflow."
+              title="Study Aura is reading your context..."
+              description="Your message and selected sources are being sent to the n8n AI Agent."
             />
           )}
 
@@ -146,24 +212,35 @@ const ChatPanel = ({
         </div>
       </section>
 
-      <footer className="shrink-0 border-t border-aura-border bg-aura-bg-soft/95 px-8 py-3">
-        <div className="mx-auto flex max-w-4xl items-center gap-3 rounded-[1.5rem] border border-aura-border bg-aura-panel p-2 shadow-aura-soft">
-          <input
-            value={inputValue}
-            onChange={(event) => onInputChange(event.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask Study Aura, paste a YouTube link, or request a quiz..."
-            className="min-w-0 flex-1 bg-transparent px-4 py-3 text-sm text-aura-text outline-none placeholder:text-aura-dim"
-          />
+      <footer className="shrink-0 border-t border-aura-border bg-aura-panel/90 px-6 py-4 backdrop-blur-xl">
+        <div className="mx-auto max-w-4xl">
+          <div className="flex items-end gap-3 rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-3 shadow-aura-soft">
+            <textarea
+              value={inputValue}
+              onChange={(event) => onInputChange(event.target.value)}
+              onKeyDown={handleKeyDown}
+              rows={1}
+              placeholder={
+                selectedSourceCount > 0
+                  ? "Ask about your selected sources..."
+                  : "Ask about the module, or add/check sources for better answers..."
+              }
+              className="aura-scrollbar min-h-11 max-h-32 flex-1 resize-none bg-transparent px-3 py-3 text-sm font-medium leading-6 text-aura-text outline-none placeholder:text-aura-dim"
+            />
 
-          <button
-            type="button"
-            onClick={onSend}
-            disabled={!inputValue.trim() || isChatLoading}
-            className="rounded-2xl bg-gradient-to-r from-aura-primary to-aura-cyan px-5 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 disabled:opacity-40"
-          >
-            {isChatLoading ? "Thinking..." : "Send"}
-          </button>
+            <button
+              type="button"
+              onClick={onSend}
+              disabled={!inputValue.trim() || isChatLoading}
+              className="rounded-2xl bg-gradient-to-r from-aura-primary to-aura-cyan px-5 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:shadow-[0_16px_38px_rgba(34,211,238,0.2)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {isChatLoading ? "Thinking..." : "Send"}
+            </button>
+          </div>
+
+          <p className="mt-2 text-center text-[11px] font-semibold text-aura-dim">
+            Shift + Enter for a new line. Enter to send.
+          </p>
         </div>
       </footer>
     </main>

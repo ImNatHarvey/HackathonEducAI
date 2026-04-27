@@ -6,7 +6,6 @@ import SourcesPanel from "../components/dashboard/SourcesPanel";
 import ChatPanel from "../components/dashboard/ChatPanel";
 import AIStudioPanel from "../components/dashboard/AIStudioPanel";
 import AddSourceModal from "../components/dashboard/AddSourceModal";
-import { generatedLessons } from "../mocks/dashboardMockData";
 import { useDashboardActions } from "../hooks/useDashboardActions";
 import type {
   AIToolName,
@@ -17,68 +16,132 @@ import type {
 
 interface DashboardProps {
   topic: string;
+  modules: StudyModule[];
+  onModulesChange: (modules: StudyModule[]) => void;
   onNavigate: (topic: string) => void;
+  onOpenLibrary: () => void;
+  onOpenCreateModule: () => void;
   onLogout: () => void;
 }
 
-const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
+const Dashboard = ({
+  topic,
+  modules,
+  onModulesChange,
+  onOpenLibrary,
+  onOpenCreateModule,
+  onLogout,
+}: DashboardProps) => {
   const [inputValue, setInputValue] = useState("");
-  const [search, setSearch] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeTool, setActiveTool] = useState<AIToolName | null>(null);
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
-  const [modules, setModules] = useState<StudyModule[]>(generatedLessons);
 
   const currentModule = useMemo(() => {
-    return modules.find(
+    const matchedModule = modules.find(
       (module) => module.title.toLowerCase() === topic.toLowerCase(),
     );
+
+    return matchedModule ?? modules[0];
   }, [modules, topic]);
 
   const currentSources = currentModule?.sources ?? [];
 
-  const upsertModule = (module: StudyModule) => {
-    setModules((currentModules) => {
-      const exists = currentModules.some(
-        (currentModule) =>
-          currentModule.id === module.id ||
-          currentModule.title.toLowerCase() === module.title.toLowerCase(),
-      );
+  const selectedSources = useMemo(() => {
+    return currentSources.filter((source) => source.selected);
+  }, [currentSources]);
 
-      if (!exists) return [module, ...currentModules];
+  const selectedSourceCount = selectedSources.length;
 
-      return currentModules.map((currentModule) =>
-        currentModule.id === module.id ||
-        currentModule.title.toLowerCase() === module.title.toLowerCase()
-          ? module
-          : currentModule,
-      );
-    });
-  };
+  const updateCurrentModule = (
+    updater: (module: StudyModule) => StudyModule,
+  ) => {
+    if (!currentModule) return;
 
-  const handleSourceAdded = (module: StudyModule, source: StudySource) => {
-    const existingModule = modules.find(
-      (currentModule) =>
-        currentModule.id === module.id ||
-        currentModule.title.toLowerCase() === module.title.toLowerCase(),
+    const nextModules = modules.map((module) =>
+      module.id === currentModule.id ? updater(module) : module,
     );
 
-    const targetModule = existingModule ?? module;
+    onModulesChange(nextModules);
+  };
 
-    const updatedModule: StudyModule = {
-      ...targetModule,
-      progress: Math.max(targetModule.progress, 5),
+  const handleSourceAdded = (source: StudySource) => {
+    updateCurrentModule((module) => ({
+      ...module,
+      progress: Math.max(module.progress, 10),
+      updatedAt: new Date().toISOString(),
       sources: [
         source,
-        ...targetModule.sources.filter(
+        ...module.sources.filter(
           (currentSource) => currentSource.id !== source.id,
         ),
       ],
-    };
+    }));
 
-    upsertModule(updatedModule);
-    onNavigate(updatedModule.title);
     setIsAddSourceOpen(false);
+  };
+
+  const handleSourcesAdded = (sources: StudySource[]) => {
+    updateCurrentModule((module) => {
+      const incomingIds = new Set(sources.map((source) => source.id));
+
+      return {
+        ...module,
+        progress: Math.max(module.progress, 10),
+        updatedAt: new Date().toISOString(),
+        sources: [
+          ...sources,
+          ...module.sources.filter((source) => !incomingIds.has(source.id)),
+        ],
+      };
+    });
+
+    setIsAddSourceOpen(false);
+  };
+
+  const handleToggleSource = (sourceId: string) => {
+    updateCurrentModule((module) => ({
+      ...module,
+      updatedAt: new Date().toISOString(),
+      sources: module.sources.map((source) =>
+        source.id === sourceId
+          ? {
+              ...source,
+              selected: !source.selected,
+            }
+          : source,
+      ),
+    }));
+  };
+
+  const handleSelectAllSources = () => {
+    updateCurrentModule((module) => ({
+      ...module,
+      updatedAt: new Date().toISOString(),
+      sources: module.sources.map((source) => ({
+        ...source,
+        selected: true,
+      })),
+    }));
+  };
+
+  const handleClearSelectedSources = () => {
+    updateCurrentModule((module) => ({
+      ...module,
+      updatedAt: new Date().toISOString(),
+      sources: module.sources.map((source) => ({
+        ...source,
+        selected: false,
+      })),
+    }));
+  };
+
+  const handleDeleteSource = (sourceId: string) => {
+    updateCurrentModule((module) => ({
+      ...module,
+      updatedAt: new Date().toISOString(),
+      sources: module.sources.filter((source) => source.id !== sourceId),
+    }));
   };
 
   const {
@@ -88,49 +151,52 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
     uploadError,
     isUploadingSource,
     handleUploadSource,
+    handleUploadSources,
     handleSendMessage,
   } = useDashboardActions({
     inputValue,
-    topic,
+    topic: currentModule?.title ?? topic,
     activeModule: currentModule,
+    selectedSources,
     onInputClear: () => setInputValue(""),
     onSourceAdded: handleSourceAdded,
+    onSourcesAdded: handleSourcesAdded,
   });
-
-  const filteredModules = useMemo(() => {
-    return modules.filter((module) =>
-      `${module.title} ${module.subtitle}`
-        .toLowerCase()
-        .includes(search.toLowerCase()),
-    );
-  }, [modules, search]);
 
   const handleSubmitSource = (payload: SourceUploadPayload) => {
     handleUploadSource(payload);
+  };
+
+  const handleSubmitSources = (payloads: SourceUploadPayload[]) => {
+    handleUploadSources(payloads);
   };
 
   return (
     <div className="flex h-dvh max-h-dvh w-full flex-col overflow-hidden bg-aura-bg text-aura-text">
       <DashboardNavbar
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenLibrary={onOpenLibrary}
+        onOpenCreateModule={onOpenCreateModule}
         onLogout={onLogout}
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-[20%_60%_20%] overflow-hidden">
         <SourcesPanel
-          search={search}
-          onSearchChange={setSearch}
-          lessons={filteredModules}
+          moduleTitle={currentModule?.title ?? topic}
           sources={currentSources}
-          currentTopic={topic}
-          onNavigate={onNavigate}
+          selectedSourceCount={selectedSourceCount}
           isUploadingSource={isUploadingSource}
           uploadError={uploadError}
           onUpload={() => setIsAddSourceOpen(true)}
+          onToggleSource={handleToggleSource}
+          onSelectAllSources={handleSelectAllSources}
+          onClearSelectedSources={handleClearSelectedSources}
+          onDeleteSource={handleDeleteSource}
         />
 
         <ChatPanel
-          topic={topic}
+          topic={currentModule?.title ?? topic}
+          selectedSourceCount={selectedSourceCount}
           inputValue={inputValue}
           onInputChange={setInputValue}
           messages={messages}
@@ -139,7 +205,10 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
           onSend={handleSendMessage}
         />
 
-        <AIStudioPanel onOpenTool={setActiveTool} />
+        <AIStudioPanel
+          selectedSourceCount={selectedSourceCount}
+          onOpenTool={setActiveTool}
+        />
       </div>
 
       <SettingsModal
@@ -149,7 +218,9 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
 
       <AIToolModal
         activeTool={activeTool}
-        topic={topic}
+        topic={currentModule?.title ?? topic}
+        moduleId={currentModule?.id}
+        selectedSources={selectedSources}
         onClose={() => setActiveTool(null)}
       />
 
@@ -157,8 +228,10 @@ const Dashboard = ({ topic, onNavigate, onLogout }: DashboardProps) => {
         isOpen={isAddSourceOpen}
         isUploading={isUploadingSource}
         uploadError={uploadError}
+        moduleId={currentModule?.id}
         onClose={() => setIsAddSourceOpen(false)}
         onSubmit={handleSubmitSource}
+        onSubmitMany={handleSubmitSources}
       />
     </div>
   );
