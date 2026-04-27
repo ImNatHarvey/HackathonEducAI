@@ -5,11 +5,9 @@ import type {
   StudySource,
 } from "../components/dashboard/dashboardTypes";
 
-export const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
-
 type StudyModuleRow = {
   id: string;
-  user_id: string | null;
+  user_id: string;
   title: string;
   subtitle: string;
   progress: number;
@@ -20,7 +18,7 @@ type StudyModuleRow = {
 type StudySourceRow = {
   id: string;
   module_id: string;
-  user_id: string | null;
+  user_id: string;
   title: string;
   type: SourceType;
   value: string;
@@ -57,11 +55,13 @@ const mapModuleRowToModule = (
   };
 };
 
-export const fetchModulesWithSources = async (): Promise<StudyModule[]> => {
+export const fetchModulesWithSources = async (
+  userId: string,
+): Promise<StudyModule[]> => {
   const { data: modulesData, error: modulesError } = await supabase
     .from("study_modules")
     .select("*")
-    .eq("user_id", DEMO_USER_ID)
+    .eq("user_id", userId)
     .order("updated_at", { ascending: false });
 
   if (modulesError) {
@@ -79,6 +79,7 @@ export const fetchModulesWithSources = async (): Promise<StudyModule[]> => {
   const { data: sourcesData, error: sourcesError } = await supabase
     .from("study_sources")
     .select("*")
+    .eq("user_id", userId)
     .in("module_id", moduleIds)
     .order("created_at", { ascending: false });
 
@@ -98,16 +99,18 @@ export const fetchModulesWithSources = async (): Promise<StudyModule[]> => {
 };
 
 export const createModuleInSupabase = async ({
+  userId,
   title,
   subtitle,
 }: {
+  userId: string;
   title: string;
   subtitle: string;
 }): Promise<StudyModule> => {
   const { data, error } = await supabase
     .from("study_modules")
     .insert({
-      user_id: DEMO_USER_ID,
+      user_id: userId,
       title,
       subtitle,
       progress: 0,
@@ -140,9 +143,11 @@ export const updateModuleInSupabase = async (
 };
 
 export const createSourceInSupabase = async ({
+  userId,
   moduleId,
   source,
 }: {
+  userId: string;
   moduleId: string;
   source: StudySource;
 }): Promise<StudySource> => {
@@ -150,7 +155,7 @@ export const createSourceInSupabase = async ({
     .from("study_sources")
     .insert({
       module_id: moduleId,
-      user_id: DEMO_USER_ID,
+      user_id: userId,
       title: source.title,
       type: source.type,
       value: source.value,
@@ -168,9 +173,11 @@ export const createSourceInSupabase = async ({
 };
 
 export const createSourcesInSupabase = async ({
+  userId,
   moduleId,
   sources,
 }: {
+  userId: string;
   moduleId: string;
   sources: StudySource[];
 }): Promise<StudySource[]> => {
@@ -181,7 +188,7 @@ export const createSourcesInSupabase = async ({
     .insert(
       sources.map((source) => ({
         module_id: moduleId,
-        user_id: DEMO_USER_ID,
+        user_id: userId,
         title: source.title,
         type: source.type,
         value: source.value,
@@ -245,17 +252,21 @@ export const updateAllSourcesSelectedInSupabase = async ({
   }
 };
 
-export const seedInitialModulesIfEmpty = async (
-  fallbackModules: StudyModule[],
-): Promise<StudyModule[]> => {
-  const existingModules = await fetchModulesWithSources();
+export const seedInitialModulesIfEmpty = async ({
+  userId,
+  fallbackModules,
+}: {
+  userId: string;
+  fallbackModules: StudyModule[];
+}): Promise<StudyModule[]> => {
+  const existingModules = await fetchModulesWithSources(userId);
 
   if (existingModules.length > 0) {
     return existingModules;
   }
 
   const modulesToInsert = fallbackModules.map((module) => ({
-    user_id: DEMO_USER_ID,
+    user_id: userId,
     title: module.title,
     subtitle: module.subtitle,
     progress: module.progress,
@@ -283,7 +294,7 @@ export const seedInitialModulesIfEmpty = async (
 
     return originalModule.sources.map((source) => ({
       module_id: insertedModule.id,
-      user_id: DEMO_USER_ID,
+      user_id: userId,
       title: source.title,
       type: source.type,
       value: source.value,
@@ -302,5 +313,5 @@ export const seedInitialModulesIfEmpty = async (
     }
   }
 
-  return fetchModulesWithSources();
+  return fetchModulesWithSources(userId);
 };

@@ -26,12 +26,12 @@ const saveSelectedTopic = (topic: string) => {
   localStorage.setItem(SELECTED_TOPIC_STORAGE_KEY, topic);
 };
 
-export const useSupabaseModules = () => {
+export const useSupabaseModules = (userId?: string) => {
   const [modules, setModules] = useState<StudyModule[]>([]);
   const [selectedTopic, setSelectedTopicState] = useState(
     getStoredSelectedTopic() ?? generatedLessons[0]?.title ?? "Neural Networks",
   );
-  const [isLoadingModules, setIsLoadingModules] = useState(true);
+  const [isLoadingModules, setIsLoadingModules] = useState(false);
   const [moduleError, setModuleError] = useState("");
 
   const setSelectedTopic = (topic: string) => {
@@ -43,11 +43,20 @@ export const useSupabaseModules = () => {
     let isMounted = true;
 
     const loadModules = async () => {
+      if (!userId) {
+        setModules([]);
+        setIsLoadingModules(false);
+        return;
+      }
+
       setIsLoadingModules(true);
       setModuleError("");
 
       try {
-        const loadedModules = await seedInitialModulesIfEmpty(generatedLessons);
+        const loadedModules = await seedInitialModulesIfEmpty({
+          userId,
+          fallbackModules: generatedLessons,
+        });
 
         if (!isMounted) return;
 
@@ -75,8 +84,7 @@ export const useSupabaseModules = () => {
             : "Failed to load Supabase modules.",
         );
 
-        setModules(generatedLessons);
-        setSelectedTopic(generatedLessons[0]?.title ?? "Neural Networks");
+        setModules([]);
       } finally {
         if (isMounted) {
           setIsLoadingModules(false);
@@ -89,15 +97,26 @@ export const useSupabaseModules = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [userId]);
+
+  const requireUserId = () => {
+    if (!userId) {
+      throw new Error("You must be logged in to use modules.");
+    }
+
+    return userId;
+  };
 
   const refreshModules = async () => {
-    const loadedModules = await fetchModulesWithSources();
+    const currentUserId = requireUserId();
+    const loadedModules = await fetchModulesWithSources(currentUserId);
     setModules(loadedModules);
     return loadedModules;
   };
 
   const createModule = async (title: string, subtitle: string) => {
+    const currentUserId = requireUserId();
+
     const existingTitleCount = modules.filter(
       (module) => module.title.toLowerCase() === title.toLowerCase(),
     ).length;
@@ -106,6 +125,7 @@ export const useSupabaseModules = () => {
       existingTitleCount > 0 ? `${title} ${existingTitleCount + 1}` : title;
 
     const newModule = await createModuleInSupabase({
+      userId: currentUserId,
       title: finalTitle,
       subtitle,
     });
@@ -137,7 +157,10 @@ export const useSupabaseModules = () => {
     moduleId: string;
     source: StudySource;
   }) => {
+    const currentUserId = requireUserId();
+
     const savedSource = await createSourceInSupabase({
+      userId: currentUserId,
       moduleId,
       source,
     });
@@ -170,7 +193,10 @@ export const useSupabaseModules = () => {
     moduleId: string;
     sources: StudySource[];
   }) => {
+    const currentUserId = requireUserId();
+
     const savedSources = await createSourcesInSupabase({
+      userId: currentUserId,
       moduleId,
       sources,
     });

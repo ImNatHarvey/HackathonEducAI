@@ -134,23 +134,25 @@ export const ensureAuthProfile = async ({
   email: string;
   displayName: string;
 }): Promise<AuthProfile> => {
-  const existingProfile = await fetchAuthProfile(userId);
-
-  if (existingProfile) {
-    return existingProfile;
-  }
+  const safeDisplayName =
+    displayName || email.split("@")[0] || "Study Aura User";
 
   const { data, error } = await supabase
     .from("profiles")
-    .insert({
-      id: userId,
-      display_name: displayName || email.split("@")[0] || "Study Aura User",
-      email,
-      title: "Aura Farmer",
-      level: 1,
-      xp: 240,
-      xp_to_next_level: 1000,
-    })
+    .upsert(
+      {
+        id: userId,
+        display_name: safeDisplayName,
+        email,
+        title: "Aura Farmer",
+        level: 1,
+        xp: 240,
+        xp_to_next_level: 1000,
+      },
+      {
+        onConflict: "id",
+      },
+    )
     .select("*")
     .single();
 

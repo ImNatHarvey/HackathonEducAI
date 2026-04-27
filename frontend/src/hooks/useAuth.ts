@@ -13,31 +13,38 @@ import {
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
+const getFriendlyAuthError = (message: string) => {
+  const normalizedMessage = message.toLowerCase();
+
+  if (
+    normalizedMessage.includes("email not confirmed") ||
+    normalizedMessage.includes("not confirmed")
+  ) {
+    return "Please verify your email first before logging in.";
+  }
+
+  if (
+    normalizedMessage.includes("invalid login credentials") ||
+    normalizedMessage.includes("invalid credentials")
+  ) {
+    return "Invalid email or password.";
+  }
+
+  if (normalizedMessage.includes("already registered")) {
+    return "This email is already registered. Try logging in instead.";
+  }
+
+  return message;
+};
+
 export const useAuth = () => {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [authError, setAuthError] = useState("");
-
-  const loadProfile = async (nextUser: User | null) => {
-    if (!nextUser) {
-      setProfile(null);
-      return;
-    }
-
-    const nextProfile = await ensureAuthProfile({
-      userId: nextUser.id,
-      email: nextUser.email ?? "",
-      displayName:
-        nextUser.user_metadata?.full_name ??
-        nextUser.user_metadata?.name ??
-        nextUser.email?.split("@")[0] ??
-        "Study Aura User",
-    });
-
-    setProfile(nextProfile);
-  };
+  const [authNotice, setAuthNotice] = useState("");
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -53,19 +60,15 @@ export const useAuth = () => {
 
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
-
-        if (currentSession?.user) {
-          await loadProfile(currentSession.user);
-          if (isMounted) setStatus("authenticated");
-        } else {
-          setStatus("unauthenticated");
-        }
+        setStatus(currentSession?.user ? "authenticated" : "unauthenticated");
       } catch (error) {
         if (!isMounted) return;
 
         setAuthError(
           error instanceof Error ? error.message : "Failed to load session.",
         );
+        setSession(null);
+        setUser(null);
         setStatus("unauthenticated");
       }
     };
@@ -74,24 +77,10 @@ export const useAuth = () => {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
-
-      if (nextSession?.user) {
-        try {
-          await loadProfile(nextSession.user);
-          setStatus("authenticated");
-        } catch (error) {
-          setAuthError(
-            error instanceof Error ? error.message : "Failed to load profile.",
-          );
-          setStatus("authenticated");
-        }
-      } else {
-        setProfile(null);
-        setStatus("unauthenticated");
-      }
+      setStatus(nextSession?.user ? "authenticated" : "unauthenticated");
     });
 
     return () => {
@@ -99,6 +88,51 @@ export const useAuth = () => {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProfile = async () => {
+      if (!user) {
+        setProfile(null);
+        return;
+      }
+
+      setIsProfileLoading(true);
+
+      try {
+        const nextProfile = await ensureAuthProfile({
+          userId: user.id,
+          email: user.email ?? "",
+          displayName:
+            user.user_metadata?.full_name ??
+            user.user_metadata?.name ??
+            user.email?.split("@")[0] ??
+            "Study Aura User",
+        });
+
+        if (isMounted) {
+          setProfile(nextProfile);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setAuthError(
+            error instanceof Error ? error.message : "Failed to load profile.",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsProfileLoading(false);
+        }
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   const login = async ({
     email,
@@ -108,13 +142,22 @@ export const useAuth = () => {
     password: string;
   }) => {
     setAuthError("");
+    setAuthNotice("");
 
-    const data = await signInWithEmail({ email, password });
+    try {
+      const data = await signInWithEmail({ email, password });
 
-    setSession(data.session);
-    setUser(data.user);
-    await loadProfile(data.user);
-    setStatus("authenticated");
+      setSession(data.session);
+      setUser(data.user);
+      setStatus("authenticated");
+      setAuthNotice("Login successful.");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to login.";
+
+      setAuthError(getFriendlyAuthError(message));
+      throw error;
+    }
   };
 
   const register = async ({
@@ -127,28 +170,40 @@ export const useAuth = () => {
     displayName: string;
   }) => {
     setAuthError("");
+    setAuthNotice("");
 
-    const data = await signUpWithEmail({
-      email,
-      password,
-      displayName,
-    });
+    try {
+      const data = await signUpWithEmail({
+        email,
+        password,
+        displayName,
+      });
 
-    setSession(data.session);
-    setUser(data.user);
+      setSession(data.session);
+      setUser(data.user);
 
-    if (data.user) {
-      await loadProfile(data.user);
-    }
+      if (data.session) {
+        setStatus("authenticated");
+        setAuthNotice("Account created successfully.");
+      } else {
+        setStatus("unauthenticated");
+        setAuthNotice(
+          "Account created. Please check your email and confirm your account before logging in.",
+        );
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to create account.";
 
-    if (data.session) {
-      setStatus("authenticated");
-    } else {
-      setStatus("unauthenticated");
+      setAuthError(getFriendlyAuthError(message));
+      throw error;
     }
   };
 
   const logout = async () => {
+    setAuthError("");
+    setAuthNotice("");
+
     await signOut();
 
     setSession(null);
@@ -171,6 +226,8 @@ export const useAuth = () => {
     user,
     profile,
     authError,
+    authNotice,
+    isProfileLoading,
     isLoadingAuth: status === "loading",
     isAuthenticated: status === "authenticated",
     login,

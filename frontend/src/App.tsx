@@ -6,6 +6,7 @@ import ModuleLibrary from "./pages/ModuleLibrary";
 import CreateModuleModal from "./components/dashboard/CreateModuleModal";
 import LoadingState from "./components/states/LoadingState";
 import ErrorState from "./components/states/ErrorState";
+import { useAuth } from "./hooks/useAuth";
 import { useSupabaseModules } from "./hooks/useSupabaseModules";
 
 type AppView = "landing" | "login" | "dashboard" | "library";
@@ -34,6 +35,18 @@ const saveView = (view: AppView) => {
 function App() {
   const [view, setViewState] = useState<AppView>(getStoredView);
   const [isCreateModuleOpen, setIsCreateModuleOpen] = useState(false);
+  const [isAuthActionLoading, setIsAuthActionLoading] = useState(false);
+
+  const {
+    user,
+    authError,
+    authNotice,
+    isLoadingAuth,
+    isAuthenticated,
+    login,
+    register,
+    logout,
+  } = useAuth();
 
   const {
     modules,
@@ -48,7 +61,7 @@ function App() {
     updateSourceSelected,
     updateAllSourcesSelected,
     deleteSource,
-  } = useSupabaseModules();
+  } = useSupabaseModules(user?.id);
 
   const setView = (nextView: AppView) => {
     setViewState(nextView);
@@ -59,7 +72,50 @@ function App() {
     saveView(view);
   }, [view]);
 
+  useEffect(() => {
+    if (!isLoadingAuth && isAuthenticated && view === "landing") {
+      setView("dashboard");
+    }
+
+    if (
+      !isLoadingAuth &&
+      !isAuthenticated &&
+      (view === "dashboard" || view === "library")
+    ) {
+      setView("landing");
+    }
+  }, [isAuthenticated, isLoadingAuth, view]);
+
   const activeModule = modules.find((module) => module.title === selectedTopic);
+
+  const handleLogin = async (credentials: {
+    email: string;
+    password: string;
+  }) => {
+    setIsAuthActionLoading(true);
+
+    try {
+      await login(credentials);
+      setView("dashboard");
+    } finally {
+      setIsAuthActionLoading(false);
+    }
+  };
+
+  const handleRegister = async (credentials: {
+    displayName: string;
+    email: string;
+    password: string;
+  }) => {
+    setIsAuthActionLoading(true);
+
+    try {
+      await register(credentials);
+      setView("dashboard");
+    } finally {
+      setIsAuthActionLoading(false);
+    }
+  };
 
   const handleCreateModule = async (title: string, subtitle: string) => {
     try {
@@ -74,7 +130,9 @@ function App() {
   };
 
   const handleOpenModule = (moduleId: string) => {
-    const module = modules.find((currentModule) => currentModule.id === moduleId);
+    const module = modules.find(
+      (currentModule) => currentModule.id === moduleId,
+    );
 
     if (!module) return;
 
@@ -82,12 +140,26 @@ function App() {
     setView("dashboard");
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logout();
     localStorage.removeItem(APP_VIEW_STORAGE_KEY);
     setView("landing");
   };
 
-  if (isLoadingModules) {
+  if (isLoadingAuth) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-aura-bg px-6 text-aura-text">
+        <div className="w-full max-w-xl">
+          <LoadingState
+            title="Checking session..."
+            description="Study Aura is verifying your account session."
+          />
+        </div>
+      </main>
+    );
+  }
+
+  if (isAuthenticated && isLoadingModules) {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-aura-bg px-6 text-aura-text">
         <div className="w-full max-w-xl">
@@ -100,7 +172,7 @@ function App() {
     );
   }
 
-  if (moduleError && modules.length === 0) {
+  if (isAuthenticated && moduleError && modules.length === 0) {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-aura-bg px-6 text-aura-text">
         <div className="w-full max-w-xl">
@@ -122,10 +194,16 @@ function App() {
       )}
 
       {view === "login" && (
-        <Login onLogin={() => setView("dashboard")} />
+        <Login
+          onLogin={handleLogin}
+          onRegister={handleRegister}
+          authError={authError}
+          authNotice={authNotice}
+          isAuthLoading={isAuthActionLoading}
+        />
       )}
 
-      {view === "library" && (
+      {view === "library" && isAuthenticated && (
         <ModuleLibrary
           modules={modules}
           activeModuleId={activeModule?.id}
@@ -135,7 +213,7 @@ function App() {
         />
       )}
 
-      {view === "dashboard" && (
+      {view === "dashboard" && isAuthenticated && (
         <Dashboard
           topic={selectedTopic}
           modules={modules}
