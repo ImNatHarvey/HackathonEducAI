@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   generateAudioOverviewWithN8n,
   generateFlashcardsWithN8n,
@@ -82,6 +82,47 @@ const getOutputTitle = ({
   return `${toolName} • ${topic} • ${timestamp}`;
 };
 
+const getFriendlyToolError = (error: unknown) => {
+  const rawMessage =
+    error instanceof Error
+      ? error.message
+      : "Failed to generate AI tool output.";
+
+  const normalizedMessage = rawMessage.toLowerCase();
+
+  if (
+    normalizedMessage.includes("503") ||
+    normalizedMessage.includes("service unavailable") ||
+    normalizedMessage.includes("high demand") ||
+    normalizedMessage.includes("overloaded")
+  ) {
+    return "The AI model is temporarily under high demand. Please try again shortly or switch to another tool.";
+  }
+
+  if (
+    normalizedMessage.includes("timeout") ||
+    normalizedMessage.includes("timed out")
+  ) {
+    return "The AI generation workflow timed out. Please try again.";
+  }
+
+  if (
+    normalizedMessage.includes("network") ||
+    normalizedMessage.includes("failed to fetch")
+  ) {
+    return "Network connection failed. Please check n8n and try again.";
+  }
+
+  if (
+    normalizedMessage.includes("webhook") ||
+    normalizedMessage.includes("not found")
+  ) {
+    return "The n8n webhook for this tool may not be active. Please check the workflow and try again.";
+  }
+
+  return rawMessage;
+};
+
 export const useAIToolActions = ({
   topic,
   moduleId,
@@ -94,13 +135,15 @@ export const useAIToolActions = ({
   const [savedOutputId, setSavedOutputId] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState("");
 
-  const selectedSourcePayload = selectedSources.map((source) => ({
-    id: source.id,
-    title: source.title,
-    type: source.type,
-    value: source.value,
-    summary: source.summary,
-  }));
+  const selectedSourcePayload = useMemo(() => {
+    return selectedSources.map((source) => ({
+      id: source.id,
+      title: source.title,
+      type: source.type,
+      value: source.value,
+      summary: source.summary,
+    }));
+  }, [selectedSources]);
 
   const runTool = async (
     toolName: AIToolName,
@@ -209,14 +252,12 @@ export const useAIToolActions = ({
 
         setSavedOutputId(savedOutput.id);
         setSaveNotice("Saved to this module.");
+      } else {
+        setSaveNotice("Generated output is shown here, but was not saved.");
       }
     } catch (toolError) {
       setStatus("error");
-      setError(
-        toolError instanceof Error
-          ? toolError.message
-          : "Failed to generate AI tool output.",
-      );
+      setError(getFriendlyToolError(toolError));
     }
   };
 

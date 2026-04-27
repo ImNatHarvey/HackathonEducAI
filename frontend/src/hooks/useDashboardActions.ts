@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { sendChatToN8n, uploadSourceToN8n } from "../lib/n8n";
 import {
   createChatMessage,
@@ -25,6 +25,56 @@ type UseDashboardActionsParams = {
   onInputClear: () => void;
   onSourceAdded: (source: StudySource) => void | Promise<void>;
   onSourcesAdded: (sources: StudySource[]) => void | Promise<void>;
+};
+
+const fallbackChatResponses = [
+  "Aura is having trouble reaching the AI engine right now, but your message was saved. Please try again in a moment.",
+  "The AI workflow is temporarily busy. Your module and selected sources are safe, so you can retry shortly.",
+  "Gemini may be under high demand right now. Your question was saved, and Aura can try again when the service responds.",
+  "The n8n workflow did not return a stable response this time. Please retry in a few seconds.",
+  "Aura could not complete the response because the AI service is currently unavailable. Your study context is still ready.",
+  "The request timed out before Aura could finish. Try again shortly, especially if the AI model is under heavy demand.",
+  "The AI engine returned a temporary error. Your selected sources are still loaded and ready for another attempt.",
+  "Aura saved your message, but the generation service is not responding right now. Please try again later.",
+  "The AI workflow is online, but the model seems overloaded. Give it a moment, then send your question again.",
+  "Study Aura could not generate an answer this time. Your chat history is saved, so nothing was lost.",
+];
+
+const getRandomFallbackChatResponse = () => {
+  const randomIndex = Math.floor(Math.random() * fallbackChatResponses.length);
+  return fallbackChatResponses[randomIndex];
+};
+
+const getFriendlyChatError = (error: unknown) => {
+  const rawMessage =
+    error instanceof Error ? error.message : "Failed to send message.";
+
+  const normalizedMessage = rawMessage.toLowerCase();
+
+  if (
+    normalizedMessage.includes("503") ||
+    normalizedMessage.includes("service unavailable") ||
+    normalizedMessage.includes("high demand") ||
+    normalizedMessage.includes("overloaded")
+  ) {
+    return "The AI model is temporarily under high demand. Please try again shortly.";
+  }
+
+  if (
+    normalizedMessage.includes("timeout") ||
+    normalizedMessage.includes("timed out")
+  ) {
+    return "The AI workflow timed out. Please try again.";
+  }
+
+  if (
+    normalizedMessage.includes("network") ||
+    normalizedMessage.includes("failed to fetch")
+  ) {
+    return "Network connection failed. Please check n8n and try again.";
+  }
+
+  return rawMessage;
 };
 
 const buildSourceFromUpload = (
@@ -102,13 +152,15 @@ export const useDashboardActions = ({
     };
   }, [activeModule?.id, userId]);
 
-  const selectedSourcePayload = selectedSources.map((source) => ({
-    id: source.id,
-    title: source.title,
-    type: source.type,
-    value: source.value,
-    summary: source.summary,
-  }));
+  const selectedSourcePayload = useMemo(() => {
+    return selectedSources.map((source) => ({
+      id: source.id,
+      title: source.title,
+      type: source.type,
+      value: source.value,
+      summary: source.summary,
+    }));
+  }, [selectedSources]);
 
   const persistMessage = async ({
     role,
@@ -194,21 +246,32 @@ export const useDashboardActions = ({
         savedAssistantMessage,
       ]);
     } catch (error) {
-      const fallbackAssistantMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content:
-          "Study Aura had trouble saving or generating that response. Please try again.",
-      };
+      const fallbackContent = getRandomFallbackChatResponse();
 
-      setMessages((currentMessages) => [
-        ...currentMessages,
-        fallbackAssistantMessage,
-      ]);
+      try {
+        const savedFallbackMessage = await persistMessage({
+          role: "assistant",
+          content: fallbackContent,
+        });
 
-      setChatError(
-        error instanceof Error ? error.message : "Failed to send message.",
-      );
+        setMessages((currentMessages) => [
+          ...currentMessages,
+          savedFallbackMessage,
+        ]);
+      } catch {
+        const fallbackAssistantMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: fallbackContent,
+        };
+
+        setMessages((currentMessages) => [
+          ...currentMessages,
+          fallbackAssistantMessage,
+        ]);
+      }
+
+      setChatError(getFriendlyChatError(error));
     } finally {
       setIsChatLoading(false);
     }
