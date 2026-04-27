@@ -20,6 +20,27 @@ interface DashboardProps {
   modules: StudyModule[];
   onModulesChange: (modules: StudyModule[]) => void;
   onNavigate: (topic: string) => void;
+  onAddSourceToModule: (params: {
+    moduleId: string;
+    source: StudySource;
+  }) => Promise<StudySource>;
+  onAddSourcesToModule: (params: {
+    moduleId: string;
+    sources: StudySource[];
+  }) => Promise<StudySource[]>;
+  onUpdateSourceSelected: (params: {
+    moduleId: string;
+    sourceId: string;
+    selected: boolean;
+  }) => Promise<void>;
+  onUpdateAllSourcesSelected: (params: {
+    moduleId: string;
+    selected: boolean;
+  }) => Promise<void>;
+  onDeleteSource: (params: {
+    moduleId: string;
+    sourceId: string;
+  }) => Promise<void>;
   onOpenLibrary: () => void;
   onOpenCreateModule: () => void;
   onLogout: () => void;
@@ -29,6 +50,11 @@ const Dashboard = ({
   topic,
   modules,
   onModulesChange,
+  onAddSourceToModule,
+  onAddSourcesToModule,
+  onUpdateSourceSelected,
+  onUpdateAllSourcesSelected,
+  onDeleteSource,
   onOpenLibrary,
   onOpenCreateModule,
   onLogout,
@@ -73,15 +99,22 @@ const Dashboard = ({
     onModulesChange(nextModules);
   };
 
-  const handleSourceAdded = (source: StudySource) => {
+  const handleSourceAdded = async (source: StudySource) => {
+    if (!currentModule) return;
+
+    const savedSource = await onAddSourceToModule({
+      moduleId: currentModule.id,
+      source,
+    });
+
     updateCurrentModule((module) => ({
       ...module,
       progress: Math.max(module.progress, 10),
       updatedAt: new Date().toISOString(),
       sources: [
-        source,
+        savedSource,
         ...module.sources.filter(
-          (currentSource) => currentSource.id !== source.id,
+          (currentSource) => currentSource.id !== savedSource.id,
         ),
       ],
     }));
@@ -89,16 +122,23 @@ const Dashboard = ({
     setIsAddSourceOpen(false);
   };
 
-  const handleSourcesAdded = (sources: StudySource[]) => {
+  const handleSourcesAdded = async (sources: StudySource[]) => {
+    if (!currentModule) return;
+
+    const savedSources = await onAddSourcesToModule({
+      moduleId: currentModule.id,
+      sources,
+    });
+
     updateCurrentModule((module) => {
-      const incomingIds = new Set(sources.map((source) => source.id));
+      const incomingIds = new Set(savedSources.map((source) => source.id));
 
       return {
         ...module,
         progress: Math.max(module.progress, 10),
         updatedAt: new Date().toISOString(),
         sources: [
-          ...sources,
+          ...savedSources,
           ...module.sources.filter((source) => !incomingIds.has(source.id)),
         ],
       };
@@ -107,22 +147,40 @@ const Dashboard = ({
     setIsAddSourceOpen(false);
   };
 
-  const handleToggleSource = (sourceId: string) => {
+  const handleToggleSource = async (sourceId: string) => {
+    if (!currentModule) return;
+
+    const source = currentModule.sources.find(
+      (currentSource) => currentSource.id === sourceId,
+    );
+
+    if (!source) return;
+
+    const nextSelected = !source.selected;
+
     updateCurrentModule((module) => ({
       ...module,
       updatedAt: new Date().toISOString(),
-      sources: module.sources.map((source) =>
-        source.id === sourceId
+      sources: module.sources.map((currentSource) =>
+        currentSource.id === sourceId
           ? {
-              ...source,
-              selected: !source.selected,
+              ...currentSource,
+              selected: nextSelected,
             }
-          : source,
+          : currentSource,
       ),
     }));
+
+    await onUpdateSourceSelected({
+      moduleId: currentModule.id,
+      sourceId,
+      selected: nextSelected,
+    });
   };
 
-  const handleSelectAllSources = () => {
+  const handleSelectAllSources = async () => {
+    if (!currentModule) return;
+
     updateCurrentModule((module) => ({
       ...module,
       updatedAt: new Date().toISOString(),
@@ -131,9 +189,16 @@ const Dashboard = ({
         selected: true,
       })),
     }));
+
+    await onUpdateAllSourcesSelected({
+      moduleId: currentModule.id,
+      selected: true,
+    });
   };
 
-  const handleClearSelectedSources = () => {
+  const handleClearSelectedSources = async () => {
+    if (!currentModule) return;
+
     updateCurrentModule((module) => ({
       ...module,
       updatedAt: new Date().toISOString(),
@@ -142,14 +207,26 @@ const Dashboard = ({
         selected: false,
       })),
     }));
+
+    await onUpdateAllSourcesSelected({
+      moduleId: currentModule.id,
+      selected: false,
+    });
   };
 
-  const handleDeleteSource = (sourceId: string) => {
+  const handleDeleteSource = async (sourceId: string) => {
+    if (!currentModule) return;
+
     updateCurrentModule((module) => ({
       ...module,
       updatedAt: new Date().toISOString(),
       sources: module.sources.filter((source) => source.id !== sourceId),
     }));
+
+    await onDeleteSource({
+      moduleId: currentModule.id,
+      sourceId,
+    });
   };
 
   const {
