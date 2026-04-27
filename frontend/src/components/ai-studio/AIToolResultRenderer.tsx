@@ -75,7 +75,7 @@ const AIToolResultRenderer = ({
   }
 
   if (toolName === "Tables" && isTablesResponse(result)) {
-    return <SavedTablesResult result={result} />;
+    return <SavedTablesResult data={result} />;
   }
 
   if (toolName === "Mind Map" && isMindMapResponse(result)) {

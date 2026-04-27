@@ -13,68 +13,87 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -3184,
-        912
+        -3600,
+        800
       ],
       "webhookId": "study-aura-tables"
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "tables-prompt",
-              "name": "prompt",
-              "value": "={{\n\"You are Study Aura, an educational table generator. Create a structured study table for the topic: \" + ($json.body.topic || \"General Study\") + \". Difficulty: \" + ($json.body.difficulty || \"easy\") + \". Table type: \" + ($json.body.tableType || \"concept_comparison\") + \". Create exactly \" + ($json.body.rowCount || 5) + \" rows.\\n\\n\" +\n\"Selected source context:\\n\" +\n(\n  Array.isArray($json.body.selectedSources) && $json.body.selectedSources.length > 0\n    ? $json.body.selectedSources.map((source, index) => {\n        return (index + 1) + \". \" + (source.title || \"Untitled Source\") + \" [\" + (source.type || \"source\") + \"]\\n\" +\n          \"Summary or content: \" + (source.summary || source.value || \"No summary provided.\");\n      }).join(\"\\n\\n\")\n    : \"No selected sources were provided. Use the topic only.\"\n) +\n\"\\n\\nReturn ONLY valid JSON. No markdown. No code fences.\\n\" +\n\"Required JSON format: {\\\"title\\\": string, \\\"description\\\": string, \\\"columns\\\": [{\\\"key\\\": string, \\\"label\\\": string}], \\\"rows\\\": [{stringKey: stringValue}]}.\\n\" +\n\"Rules:\\n\" +\n\"- Use 3 to 5 columns only.\\n\" +\n\"- Every row must use the exact column keys.\\n\" +\n\"- Keep cell values concise and student-friendly.\\n\" +\n\"- Prioritize selected source context when available.\\n\" +\n\"- Do not include markdown, comments, or text outside JSON.\"\n}}",
-              "type": "string"
-            },
-            {
-              "id": "topic",
-              "name": "topic",
-              "value": "={{$json.body.topic || \"General Study\"}}",
-              "type": "string"
-            },
-            {
-              "id": "difficulty",
-              "name": "difficulty",
-              "value": "={{$json.body.difficulty || \"easy\"}}",
-              "type": "string"
-            },
-            {
-              "id": "table-type",
-              "name": "tableType",
-              "value": "={{$json.body.tableType || \"concept_comparison\"}}",
-              "type": "string"
-            },
-            {
-              "id": "row-count",
-              "name": "rowCount",
-              "value": "={{$json.body.rowCount || 5}}",
-              "type": "number"
-            },
-            {
-              "id": "module-id",
-              "name": "moduleId",
-              "value": "={{$json.body.moduleId || \"demo-module\"}}",
-              "type": "string"
-            },
-            {
-              "id": "user-id",
-              "name": "userId",
-              "value": "={{$json.body.userId || \"demo-user\"}}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
+        "jsCode": "function asText(value) {\n  if (value === null || value === undefined) return \"\";\n  if (typeof value === \"string\") return value.trim();\n  if (typeof value === \"number\" || typeof value === \"boolean\") return String(value);\n  if (Array.isArray(value)) return value.map(asText).filter(Boolean).join(\"\\n\");\n  if (typeof value === \"object\") {\n    return asText(value.summary || value.value || value.content || value.text || value.description || JSON.stringify(value));\n  }\n  return \"\";\n}\n\nfunction normalizeTableType(value) {\n  const normalized = asText(value).toLowerCase().trim().replace(/[^a-z0-9]+/g, \"_\").replace(/^_+|_+$/g, \"\");\n  if (normalized === \"concept_comparison\" || normalized === \"comparison\" || normalized === \"compare\") return \"concept_comparison\";\n  if (normalized === \"term_definition\" || normalized === \"definition\" || normalized === \"terms\") return \"term_definition\";\n  if (normalized === \"process_step\" || normalized === \"process_steps\" || normalized === \"process\" || normalized === \"steps\") return \"process_step\";\n  if (normalized === \"cause_effect\" || normalized === \"cause_and_effect\" || normalized === \"cause_effect_table\") return \"cause_effect\";\n  return \"term_definition\";\n}\n\nfunction getTableProfile(tableType) {\n  if (tableType === \"concept_comparison\") {\n    return {\n      label: \"Concept Comparison\",\n      purpose: \"Compare related concepts, categories, ideas, groups, or characteristics from the source.\",\n      columns: [\n        { key: \"concept\", label: \"Concept\" },\n        { key: \"description\", label: \"Description\" },\n        { key: \"similarity\", label: \"Similarity\" },\n        { key: \"difference\", label: \"Difference\" }\n      ],\n      sampleRow: {\n        concept: \"Example concept\",\n        description: \"What this concept means in the source\",\n        similarity: \"How it is similar to another related concept\",\n        difference: \"What makes it different or unique\"\n      },\n      rules: [\n        \"Each row must compare one concept against another related idea.\",\n        \"The Similarity column must explain what it shares with another concept.\",\n        \"The Difference column must explain what makes it distinct.\",\n        \"Do not use definition-style rows only.\"\n      ]\n    };\n  }\n\n  if (tableType === \"process_step\") {\n    return {\n      label: \"Process Step\",\n      purpose: \"Explain a sequence, workflow, timeline, development, life cycle, or step-by-step process from the source.\",\n      columns: [\n        { key: \"step\", label: \"Step\" },\n        { key: \"stage\", label: \"Stage / Action\" },\n        { key: \"explanation\", label: \"Explanation\" },\n        { key: \"result\", label: \"Result\" }\n      ],\n      sampleRow: {\n        step: \"1\",\n        stage: \"First stage or action\",\n        explanation: \"What happens during this step\",\n        result: \"What this step leads to\"\n      },\n      rules: [\n        \"Rows must be ordered logically from first to last.\",\n        \"The Step column must use numbers like 1, 2, 3.\",\n        \"The Stage / Action column must name the stage or action.\",\n        \"The Result column must explain the outcome of the step.\"\n      ]\n    };\n  }\n\n  if (tableType === \"cause_effect\") {\n    return {\n      label: \"Cause and Effect\",\n      purpose: \"Show causes, effects, reasons, consequences, impacts, or relationships from the source.\",\n      columns: [\n        { key: \"cause\", label: \"Cause\" },\n        { key: \"effect\", label: \"Effect\" },\n        { key: \"explanation\", label: \"Explanation\" },\n        { key: \"evidence\", label: \"Example / Evidence\" }\n      ],\n      sampleRow: {\n        cause: \"Reason or condition from the source\",\n        effect: \"Result or consequence\",\n        explanation: \"Why the cause leads to the effect\",\n        evidence: \"A supporting detail or example from the source\"\n      },\n      rules: [\n        \"Each row must show a clear cause-and-effect relationship.\",\n        \"The Cause column must contain the reason or condition.\",\n        \"The Effect column must contain the result or consequence.\",\n        \"Do not use simple vocabulary definitions.\"\n      ]\n    };\n  }\n\n  return {\n    label: \"Term Definition\",\n    purpose: \"Define key terms, concepts, vocabulary, or important ideas from the source.\",\n    columns: [\n      { key: \"concept\", label: \"Concept\" },\n      { key: \"meaning\", label: \"Meaning\" },\n      { key: \"example\", label: \"Example\" }\n    ],\n    sampleRow: {\n      concept: \"Important term\",\n      meaning: \"Simple explanation of the term\",\n      example: \"Concrete example or related detail from the source\"\n    },\n    rules: [\n      \"Each row must define one important term or concept.\",\n      \"The Meaning column must explain the concept clearly.\",\n      \"The Example column must give a concrete example or source detail.\"\n    ]\n  };\n}\n\nconst body = $json.body || $json || {};\nconst topic = asText(body.topic) || \"General Study\";\nconst difficulty = asText(body.difficulty || body.options?.difficulty) || \"easy\";\nconst tableType = normalizeTableType(body.tableType || body.options?.tableType);\nconst rowCountRaw = Number(body.rowCount || body.options?.rowCount || body.rows || 5);\nconst rowCount = Number.isFinite(rowCountRaw) ? Math.min(Math.max(Math.round(rowCountRaw), 3), 12) : 5;\nconst selectedSources = Array.isArray(body.selectedSources) ? body.selectedSources : [];\nconst profile = getTableProfile(tableType);\n\nconst selectedSourceText = selectedSources.length > 0\n  ? selectedSources.map((source, index) => {\n      const title = asText(source.title) || `Source ${index + 1}`;\n      const type = asText(source.type) || \"source\";\n      const content = asText(source.summary || source.value || source.content || source.text || source.description) || \"No content provided.\";\n      return `${index + 1}. ${title} [${type}]\\n${content}`;\n    }).join(\"\\n\\n\")\n  : \"No selected sources were provided. Use the topic only.\";\n\nconst prompt = [\n  \"You are Study Aura, an educational table generator.\",\n  \"Create a structured study table from the selected source context.\",\n  \"\",\n  `Topic: ${topic}`,\n  `Difficulty: ${difficulty}`,\n  `Table type: ${profile.label}`,\n  `Table purpose: ${profile.purpose}`,\n  `Required row count: ${rowCount}`,\n  \"\",\n  \"Selected source context:\",\n  selectedSourceText,\n  \"\",\n  \"Return ONLY valid JSON. No markdown. No code fences. No explanations outside JSON.\",\n  \"\",\n  \"Use this exact JSON shape:\",\n  JSON.stringify({ title: \"Short table title\", description: \"One sentence table description\", columns: profile.columns, rows: [profile.sampleRow] }, null, 2),\n  \"\",\n  \"Strict rules:\",\n  `- Create exactly ${rowCount} rows.`,\n  \"- Use exactly the columns shown in the JSON shape.\",\n  \"- Every row must use the exact column keys shown in the JSON shape.\",\n  \"- Never return empty strings.\",\n  \"- Never return blank rows.\",\n  \"- Never return placeholder values.\",\n  \"- Prioritize the selected source context.\",\n  \"- Keep cell values concise and student-friendly.\",\n  \"- If the source is limited, infer helpful educational content from the topic.\",\n  ...profile.rules.map((rule) => `- ${rule}`),\n  \"- Do not include markdown, comments, or text outside JSON.\"\n].join(\"\\n\");\n\nreturn [\n  {\n    json: {\n      ...body,\n      topic,\n      difficulty,\n      tableType,\n      rowCount,\n      selectedSources,\n      selectedSourceText,\n      tableProfile: profile,\n      expectedColumns: profile.columns,\n      prompt,\n      moduleId: asText(body.moduleId) || \"demo-module\",\n      userId: asText(body.userId) || \"demo-user\"\n    }\n  }\n];"
       },
-      "id": "prepare-tables-agent-prompt",
-      "name": "Prepare Tables Agent Prompt",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
+      "id": "build-tables-agent-prompt",
+      "name": "Build Tables Agent Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
-        -2896,
-        912
+        -3320,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeJsonParse(value) {\n  if (value === null || value === undefined) return null;\n  if (typeof value === \"object\") return value;\n  if (typeof value !== \"string\") return null;\n  let text = value.trim();\n  text = text.replace(/^```json\\s*/i, \"\").replace(/^```\\s*/i, \"\").replace(/```$/i, \"\").trim();\n  const firstBrace = text.indexOf(\"{\");\n  const lastBrace = text.lastIndexOf(\"}\");\n  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) text = text.slice(firstBrace, lastBrace + 1);\n  try { return JSON.parse(text); } catch { return null; }\n}\nfunction stringifyCell(value) {\n  if (value === null || value === undefined) return \"\";\n  if (typeof value === \"string\") return value.trim();\n  if (typeof value === \"number\" || typeof value === \"boolean\") return String(value);\n  if (Array.isArray(value)) return value.map(stringifyCell).filter(Boolean).join(\", \");\n  if (typeof value === \"object\") {\n    const keys = [\"text\", \"value\", \"label\", \"content\", \"description\", \"meaning\", \"example\", \"answer\"];\n    for (const key of keys) {\n      const cleaned = stringifyCell(value[key]);\n      if (cleaned) return cleaned;\n    }\n    try { return JSON.stringify(value); } catch { return \"\"; }\n  }\n  return \"\";\n}\nfunction normalizeKey(value) { return String(value || \"\").toLowerCase().trim().replace(/[^a-z0-9]+/g, \"_\").replace(/^_+|_+$/g, \"\"); }\nfunction titleCase(value) { return String(value || \"\").replace(/_/g, \" \").replace(/\\b\\w/g, (letter) => letter.toUpperCase()); }\nfunction normalizeColumns(columns, expectedColumns) {\n  if (Array.isArray(columns) && columns.length > 0) {\n    const cleaned = columns.slice(0, 5).map((column, index) => {\n      if (typeof column === \"string\") {\n        const key = normalizeKey(column) || `column_${index + 1}`;\n        return { key, label: titleCase(column) };\n      }\n      if (column && typeof column === \"object\") {\n        const rawKey = column.key || column.id || column.name || column.label;\n        const key = normalizeKey(rawKey) || `column_${index + 1}`;\n        const label = String(column.label || column.name || rawKey || `Column ${index + 1}`).trim();\n        return { key, label: label || `Column ${index + 1}` };\n      }\n      return null;\n    }).filter(Boolean);\n    if (cleaned.length >= 3) return cleaned;\n  }\n  if (Array.isArray(expectedColumns) && expectedColumns.length > 0) return expectedColumns;\n  return [ { key: \"concept\", label: \"Concept\" }, { key: \"meaning\", label: \"Meaning\" }, { key: \"example\", label: \"Example\" } ];\n}\nfunction getValueByColumn(row, column, columnIndex) {\n  if (!row || typeof row !== \"object\") return \"\";\n  const directValue = stringifyCell(row[column.key]);\n  if (directValue) return directValue;\n  const labelValue = stringifyCell(row[column.label]);\n  if (labelValue) return labelValue;\n  const normalizedColumnKey = normalizeKey(column.key);\n  const normalizedColumnLabel = normalizeKey(column.label);\n  for (const [rowKey, rowValue] of Object.entries(row)) {\n    const normalizedRowKey = normalizeKey(rowKey);\n    if (normalizedRowKey === normalizedColumnKey || normalizedRowKey === normalizedColumnLabel) {\n      const matchedValue = stringifyCell(rowValue);\n      if (matchedValue) return matchedValue;\n    }\n  }\n  return stringifyCell(Object.values(row)[columnIndex]);\n}\nfunction normalizeRows(rows, columns) {\n  if (!Array.isArray(rows)) return [];\n  return rows.filter((row) => row && typeof row === \"object\" && !Array.isArray(row)).map((row) => {\n    const cleanedRow = {};\n    columns.forEach((column, columnIndex) => cleanedRow[column.key] = getValueByColumn(row, column, columnIndex));\n    return cleanedRow;\n  }).filter((row) => Object.values(row).some((value) => stringifyCell(value)));\n}\nfunction splitSentences(text) {\n  return String(text || \"\").replace(/\\[[0-9]+\\]/g, \"\").replace(/\\s+/g, \" \").split(/(?<=[.!?])\\s+/).map((sentence) => sentence.trim()).filter((sentence) => sentence.length > 35);\n}\nfunction buildFallbackRowsFromSource(sourceText, columns, requestedRows, topic) {\n  const sentences = splitSentences(sourceText);\n  const rows = [];\n  const usableSentences = sentences.length > 0 ? sentences : [`${topic} is an important study topic.`];\n  for (let index = 0; rows.length < requestedRows; index++) {\n    const sentence = usableSentences[index % usableSentences.length];\n    const row = {};\n    columns.forEach((column, columnIndex) => {\n      const key = column.key;\n      if (key === \"step\") row[key] = String(rows.length + 1);\n      else if (key === \"stage\") row[key] = `Stage ${rows.length + 1}`;\n      else if (key === \"result\") row[key] = sentence;\n      else if (key === \"cause\") row[key] = sentence;\n      else if (key === \"effect\") row[key] = sentence;\n      else if (key === \"evidence\") row[key] = sentence.length > 140 ? `${sentence.slice(0, 137).trim()}...` : sentence;\n      else if (key === \"similarity\") row[key] = \"Related to other key ideas from the same topic.\";\n      else if (key === \"difference\") row[key] = sentence;\n      else if (key === \"description\" || key === \"meaning\" || key === \"explanation\") row[key] = sentence;\n      else if (key === \"example\") row[key] = sentence.length > 140 ? `${sentence.slice(0, 137).trim()}...` : sentence;\n      else if (columnIndex === 0) row[key] = `Key Idea ${rows.length + 1}`;\n      else row[key] = sentence;\n    });\n    rows.push(row);\n  }\n  return rows;\n}\nfunction unwrapTable(parsedOutput) {\n  if (!parsedOutput || typeof parsedOutput !== \"object\") return null;\n  if (parsedOutput.table && typeof parsedOutput.table === \"object\") return parsedOutput.table;\n  if (parsedOutput.result && typeof parsedOutput.result === \"object\" && parsedOutput.result.table && typeof parsedOutput.result.table === \"object\") return parsedOutput.result.table;\n  if (Array.isArray(parsedOutput.rows) || Array.isArray(parsedOutput.columns)) return parsedOutput;\n  return null;\n}\nconst input = $input.first().json;\nconst raw = input.output || input.text || input.response || input.result || input.data || input.message || input.content || \"\";\nconst parsedOutput = safeJsonParse(raw);\nconst tableCandidate = unwrapTable(parsedOutput) || {};\nconst topic = stringifyCell(input.topic) || \"Study Topic\";\nconst requestedRows = Number(input.rowCount || 5) || 5;\nconst sourceText = stringifyCell(input.selectedSourceText) || stringifyCell(input.selectedSources);\nconst columns = normalizeColumns(tableCandidate.columns, input.expectedColumns);\nlet rows = normalizeRows(tableCandidate.rows, columns);\nlet usedSourceFallback = false;\nif (rows.length === 0) {\n  rows = buildFallbackRowsFromSource(sourceText, columns, requestedRows, topic);\n  usedSourceFallback = true;\n}\nconst finalTable = {\n  title: stringifyCell(tableCandidate.title) || `${topic} Study Table`,\n  description: stringifyCell(tableCandidate.description) || `A study table generated from the selected source about ${topic}.`,\n  columns,\n  rows: rows.slice(0, requestedRows)\n};\nreturn [{ json: { table: finalTable, fallback: Boolean(usedSourceFallback), provider: \"gemini\" } }];"
+      },
+      "id": "clean-gemini-tables-json",
+      "name": "Clean Gemini Tables JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2400,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeJsonParse(value) {\n  if (value === null || value === undefined) return null;\n  if (typeof value === \"object\") return value;\n  if (typeof value !== \"string\") return null;\n  let text = value.trim();\n  text = text.replace(/^```json\\s*/i, \"\").replace(/^```\\s*/i, \"\").replace(/```$/i, \"\").trim();\n  const firstBrace = text.indexOf(\"{\");\n  const lastBrace = text.lastIndexOf(\"}\");\n  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) text = text.slice(firstBrace, lastBrace + 1);\n  try { return JSON.parse(text); } catch { return null; }\n}\nfunction stringifyCell(value) {\n  if (value === null || value === undefined) return \"\";\n  if (typeof value === \"string\") return value.trim();\n  if (typeof value === \"number\" || typeof value === \"boolean\") return String(value);\n  if (Array.isArray(value)) return value.map(stringifyCell).filter(Boolean).join(\", \");\n  if (typeof value === \"object\") {\n    const keys = [\"text\", \"value\", \"label\", \"content\", \"description\", \"meaning\", \"example\", \"answer\"];\n    for (const key of keys) {\n      const cleaned = stringifyCell(value[key]);\n      if (cleaned) return cleaned;\n    }\n    try { return JSON.stringify(value); } catch { return \"\"; }\n  }\n  return \"\";\n}\nfunction normalizeKey(value) { return String(value || \"\").toLowerCase().trim().replace(/[^a-z0-9]+/g, \"_\").replace(/^_+|_+$/g, \"\"); }\nfunction titleCase(value) { return String(value || \"\").replace(/_/g, \" \").replace(/\\b\\w/g, (letter) => letter.toUpperCase()); }\nfunction normalizeColumns(columns, expectedColumns) {\n  if (Array.isArray(columns) && columns.length > 0) {\n    const cleaned = columns.slice(0, 5).map((column, index) => {\n      if (typeof column === \"string\") {\n        const key = normalizeKey(column) || `column_${index + 1}`;\n        return { key, label: titleCase(column) };\n      }\n      if (column && typeof column === \"object\") {\n        const rawKey = column.key || column.id || column.name || column.label;\n        const key = normalizeKey(rawKey) || `column_${index + 1}`;\n        const label = String(column.label || column.name || rawKey || `Column ${index + 1}`).trim();\n        return { key, label: label || `Column ${index + 1}` };\n      }\n      return null;\n    }).filter(Boolean);\n    if (cleaned.length >= 3) return cleaned;\n  }\n  if (Array.isArray(expectedColumns) && expectedColumns.length > 0) return expectedColumns;\n  return [ { key: \"concept\", label: \"Concept\" }, { key: \"meaning\", label: \"Meaning\" }, { key: \"example\", label: \"Example\" } ];\n}\nfunction getValueByColumn(row, column, columnIndex) {\n  if (!row || typeof row !== \"object\") return \"\";\n  const directValue = stringifyCell(row[column.key]);\n  if (directValue) return directValue;\n  const labelValue = stringifyCell(row[column.label]);\n  if (labelValue) return labelValue;\n  const normalizedColumnKey = normalizeKey(column.key);\n  const normalizedColumnLabel = normalizeKey(column.label);\n  for (const [rowKey, rowValue] of Object.entries(row)) {\n    const normalizedRowKey = normalizeKey(rowKey);\n    if (normalizedRowKey === normalizedColumnKey || normalizedRowKey === normalizedColumnLabel) {\n      const matchedValue = stringifyCell(rowValue);\n      if (matchedValue) return matchedValue;\n    }\n  }\n  return stringifyCell(Object.values(row)[columnIndex]);\n}\nfunction normalizeRows(rows, columns) {\n  if (!Array.isArray(rows)) return [];\n  return rows.filter((row) => row && typeof row === \"object\" && !Array.isArray(row)).map((row) => {\n    const cleanedRow = {};\n    columns.forEach((column, columnIndex) => cleanedRow[column.key] = getValueByColumn(row, column, columnIndex));\n    return cleanedRow;\n  }).filter((row) => Object.values(row).some((value) => stringifyCell(value)));\n}\nfunction splitSentences(text) {\n  return String(text || \"\").replace(/\\[[0-9]+\\]/g, \"\").replace(/\\s+/g, \" \").split(/(?<=[.!?])\\s+/).map((sentence) => sentence.trim()).filter((sentence) => sentence.length > 35);\n}\nfunction buildFallbackRowsFromSource(sourceText, columns, requestedRows, topic) {\n  const sentences = splitSentences(sourceText);\n  const rows = [];\n  const usableSentences = sentences.length > 0 ? sentences : [`${topic} is an important study topic.`];\n  for (let index = 0; rows.length < requestedRows; index++) {\n    const sentence = usableSentences[index % usableSentences.length];\n    const row = {};\n    columns.forEach((column, columnIndex) => {\n      const key = column.key;\n      if (key === \"step\") row[key] = String(rows.length + 1);\n      else if (key === \"stage\") row[key] = `Stage ${rows.length + 1}`;\n      else if (key === \"result\") row[key] = sentence;\n      else if (key === \"cause\") row[key] = sentence;\n      else if (key === \"effect\") row[key] = sentence;\n      else if (key === \"evidence\") row[key] = sentence.length > 140 ? `${sentence.slice(0, 137).trim()}...` : sentence;\n      else if (key === \"similarity\") row[key] = \"Related to other key ideas from the same topic.\";\n      else if (key === \"difference\") row[key] = sentence;\n      else if (key === \"description\" || key === \"meaning\" || key === \"explanation\") row[key] = sentence;\n      else if (key === \"example\") row[key] = sentence.length > 140 ? `${sentence.slice(0, 137).trim()}...` : sentence;\n      else if (columnIndex === 0) row[key] = `Key Idea ${rows.length + 1}`;\n      else row[key] = sentence;\n    });\n    rows.push(row);\n  }\n  return rows;\n}\nfunction unwrapTable(parsedOutput) {\n  if (!parsedOutput || typeof parsedOutput !== \"object\") return null;\n  if (parsedOutput.table && typeof parsedOutput.table === \"object\") return parsedOutput.table;\n  if (parsedOutput.result && typeof parsedOutput.result === \"object\" && parsedOutput.result.table && typeof parsedOutput.result.table === \"object\") return parsedOutput.result.table;\n  if (Array.isArray(parsedOutput.rows) || Array.isArray(parsedOutput.columns)) return parsedOutput;\n  return null;\n}\nconst input = $input.first().json;\nconst raw = input.output || input.text || input.response || input.result || input.data || input.message || input.content || \"\";\nconst parsedOutput = safeJsonParse(raw);\nconst tableCandidate = unwrapTable(parsedOutput) || {};\nconst topic = stringifyCell(input.topic) || \"Study Topic\";\nconst requestedRows = Number(input.rowCount || 5) || 5;\nconst sourceText = stringifyCell(input.selectedSourceText) || stringifyCell(input.selectedSources);\nconst columns = normalizeColumns(tableCandidate.columns, input.expectedColumns);\nlet rows = normalizeRows(tableCandidate.rows, columns);\nlet usedSourceFallback = false;\nif (rows.length === 0) {\n  rows = buildFallbackRowsFromSource(sourceText, columns, requestedRows, topic);\n  usedSourceFallback = true;\n}\nconst finalTable = {\n  title: stringifyCell(tableCandidate.title) || `${topic} Study Table`,\n  description: stringifyCell(tableCandidate.description) || `A study table generated from the selected source about ${topic}.`,\n  columns,\n  rows: rows.slice(0, requestedRows)\n};\nreturn [{ json: { table: finalTable, fallback: true, provider: \"groq\" } }];"
+      },
+      "id": "clean-groq-tables-json",
+      "name": "Clean Groq Tables JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1760,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeJsonParse(value) {\n  if (value === null || value === undefined) return null;\n  if (typeof value === \"object\") return value;\n  if (typeof value !== \"string\") return null;\n  let text = value.trim();\n  text = text.replace(/^```json\\s*/i, \"\").replace(/^```\\s*/i, \"\").replace(/```$/i, \"\").trim();\n  const firstBrace = text.indexOf(\"{\");\n  const lastBrace = text.lastIndexOf(\"}\");\n  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) text = text.slice(firstBrace, lastBrace + 1);\n  try { return JSON.parse(text); } catch { return null; }\n}\nfunction stringifyCell(value) {\n  if (value === null || value === undefined) return \"\";\n  if (typeof value === \"string\") return value.trim();\n  if (typeof value === \"number\" || typeof value === \"boolean\") return String(value);\n  if (Array.isArray(value)) return value.map(stringifyCell).filter(Boolean).join(\", \");\n  if (typeof value === \"object\") {\n    const keys = [\"text\", \"value\", \"label\", \"content\", \"description\", \"meaning\", \"example\", \"answer\"];\n    for (const key of keys) {\n      const cleaned = stringifyCell(value[key]);\n      if (cleaned) return cleaned;\n    }\n    try { return JSON.stringify(value); } catch { return \"\"; }\n  }\n  return \"\";\n}\nfunction normalizeKey(value) { return String(value || \"\").toLowerCase().trim().replace(/[^a-z0-9]+/g, \"_\").replace(/^_+|_+$/g, \"\"); }\nfunction titleCase(value) { return String(value || \"\").replace(/_/g, \" \").replace(/\\b\\w/g, (letter) => letter.toUpperCase()); }\nfunction normalizeColumns(columns, expectedColumns) {\n  if (Array.isArray(columns) && columns.length > 0) {\n    const cleaned = columns.slice(0, 5).map((column, index) => {\n      if (typeof column === \"string\") {\n        const key = normalizeKey(column) || `column_${index + 1}`;\n        return { key, label: titleCase(column) };\n      }\n      if (column && typeof column === \"object\") {\n        const rawKey = column.key || column.id || column.name || column.label;\n        const key = normalizeKey(rawKey) || `column_${index + 1}`;\n        const label = String(column.label || column.name || rawKey || `Column ${index + 1}`).trim();\n        return { key, label: label || `Column ${index + 1}` };\n      }\n      return null;\n    }).filter(Boolean);\n    if (cleaned.length >= 3) return cleaned;\n  }\n  if (Array.isArray(expectedColumns) && expectedColumns.length > 0) return expectedColumns;\n  return [ { key: \"concept\", label: \"Concept\" }, { key: \"meaning\", label: \"Meaning\" }, { key: \"example\", label: \"Example\" } ];\n}\nfunction getValueByColumn(row, column, columnIndex) {\n  if (!row || typeof row !== \"object\") return \"\";\n  const directValue = stringifyCell(row[column.key]);\n  if (directValue) return directValue;\n  const labelValue = stringifyCell(row[column.label]);\n  if (labelValue) return labelValue;\n  const normalizedColumnKey = normalizeKey(column.key);\n  const normalizedColumnLabel = normalizeKey(column.label);\n  for (const [rowKey, rowValue] of Object.entries(row)) {\n    const normalizedRowKey = normalizeKey(rowKey);\n    if (normalizedRowKey === normalizedColumnKey || normalizedRowKey === normalizedColumnLabel) {\n      const matchedValue = stringifyCell(rowValue);\n      if (matchedValue) return matchedValue;\n    }\n  }\n  return stringifyCell(Object.values(row)[columnIndex]);\n}\nfunction normalizeRows(rows, columns) {\n  if (!Array.isArray(rows)) return [];\n  return rows.filter((row) => row && typeof row === \"object\" && !Array.isArray(row)).map((row) => {\n    const cleanedRow = {};\n    columns.forEach((column, columnIndex) => cleanedRow[column.key] = getValueByColumn(row, column, columnIndex));\n    return cleanedRow;\n  }).filter((row) => Object.values(row).some((value) => stringifyCell(value)));\n}\nfunction splitSentences(text) {\n  return String(text || \"\").replace(/\\[[0-9]+\\]/g, \"\").replace(/\\s+/g, \" \").split(/(?<=[.!?])\\s+/).map((sentence) => sentence.trim()).filter((sentence) => sentence.length > 35);\n}\nfunction buildFallbackRowsFromSource(sourceText, columns, requestedRows, topic) {\n  const sentences = splitSentences(sourceText);\n  const rows = [];\n  const usableSentences = sentences.length > 0 ? sentences : [`${topic} is an important study topic.`];\n  for (let index = 0; rows.length < requestedRows; index++) {\n    const sentence = usableSentences[index % usableSentences.length];\n    const row = {};\n    columns.forEach((column, columnIndex) => {\n      const key = column.key;\n      if (key === \"step\") row[key] = String(rows.length + 1);\n      else if (key === \"stage\") row[key] = `Stage ${rows.length + 1}`;\n      else if (key === \"result\") row[key] = sentence;\n      else if (key === \"cause\") row[key] = sentence;\n      else if (key === \"effect\") row[key] = sentence;\n      else if (key === \"evidence\") row[key] = sentence.length > 140 ? `${sentence.slice(0, 137).trim()}...` : sentence;\n      else if (key === \"similarity\") row[key] = \"Related to other key ideas from the same topic.\";\n      else if (key === \"difference\") row[key] = sentence;\n      else if (key === \"description\" || key === \"meaning\" || key === \"explanation\") row[key] = sentence;\n      else if (key === \"example\") row[key] = sentence.length > 140 ? `${sentence.slice(0, 137).trim()}...` : sentence;\n      else if (columnIndex === 0) row[key] = `Key Idea ${rows.length + 1}`;\n      else row[key] = sentence;\n    });\n    rows.push(row);\n  }\n  return rows;\n}\nfunction unwrapTable(parsedOutput) {\n  if (!parsedOutput || typeof parsedOutput !== \"object\") return null;\n  if (parsedOutput.table && typeof parsedOutput.table === \"object\") return parsedOutput.table;\n  if (parsedOutput.result && typeof parsedOutput.result === \"object\" && parsedOutput.result.table && typeof parsedOutput.result.table === \"object\") return parsedOutput.result.table;\n  if (Array.isArray(parsedOutput.rows) || Array.isArray(parsedOutput.columns)) return parsedOutput;\n  return null;\n}\nconst input = $input.first().json;\nconst raw = input.output || input.text || input.response || input.result || input.data || input.message || input.content || \"\";\nconst parsedOutput = safeJsonParse(raw);\nconst tableCandidate = unwrapTable(parsedOutput) || {};\nconst topic = stringifyCell(input.topic) || \"Study Topic\";\nconst requestedRows = Number(input.rowCount || 5) || 5;\nconst sourceText = stringifyCell(input.selectedSourceText) || stringifyCell(input.selectedSources);\nconst columns = normalizeColumns(tableCandidate.columns, input.expectedColumns);\nlet rows = normalizeRows(tableCandidate.rows, columns);\nlet usedSourceFallback = false;\nif (rows.length === 0) {\n  rows = buildFallbackRowsFromSource(sourceText, columns, requestedRows, topic);\n  usedSourceFallback = true;\n}\nconst finalTable = {\n  title: stringifyCell(tableCandidate.title) || `${topic} Study Table`,\n  description: stringifyCell(tableCandidate.description) || `A study table generated from the selected source about ${topic}.`,\n  columns,\n  rows: rows.slice(0, requestedRows)\n};\nreturn [{ json: { table: finalTable, fallback: true, provider: \"openrouter\" } }];"
+      },
+      "id": "clean-openrouter-tables-json",
+      "name": "Clean OpenRouter Tables JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1120,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeJsonParse(value) {\n  if (value === null || value === undefined) return null;\n  if (typeof value === \"object\") return value;\n  if (typeof value !== \"string\") return null;\n  let text = value.trim();\n  text = text.replace(/^```json\\s*/i, \"\").replace(/^```\\s*/i, \"\").replace(/```$/i, \"\").trim();\n  const firstBrace = text.indexOf(\"{\");\n  const lastBrace = text.lastIndexOf(\"}\");\n  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) text = text.slice(firstBrace, lastBrace + 1);\n  try { return JSON.parse(text); } catch { return null; }\n}\nfunction stringifyCell(value) {\n  if (value === null || value === undefined) return \"\";\n  if (typeof value === \"string\") return value.trim();\n  if (typeof value === \"number\" || typeof value === \"boolean\") return String(value);\n  if (Array.isArray(value)) return value.map(stringifyCell).filter(Boolean).join(\", \");\n  if (typeof value === \"object\") {\n    const keys = [\"text\", \"value\", \"label\", \"content\", \"description\", \"meaning\", \"example\", \"answer\"];\n    for (const key of keys) {\n      const cleaned = stringifyCell(value[key]);\n      if (cleaned) return cleaned;\n    }\n    try { return JSON.stringify(value); } catch { return \"\"; }\n  }\n  return \"\";\n}\nfunction normalizeKey(value) { return String(value || \"\").toLowerCase().trim().replace(/[^a-z0-9]+/g, \"_\").replace(/^_+|_+$/g, \"\"); }\nfunction titleCase(value) { return String(value || \"\").replace(/_/g, \" \").replace(/\\b\\w/g, (letter) => letter.toUpperCase()); }\nfunction normalizeColumns(columns, expectedColumns) {\n  if (Array.isArray(columns) && columns.length > 0) {\n    const cleaned = columns.slice(0, 5).map((column, index) => {\n      if (typeof column === \"string\") {\n        const key = normalizeKey(column) || `column_${index + 1}`;\n        return { key, label: titleCase(column) };\n      }\n      if (column && typeof column === \"object\") {\n        const rawKey = column.key || column.id || column.name || column.label;\n        const key = normalizeKey(rawKey) || `column_${index + 1}`;\n        const label = String(column.label || column.name || rawKey || `Column ${index + 1}`).trim();\n        return { key, label: label || `Column ${index + 1}` };\n      }\n      return null;\n    }).filter(Boolean);\n    if (cleaned.length >= 3) return cleaned;\n  }\n  if (Array.isArray(expectedColumns) && expectedColumns.length > 0) return expectedColumns;\n  return [ { key: \"concept\", label: \"Concept\" }, { key: \"meaning\", label: \"Meaning\" }, { key: \"example\", label: \"Example\" } ];\n}\nfunction getValueByColumn(row, column, columnIndex) {\n  if (!row || typeof row !== \"object\") return \"\";\n  const directValue = stringifyCell(row[column.key]);\n  if (directValue) return directValue;\n  const labelValue = stringifyCell(row[column.label]);\n  if (labelValue) return labelValue;\n  const normalizedColumnKey = normalizeKey(column.key);\n  const normalizedColumnLabel = normalizeKey(column.label);\n  for (const [rowKey, rowValue] of Object.entries(row)) {\n    const normalizedRowKey = normalizeKey(rowKey);\n    if (normalizedRowKey === normalizedColumnKey || normalizedRowKey === normalizedColumnLabel) {\n      const matchedValue = stringifyCell(rowValue);\n      if (matchedValue) return matchedValue;\n    }\n  }\n  return stringifyCell(Object.values(row)[columnIndex]);\n}\nfunction normalizeRows(rows, columns) {\n  if (!Array.isArray(rows)) return [];\n  return rows.filter((row) => row && typeof row === \"object\" && !Array.isArray(row)).map((row) => {\n    const cleanedRow = {};\n    columns.forEach((column, columnIndex) => cleanedRow[column.key] = getValueByColumn(row, column, columnIndex));\n    return cleanedRow;\n  }).filter((row) => Object.values(row).some((value) => stringifyCell(value)));\n}\nfunction splitSentences(text) {\n  return String(text || \"\").replace(/\\[[0-9]+\\]/g, \"\").replace(/\\s+/g, \" \").split(/(?<=[.!?])\\s+/).map((sentence) => sentence.trim()).filter((sentence) => sentence.length > 35);\n}\nfunction buildFallbackRowsFromSource(sourceText, columns, requestedRows, topic) {\n  const sentences = splitSentences(sourceText);\n  const rows = [];\n  const usableSentences = sentences.length > 0 ? sentences : [`${topic} is an important study topic.`];\n  for (let index = 0; rows.length < requestedRows; index++) {\n    const sentence = usableSentences[index % usableSentences.length];\n    const row = {};\n    columns.forEach((column, columnIndex) => {\n      const key = column.key;\n      if (key === \"step\") row[key] = String(rows.length + 1);\n      else if (key === \"stage\") row[key] = `Stage ${rows.length + 1}`;\n      else if (key === \"result\") row[key] = sentence;\n      else if (key === \"cause\") row[key] = sentence;\n      else if (key === \"effect\") row[key] = sentence;\n      else if (key === \"evidence\") row[key] = sentence.length > 140 ? `${sentence.slice(0, 137).trim()}...` : sentence;\n      else if (key === \"similarity\") row[key] = \"Related to other key ideas from the same topic.\";\n      else if (key === \"difference\") row[key] = sentence;\n      else if (key === \"description\" || key === \"meaning\" || key === \"explanation\") row[key] = sentence;\n      else if (key === \"example\") row[key] = sentence.length > 140 ? `${sentence.slice(0, 137).trim()}...` : sentence;\n      else if (columnIndex === 0) row[key] = `Key Idea ${rows.length + 1}`;\n      else row[key] = sentence;\n    });\n    rows.push(row);\n  }\n  return rows;\n}\nfunction unwrapTable(parsedOutput) {\n  if (!parsedOutput || typeof parsedOutput !== \"object\") return null;\n  if (parsedOutput.table && typeof parsedOutput.table === \"object\") return parsedOutput.table;\n  if (parsedOutput.result && typeof parsedOutput.result === \"object\" && parsedOutput.result.table && typeof parsedOutput.result.table === \"object\") return parsedOutput.result.table;\n  if (Array.isArray(parsedOutput.rows) || Array.isArray(parsedOutput.columns)) return parsedOutput;\n  return null;\n}\nconst input = $input.first().json;\nconst raw = input.output || input.text || input.response || input.result || input.data || input.message || input.content || \"\";\nconst parsedOutput = safeJsonParse(raw);\nconst tableCandidate = unwrapTable(parsedOutput) || {};\nconst topic = stringifyCell(input.topic) || \"Study Topic\";\nconst requestedRows = Number(input.rowCount || 5) || 5;\nconst sourceText = stringifyCell(input.selectedSourceText) || stringifyCell(input.selectedSources);\nconst columns = normalizeColumns(tableCandidate.columns, input.expectedColumns);\nlet rows = normalizeRows(tableCandidate.rows, columns);\nlet usedSourceFallback = false;\nif (rows.length === 0) {\n  rows = buildFallbackRowsFromSource(sourceText, columns, requestedRows, topic);\n  usedSourceFallback = true;\n}\nconst finalTable = {\n  title: stringifyCell(tableCandidate.title) || `${topic} Study Table`,\n  description: stringifyCell(tableCandidate.description) || `A study table generated from the selected source about ${topic}.`,\n  columns,\n  rows: rows.slice(0, requestedRows)\n};\nreturn [{ json: { table: finalTable, fallback: true, provider: \"mistral\" } }];"
+      },
+      "id": "clean-mistral-tables-json",
+      "name": "Clean Mistral Tables JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeJsonParse(value) {\n  if (value === null || value === undefined) return null;\n  if (typeof value === \"object\") return value;\n  if (typeof value !== \"string\") return null;\n  let text = value.trim();\n  text = text.replace(/^```json\\s*/i, \"\").replace(/^```\\s*/i, \"\").replace(/```$/i, \"\").trim();\n  const firstBrace = text.indexOf(\"{\");\n  const lastBrace = text.lastIndexOf(\"}\");\n  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) text = text.slice(firstBrace, lastBrace + 1);\n  try { return JSON.parse(text); } catch { return null; }\n}\nfunction stringifyCell(value) {\n  if (value === null || value === undefined) return \"\";\n  if (typeof value === \"string\") return value.trim();\n  if (typeof value === \"number\" || typeof value === \"boolean\") return String(value);\n  if (Array.isArray(value)) return value.map(stringifyCell).filter(Boolean).join(\", \");\n  if (typeof value === \"object\") {\n    const keys = [\"text\", \"value\", \"label\", \"content\", \"description\", \"meaning\", \"example\", \"answer\"];\n    for (const key of keys) {\n      const cleaned = stringifyCell(value[key]);\n      if (cleaned) return cleaned;\n    }\n    try { return JSON.stringify(value); } catch { return \"\"; }\n  }\n  return \"\";\n}\nfunction normalizeKey(value) { return String(value || \"\").toLowerCase().trim().replace(/[^a-z0-9]+/g, \"_\").replace(/^_+|_+$/g, \"\"); }\nfunction titleCase(value) { return String(value || \"\").replace(/_/g, \" \").replace(/\\b\\w/g, (letter) => letter.toUpperCase()); }\nfunction normalizeColumns(columns, expectedColumns) {\n  if (Array.isArray(columns) && columns.length > 0) {\n    const cleaned = columns.slice(0, 5).map((column, index) => {\n      if (typeof column === \"string\") {\n        const key = normalizeKey(column) || `column_${index + 1}`;\n        return { key, label: titleCase(column) };\n      }\n      if (column && typeof column === \"object\") {\n        const rawKey = column.key || column.id || column.name || column.label;\n        const key = normalizeKey(rawKey) || `column_${index + 1}`;\n        const label = String(column.label || column.name || rawKey || `Column ${index + 1}`).trim();\n        return { key, label: label || `Column ${index + 1}` };\n      }\n      return null;\n    }).filter(Boolean);\n    if (cleaned.length >= 3) return cleaned;\n  }\n  if (Array.isArray(expectedColumns) && expectedColumns.length > 0) return expectedColumns;\n  return [ { key: \"concept\", label: \"Concept\" }, { key: \"meaning\", label: \"Meaning\" }, { key: \"example\", label: \"Example\" } ];\n}\nfunction getValueByColumn(row, column, columnIndex) {\n  if (!row || typeof row !== \"object\") return \"\";\n  const directValue = stringifyCell(row[column.key]);\n  if (directValue) return directValue;\n  const labelValue = stringifyCell(row[column.label]);\n  if (labelValue) return labelValue;\n  const normalizedColumnKey = normalizeKey(column.key);\n  const normalizedColumnLabel = normalizeKey(column.label);\n  for (const [rowKey, rowValue] of Object.entries(row)) {\n    const normalizedRowKey = normalizeKey(rowKey);\n    if (normalizedRowKey === normalizedColumnKey || normalizedRowKey === normalizedColumnLabel) {\n      const matchedValue = stringifyCell(rowValue);\n      if (matchedValue) return matchedValue;\n    }\n  }\n  return stringifyCell(Object.values(row)[columnIndex]);\n}\nfunction normalizeRows(rows, columns) {\n  if (!Array.isArray(rows)) return [];\n  return rows.filter((row) => row && typeof row === \"object\" && !Array.isArray(row)).map((row) => {\n    const cleanedRow = {};\n    columns.forEach((column, columnIndex) => cleanedRow[column.key] = getValueByColumn(row, column, columnIndex));\n    return cleanedRow;\n  }).filter((row) => Object.values(row).some((value) => stringifyCell(value)));\n}\nfunction splitSentences(text) {\n  return String(text || \"\").replace(/\\[[0-9]+\\]/g, \"\").replace(/\\s+/g, \" \").split(/(?<=[.!?])\\s+/).map((sentence) => sentence.trim()).filter((sentence) => sentence.length > 35);\n}\nfunction buildFallbackRowsFromSource(sourceText, columns, requestedRows, topic) {\n  const sentences = splitSentences(sourceText);\n  const rows = [];\n  const usableSentences = sentences.length > 0 ? sentences : [`${topic} is an important study topic.`];\n  for (let index = 0; rows.length < requestedRows; index++) {\n    const sentence = usableSentences[index % usableSentences.length];\n    const row = {};\n    columns.forEach((column, columnIndex) => {\n      const key = column.key;\n      if (key === \"step\") row[key] = String(rows.length + 1);\n      else if (key === \"stage\") row[key] = `Stage ${rows.length + 1}`;\n      else if (key === \"result\") row[key] = sentence;\n      else if (key === \"cause\") row[key] = sentence;\n      else if (key === \"effect\") row[key] = sentence;\n      else if (key === \"evidence\") row[key] = sentence.length > 140 ? `${sentence.slice(0, 137).trim()}...` : sentence;\n      else if (key === \"similarity\") row[key] = \"Related to other key ideas from the same topic.\";\n      else if (key === \"difference\") row[key] = sentence;\n      else if (key === \"description\" || key === \"meaning\" || key === \"explanation\") row[key] = sentence;\n      else if (key === \"example\") row[key] = sentence.length > 140 ? `${sentence.slice(0, 137).trim()}...` : sentence;\n      else if (columnIndex === 0) row[key] = `Key Idea ${rows.length + 1}`;\n      else row[key] = sentence;\n    });\n    rows.push(row);\n  }\n  return rows;\n}\nfunction unwrapTable(parsedOutput) {\n  if (!parsedOutput || typeof parsedOutput !== \"object\") return null;\n  if (parsedOutput.table && typeof parsedOutput.table === \"object\") return parsedOutput.table;\n  if (parsedOutput.result && typeof parsedOutput.result === \"object\" && parsedOutput.result.table && typeof parsedOutput.result.table === \"object\") return parsedOutput.result.table;\n  if (Array.isArray(parsedOutput.rows) || Array.isArray(parsedOutput.columns)) return parsedOutput;\n  return null;\n}\nconst input = $input.first().json;\nconst raw = input.output || input.text || input.response || input.result || input.data || input.message || input.content || \"\";\nconst parsedOutput = safeJsonParse(raw);\nconst tableCandidate = unwrapTable(parsedOutput) || {};\nconst topic = stringifyCell(input.topic) || \"Study Topic\";\nconst requestedRows = Number(input.rowCount || 5) || 5;\nconst sourceText = stringifyCell(input.selectedSourceText) || stringifyCell(input.selectedSources);\nconst columns = normalizeColumns(tableCandidate.columns, input.expectedColumns);\nlet rows = normalizeRows(tableCandidate.rows, columns);\nlet usedSourceFallback = false;\nif (rows.length === 0) {\n  rows = buildFallbackRowsFromSource(sourceText, columns, requestedRows, topic);\n  usedSourceFallback = true;\n}\nconst finalTable = {\n  title: stringifyCell(tableCandidate.title) || `${topic} Study Table`,\n  description: stringifyCell(tableCandidate.description) || `A study table generated from the selected source about ${topic}.`,\n  columns,\n  rows: rows.slice(0, requestedRows)\n};\nreturn [{ json: { table: finalTable, fallback: true, provider: \"deepseek\" } }];"
+      },
+      "id": "clean-deepseek-tables-json",
+      "name": "Clean DeepSeek Tables JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        1160
       ]
     },
     {
@@ -82,7 +101,7 @@
         "promptType": "define",
         "text": "={{$json.prompt}}",
         "options": {
-          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, comments, or explanations outside JSON."
         }
       },
       "id": "tables-gemini-ai-agent",
@@ -90,8 +109,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        -2576,
-        608
+        -3040,
+        440
       ],
       "continueOnFail": true
     },
@@ -108,8 +127,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        -2576,
-        832
+        -3040,
+        660
       ],
       "credentials": {
         "googlePalmApi": {
@@ -124,7 +143,7 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict",
+            "typeValidation": "loose",
             "version": 1
           },
           "conditions": [
@@ -158,27 +177,14 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -2240,
-        608
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet table;\nlet fallback = false;\n\ntry {\n  table = JSON.parse(cleaned);\n\n  if (!Array.isArray(table.columns) || !Array.isArray(table.rows)) {\n    throw new Error(\"Invalid table format\");\n  }\n} catch (error) {\n  fallback = true;\n  table = {\n    title: \"Study Aura Table\",\n    description: \"A quick fallback table for organizing a study topic.\",\n    columns: [\n      { key: \"concept\", label: \"Concept\" },\n      { key: \"meaning\", label: \"Meaning\" },\n      { key: \"example\", label: \"Example\" }\n    ],\n    rows: [\n      {\n        concept: \"Key idea\",\n        meaning: \"The main point to understand\",\n        example: \"Break a topic into smaller parts\"\n      },\n      {\n        concept: \"Review\",\n        meaning: \"Practice remembering important details\",\n        example: \"Use quizzes or flashcards\"\n      }\n    ]\n  };\n}\n\nlet columns = Array.isArray(table.columns) ? table.columns.slice(0, 5) : [];\n\ncolumns = columns.map((column, index) => {\n  const fallbackKey = `column_${index + 1}`;\n  const key = String(column.key || fallbackKey).replace(/[^a-zA-Z0-9_]/g, \"_\").toLowerCase();\n\n  return {\n    key,\n    label: String(column.label || column.key || `Column ${index + 1}`)\n  };\n});\n\nif (columns.length < 3) {\n  columns = [\n    { key: \"concept\", label: \"Concept\" },\n    { key: \"meaning\", label: \"Meaning\" },\n    { key: \"example\", label: \"Example\" }\n  ];\n}\n\nconst rows = Array.isArray(table.rows)\n  ? table.rows.map((row) => {\n      const normalizedRow = {};\n\n      for (const column of columns) {\n        normalizedRow[column.key] = String(row[column.key] || row[column.label] || \"\");\n      }\n\n      return normalizedRow;\n    })\n  : [];\n\nreturn [\n  {\n    json: {\n      table: {\n        title: String(table.title || \"Study Aura Table\"),\n        description: String(table.description || \"Generated study table.\"),\n        columns,\n        rows\n      },\n      fallback,\n      provider: $json.provider || \"gemini\"\n    }\n  }\n];"
-      },
-      "id": "clean-gemini-tables-json",
-      "name": "Clean Gemini Tables JSON",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -1936,
-        528
+        -2720,
+        440
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{\n  {\n    \"table\": $json.table,\n    \"provider\": \"gemini\",\n    \"fallback\": $json.fallback\n  }\n}}",
+        "responseBody": "={{ { \"table\": $json.table, \"provider\": \"gemini\", \"fallback\": $json.fallback } }}",
         "options": {}
       },
       "id": "return-gemini-tables-response",
@@ -186,16 +192,16 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        -1664,
-        528
+        -2120,
+        360
       ]
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{$node[\"Prepare Tables Agent Prompt\"].json.prompt}}",
+        "text": "={{$node[\"Build Tables Agent Prompt\"].json.prompt}}",
         "options": {
-          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, comments, or explanations outside JSON."
         }
       },
       "id": "tables-groq-ai-agent",
@@ -203,8 +209,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        -1936,
-        736
+        -2400,
+        640
       ],
       "continueOnFail": true
     },
@@ -220,8 +226,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
       "position": [
-        -1936,
-        960
+        -2400,
+        860
       ],
       "credentials": {
         "groqApi": {
@@ -270,27 +276,14 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -1600,
-        736
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet table;\nlet fallback = false;\n\ntry {\n  table = JSON.parse(cleaned);\n\n  if (!Array.isArray(table.columns) || !Array.isArray(table.rows)) {\n    throw new Error(\"Invalid table format\");\n  }\n} catch (error) {\n  fallback = true;\n  table = {\n    title: \"Study Aura Table\",\n    description: \"A quick fallback table for organizing a study topic.\",\n    columns: [\n      { key: \"concept\", label: \"Concept\" },\n      { key: \"meaning\", label: \"Meaning\" },\n      { key: \"example\", label: \"Example\" }\n    ],\n    rows: [\n      {\n        concept: \"Key idea\",\n        meaning: \"The main point to understand\",\n        example: \"Break a topic into smaller parts\"\n      },\n      {\n        concept: \"Review\",\n        meaning: \"Practice remembering important details\",\n        example: \"Use quizzes or flashcards\"\n      }\n    ]\n  };\n}\n\nlet columns = Array.isArray(table.columns) ? table.columns.slice(0, 5) : [];\n\ncolumns = columns.map((column, index) => {\n  const fallbackKey = `column_${index + 1}`;\n  const key = String(column.key || fallbackKey).replace(/[^a-zA-Z0-9_]/g, \"_\").toLowerCase();\n\n  return {\n    key,\n    label: String(column.label || column.key || `Column ${index + 1}`)\n  };\n});\n\nif (columns.length < 3) {\n  columns = [\n    { key: \"concept\", label: \"Concept\" },\n    { key: \"meaning\", label: \"Meaning\" },\n    { key: \"example\", label: \"Example\" }\n  ];\n}\n\nconst rows = Array.isArray(table.rows)\n  ? table.rows.map((row) => {\n      const normalizedRow = {};\n\n      for (const column of columns) {\n        normalizedRow[column.key] = String(row[column.key] || row[column.label] || \"\");\n      }\n\n      return normalizedRow;\n    })\n  : [];\n\nreturn [\n  {\n    json: {\n      table: {\n        title: String(table.title || \"Study Aura Table\"),\n        description: String(table.description || \"Generated study table.\"),\n        columns,\n        rows\n      },\n      fallback,\n      provider: $json.provider || \"groq\"\n    }\n  }\n];"
-      },
-      "id": "clean-groq-tables-json",
-      "name": "Clean Groq Tables JSON",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -1296,
-        656
+        -2080,
+        640
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{\n  {\n    \"table\": $json.table,\n    \"provider\": \"groq\",\n    \"fallback\": true\n  }\n}}",
+        "responseBody": "={{ { \"table\": $json.table, \"provider\": \"groq\", \"fallback\": $json.fallback } }}",
         "options": {}
       },
       "id": "return-groq-tables-response",
@@ -298,16 +291,16 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        -1024,
-        656
+        -1480,
+        560
       ]
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{$node[\"Prepare Tables Agent Prompt\"].json.prompt}}",
+        "text": "={{$node[\"Build Tables Agent Prompt\"].json.prompt}}",
         "options": {
-          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, comments, or explanations outside JSON."
         }
       },
       "id": "tables-openrouter-ai-agent",
@@ -315,8 +308,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        -1024,
-        848
+        -1760,
+        840
       ],
       "continueOnFail": true
     },
@@ -333,8 +326,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
       "typeVersion": 1,
       "position": [
-        -1024,
-        1072
+        -1760,
+        1060
       ],
       "credentials": {
         "openRouterApi": {
@@ -383,27 +376,14 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -688,
-        848
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet table;\nlet fallback = false;\n\ntry {\n  table = JSON.parse(cleaned);\n\n  if (!Array.isArray(table.columns) || !Array.isArray(table.rows)) {\n    throw new Error(\"Invalid table format\");\n  }\n} catch (error) {\n  fallback = true;\n  table = {\n    title: \"Study Aura Table\",\n    description: \"A quick fallback table for organizing a study topic.\",\n    columns: [\n      { key: \"concept\", label: \"Concept\" },\n      { key: \"meaning\", label: \"Meaning\" },\n      { key: \"example\", label: \"Example\" }\n    ],\n    rows: [\n      {\n        concept: \"Key idea\",\n        meaning: \"The main point to understand\",\n        example: \"Break a topic into smaller parts\"\n      },\n      {\n        concept: \"Review\",\n        meaning: \"Practice remembering important details\",\n        example: \"Use quizzes or flashcards\"\n      }\n    ]\n  };\n}\n\nlet columns = Array.isArray(table.columns) ? table.columns.slice(0, 5) : [];\n\ncolumns = columns.map((column, index) => {\n  const fallbackKey = `column_${index + 1}`;\n  const key = String(column.key || fallbackKey).replace(/[^a-zA-Z0-9_]/g, \"_\").toLowerCase();\n\n  return {\n    key,\n    label: String(column.label || column.key || `Column ${index + 1}`)\n  };\n});\n\nif (columns.length < 3) {\n  columns = [\n    { key: \"concept\", label: \"Concept\" },\n    { key: \"meaning\", label: \"Meaning\" },\n    { key: \"example\", label: \"Example\" }\n  ];\n}\n\nconst rows = Array.isArray(table.rows)\n  ? table.rows.map((row) => {\n      const normalizedRow = {};\n\n      for (const column of columns) {\n        normalizedRow[column.key] = String(row[column.key] || row[column.label] || \"\");\n      }\n\n      return normalizedRow;\n    })\n  : [];\n\nreturn [\n  {\n    json: {\n      table: {\n        title: String(table.title || \"Study Aura Table\"),\n        description: String(table.description || \"Generated study table.\"),\n        columns,\n        rows\n      },\n      fallback,\n      provider: $json.provider || \"openrouter\"\n    }\n  }\n];"
-      },
-      "id": "clean-openrouter-tables-json",
-      "name": "Clean OpenRouter Tables JSON",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -384,
-        768
+        -1440,
+        840
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{\n  {\n    \"table\": $json.table,\n    \"provider\": \"openrouter\",\n    \"fallback\": true\n  }\n}}",
+        "responseBody": "={{ { \"table\": $json.table, \"provider\": \"openrouter\", \"fallback\": $json.fallback } }}",
         "options": {}
       },
       "id": "return-openrouter-tables-response",
@@ -411,16 +391,16 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        -112,
-        768
+        -840,
+        760
       ]
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{$node[\"Prepare Tables Agent Prompt\"].json.prompt}}",
+        "text": "={{$node[\"Build Tables Agent Prompt\"].json.prompt}}",
         "options": {
-          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, comments, or explanations outside JSON."
         }
       },
       "id": "tables-mistral-ai-agent",
@@ -428,8 +408,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        -112,
-        976
+        -1120,
+        1040
       ],
       "continueOnFail": true
     },
@@ -446,8 +426,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
       "typeVersion": 1,
       "position": [
-        -112,
-        1200
+        -1120,
+        1260
       ],
       "credentials": {
         "mistralCloudApi": {
@@ -496,27 +476,14 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        224,
-        976
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet table;\nlet fallback = false;\n\ntry {\n  table = JSON.parse(cleaned);\n\n  if (!Array.isArray(table.columns) || !Array.isArray(table.rows)) {\n    throw new Error(\"Invalid table format\");\n  }\n} catch (error) {\n  fallback = true;\n  table = {\n    title: \"Study Aura Table\",\n    description: \"A quick fallback table for organizing a study topic.\",\n    columns: [\n      { key: \"concept\", label: \"Concept\" },\n      { key: \"meaning\", label: \"Meaning\" },\n      { key: \"example\", label: \"Example\" }\n    ],\n    rows: [\n      {\n        concept: \"Key idea\",\n        meaning: \"The main point to understand\",\n        example: \"Break a topic into smaller parts\"\n      },\n      {\n        concept: \"Review\",\n        meaning: \"Practice remembering important details\",\n        example: \"Use quizzes or flashcards\"\n      }\n    ]\n  };\n}\n\nlet columns = Array.isArray(table.columns) ? table.columns.slice(0, 5) : [];\n\ncolumns = columns.map((column, index) => {\n  const fallbackKey = `column_${index + 1}`;\n  const key = String(column.key || fallbackKey).replace(/[^a-zA-Z0-9_]/g, \"_\").toLowerCase();\n\n  return {\n    key,\n    label: String(column.label || column.key || `Column ${index + 1}`)\n  };\n});\n\nif (columns.length < 3) {\n  columns = [\n    { key: \"concept\", label: \"Concept\" },\n    { key: \"meaning\", label: \"Meaning\" },\n    { key: \"example\", label: \"Example\" }\n  ];\n}\n\nconst rows = Array.isArray(table.rows)\n  ? table.rows.map((row) => {\n      const normalizedRow = {};\n\n      for (const column of columns) {\n        normalizedRow[column.key] = String(row[column.key] || row[column.label] || \"\");\n      }\n\n      return normalizedRow;\n    })\n  : [];\n\nreturn [\n  {\n    json: {\n      table: {\n        title: String(table.title || \"Study Aura Table\"),\n        description: String(table.description || \"Generated study table.\"),\n        columns,\n        rows\n      },\n      fallback,\n      provider: $json.provider || \"mistral\"\n    }\n  }\n];"
-      },
-      "id": "clean-mistral-tables-json",
-      "name": "Clean Mistral Tables JSON",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        528,
-        896
+        -800,
+        1040
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{\n  {\n    \"table\": $json.table,\n    \"provider\": \"mistral\",\n    \"fallback\": true\n  }\n}}",
+        "responseBody": "={{ { \"table\": $json.table, \"provider\": \"mistral\", \"fallback\": $json.fallback } }}",
         "options": {}
       },
       "id": "return-mistral-tables-response",
@@ -524,16 +491,16 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        800,
-        896
+        -200,
+        960
       ]
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{$node[\"Prepare Tables Agent Prompt\"].json.prompt}}",
+        "text": "={{$node[\"Build Tables Agent Prompt\"].json.prompt}}",
         "options": {
-          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, comments, or explanations outside JSON."
         }
       },
       "id": "tables-deepseek-ai-agent",
@@ -541,8 +508,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        800,
-        1088
+        -480,
+        1240
       ],
       "continueOnFail": true
     },
@@ -559,8 +526,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
       "typeVersion": 1,
       "position": [
-        800,
-        1312
+        -480,
+        1460
       ],
       "credentials": {
         "deepSeekApi": {
@@ -609,27 +576,14 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1136,
-        1088
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet table;\nlet fallback = false;\n\ntry {\n  table = JSON.parse(cleaned);\n\n  if (!Array.isArray(table.columns) || !Array.isArray(table.rows)) {\n    throw new Error(\"Invalid table format\");\n  }\n} catch (error) {\n  fallback = true;\n  table = {\n    title: \"Study Aura Table\",\n    description: \"A quick fallback table for organizing a study topic.\",\n    columns: [\n      { key: \"concept\", label: \"Concept\" },\n      { key: \"meaning\", label: \"Meaning\" },\n      { key: \"example\", label: \"Example\" }\n    ],\n    rows: [\n      {\n        concept: \"Key idea\",\n        meaning: \"The main point to understand\",\n        example: \"Break a topic into smaller parts\"\n      },\n      {\n        concept: \"Review\",\n        meaning: \"Practice remembering important details\",\n        example: \"Use quizzes or flashcards\"\n      }\n    ]\n  };\n}\n\nlet columns = Array.isArray(table.columns) ? table.columns.slice(0, 5) : [];\n\ncolumns = columns.map((column, index) => {\n  const fallbackKey = `column_${index + 1}`;\n  const key = String(column.key || fallbackKey).replace(/[^a-zA-Z0-9_]/g, \"_\").toLowerCase();\n\n  return {\n    key,\n    label: String(column.label || column.key || `Column ${index + 1}`)\n  };\n});\n\nif (columns.length < 3) {\n  columns = [\n    { key: \"concept\", label: \"Concept\" },\n    { key: \"meaning\", label: \"Meaning\" },\n    { key: \"example\", label: \"Example\" }\n  ];\n}\n\nconst rows = Array.isArray(table.rows)\n  ? table.rows.map((row) => {\n      const normalizedRow = {};\n\n      for (const column of columns) {\n        normalizedRow[column.key] = String(row[column.key] || row[column.label] || \"\");\n      }\n\n      return normalizedRow;\n    })\n  : [];\n\nreturn [\n  {\n    json: {\n      table: {\n        title: String(table.title || \"Study Aura Table\"),\n        description: String(table.description || \"Generated study table.\"),\n        columns,\n        rows\n      },\n      fallback,\n      provider: $json.provider || \"deepseek\"\n    }\n  }\n];"
-      },
-      "id": "clean-deepseek-tables-json",
-      "name": "Clean DeepSeek Tables JSON",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1440,
-        1008
+        -160,
+        1240
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{\n  {\n    \"table\": $json.table,\n    \"provider\": \"deepseek\",\n    \"fallback\": true\n  }\n}}",
+        "responseBody": "={{ { \"table\": $json.table, \"provider\": \"deepseek\", \"fallback\": $json.fallback } }}",
         "options": {}
       },
       "id": "return-deepseek-tables-response",
@@ -637,14 +591,14 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1712,
-        1008
+        440,
+        1160
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{\n  {\n    \"table\": {\n      \"title\": \"Study Aura Table\",\n      \"description\": \"A quick fallback table for organizing a study topic.\",\n      \"columns\": [\n        { \"key\": \"concept\", \"label\": \"Concept\" },\n        { \"key\": \"meaning\", \"label\": \"Meaning\" },\n        { \"key\": \"example\", \"label\": \"Example\" }\n      ],\n      \"rows\": [\n        {\n          \"concept\": \"Key idea\",\n          \"meaning\": \"The main point to understand\",\n          \"example\": \"Break a topic into smaller parts\"\n        },\n        {\n          \"concept\": \"Review\",\n          \"meaning\": \"Practice remembering important details\",\n          \"example\": \"Use quizzes or flashcards\"\n        }\n      ]\n    },\n    \"provider\": \"static-fallback\",\n    \"fallback\": true\n  }\n}}",
+        "responseBody": "={{ { \"table\": { \"title\": \"Study Aura Table\", \"description\": \"A quick fallback table for organizing a study topic.\", \"columns\": [ { \"key\": \"concept\", \"label\": \"Concept\" }, { \"key\": \"meaning\", \"label\": \"Meaning\" }, { \"key\": \"example\", \"label\": \"Example\" } ], \"rows\": [ { \"concept\": \"Key idea\", \"meaning\": \"The main point to understand\", \"example\": \"Break a topic into smaller parts\" }, { \"concept\": \"Review\", \"meaning\": \"Practice remembering important details\", \"example\": \"Use quizzes or flashcards\" }, { \"concept\": \"Summary\", \"meaning\": \"A short explanation of a topic\", \"example\": \"Use a table to compare important details\" } ] }, \"provider\": \"static-fallback\", \"fallback\": true } }}",
         "options": {}
       },
       "id": "return-static-tables-fallback",
@@ -652,8 +606,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1712,
-        1216
+        160,
+        1400
       ]
     }
   ],
@@ -662,14 +616,14 @@
       "main": [
         [
           {
-            "node": "Prepare Tables Agent Prompt",
+            "node": "Build Tables Agent Prompt",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Prepare Tables Agent Prompt": {
+    "Build Tables Agent Prompt": {
       "main": [
         [
           {
