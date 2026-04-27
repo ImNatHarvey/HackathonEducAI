@@ -50,7 +50,7 @@ const ChatPanel = ({
   const hasMessages = messages.length > 0;
 
   return (
-    <main className="flex min-h-0 min-w-0 flex-col bg-aura-bg">
+    <main className="flex h-full min-h-0 min-w-0 flex-col bg-aura-bg">
       <section className="shrink-0 border-b border-aura-border bg-aura-bg/80 px-6 py-4 backdrop-blur-xl">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -90,7 +90,7 @@ const ChatPanel = ({
       </section>
 
       <section className="aura-scrollbar min-h-0 flex-1 overflow-y-auto px-6 py-6">
-        <div className="mx-auto max-w-4xl space-y-5">
+        <div className="mx-auto flex min-h-full max-w-4xl flex-col justify-center space-y-5">
           {!hasMessages && (
             <>
               <div className="overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel shadow-aura-soft">
@@ -158,8 +158,8 @@ const ChatPanel = ({
                     </h3>
 
                     <p className="mt-2 text-sm leading-6 text-aura-muted">
-                      This workspace now works like a notebook: modules contain
-                      sources, and only checked sources become AI context.
+                      This workspace uses modules with selected sources, so only
+                      checked materials become AI context.
                     </p>
                   </div>
                 </div>
@@ -168,7 +168,7 @@ const ChatPanel = ({
           )}
 
           {hasMessages && (
-            <div className="space-y-4">
+            <div className="flex min-h-full flex-col justify-end space-y-4">
               {messages.map((message) => (
                 <div
                   key={message.id}
