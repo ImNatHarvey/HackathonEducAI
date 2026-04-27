@@ -43,9 +43,9 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-aura-muted md:text-lg">
-              Create modules, add sources, choose which sources become AI
-              context, then generate quizzes, flashcards, tables, mind maps,
-              slides, and audio overviews.
+              Create focused modules, add learning sources, choose which
+              materials become AI context, then generate quizzes, flashcards,
+              tables, mind maps, slides, and audio overviews.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -78,6 +78,11 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               <h2 className="mt-4 text-2xl font-black text-aura-text">
                 Neural Networks
               </h2>
+
+              <p className="mt-2 text-sm leading-6 text-aura-muted">
+                A single workspace with selected context, study chat, and
+                generated learning outputs.
+              </p>
 
               <div className="mt-5 space-y-3">
                 {["Class Notes", "YouTube Lecture", "Backpropagation Article"].map(

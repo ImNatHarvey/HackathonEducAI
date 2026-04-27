@@ -34,7 +34,7 @@ const CreateModuleModal = ({
 
     onCreateModule(
       trimmedTitle,
-      trimmedSubtitle || "A new AI notebook module for your selected sources.",
+      trimmedSubtitle || "A focused study space for your selected sources.",
     );
 
     setTitle("");
@@ -60,7 +60,7 @@ const CreateModuleModal = ({
         <div className="flex items-start justify-between gap-4 border-b border-aura-border px-6 py-5">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.28em] text-aura-cyan">
-              New Notebook
+              New Study Space
             </p>
 
             <h2 className="mt-2 text-2xl font-black text-aura-text">
