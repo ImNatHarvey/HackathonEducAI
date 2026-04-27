@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { sendChatToN8n, uploadSourceToN8n } from "../lib/n8n";
 import {
-  sendChatToN8n,
-  summarizeSourceWithN8n,
-  uploadSourceToN8n,
-} from "../lib/n8n";
-import { currentUser } from "../components/user/userMock";
+  createChatMessage,
+  fetchChatMessages,
+} from "../services/chatMessageService";
 import type {
   SourceUploadPayload,
   StudyModule,
@@ -20,97 +19,33 @@ type ChatMessage = {
 type UseDashboardActionsParams = {
   inputValue: string;
   topic: string;
+  userId?: string;
   activeModule?: StudyModule;
   selectedSources: StudySource[];
   onInputClear: () => void;
-  onSourceAdded: (source: StudySource) => void;
-  onSourcesAdded: (sources: StudySource[]) => void;
+  onSourceAdded: (source: StudySource) => void | Promise<void>;
+  onSourcesAdded: (sources: StudySource[]) => void | Promise<void>;
 };
 
-const createLocalSourceSummary = (
-  sourceType: StudySource["type"],
-  title: string,
-  value: string,
-) => {
-  if (sourceType === "text") {
-    const preview = value.length > 160 ? `${value.slice(0, 160)}...` : value;
-
-    return `Text note added as study context. Preview: ${preview}`;
-  }
-
-  if (sourceType === "youtube") {
-    return `YouTube source added for ${title}. n8n can later extract transcript details for a richer summary.`;
-  }
-
-  if (sourceType === "website") {
-    return `Website source added for ${title}. n8n can later extract article content and key points.`;
-  }
-
-  if (sourceType === "pdf") {
-    return `PDF source added for ${title}. n8n can later parse the document and summarize important sections.`;
-  }
-
-  return `Image source added for ${title}. n8n can later describe the image and extract visible text.`;
-};
-
-const trySummarizeSource = async ({
-  moduleId,
-  sourceId,
-  sourceType,
-  title,
-  value,
-}: {
-  moduleId: string;
-  sourceId: string;
-  sourceType: StudySource["type"];
-  title: string;
-  value: string;
-}) => {
-  let summary = createLocalSourceSummary(sourceType, title, value);
-
-  try {
-    const summaryResponse = await summarizeSourceWithN8n({
-      moduleId,
-      userId: currentUser.id,
-      source: {
-        id: sourceId,
-        title,
-        type: sourceType,
-        value,
-      },
-    });
-
-    if (summaryResponse.success && summaryResponse.summary) {
-      return summaryResponse.keyPoints?.length
-        ? `${summaryResponse.summary}\n\nKey points: ${summaryResponse.keyPoints.join(
-            ", ",
-          )}`
-        : summaryResponse.summary;
-    }
-  } catch {
-    try {
-      const uploadResponse = await uploadSourceToN8n({
-        sourceType,
-        value,
-        title,
-        moduleId,
-        userId: currentUser.id,
-      });
-
-      if (uploadResponse.sourceSummary) {
-        summary = uploadResponse.sourceSummary;
-      }
-    } catch {
-      return summary;
-    }
-  }
-
-  return summary;
+const buildSourceFromUpload = (
+  payload: SourceUploadPayload,
+  summary?: string,
+): StudySource => {
+  return {
+    id: crypto.randomUUID(),
+    title: payload.title,
+    type: payload.sourceType,
+    value: payload.value,
+    summary,
+    selected: true,
+    createdAt: new Date().toISOString(),
+  };
 };
 
 export const useDashboardActions = ({
   inputValue,
   topic,
+  userId,
   activeModule,
   selectedSources,
   onInputClear,
@@ -123,48 +58,182 @@ export const useDashboardActions = ({
   const [uploadError, setUploadError] = useState("");
   const [isUploadingSource, setIsUploadingSource] = useState(false);
 
-  const buildSourceFromPayload = async (
-    payload: SourceUploadPayload,
-  ): Promise<StudySource> => {
-    if (!activeModule) {
-      throw new Error("No active module selected.");
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadMessages = async () => {
+      if (!userId || !activeModule?.id) {
+        setMessages([]);
+        return;
+      }
+
+      setChatError("");
+
+      try {
+        const savedMessages = await fetchChatMessages({
+          userId,
+          moduleId: activeModule.id,
+        });
+
+        if (!isMounted) return;
+
+        setMessages(
+          savedMessages.map((message) => ({
+            id: message.id,
+            role: message.role,
+            content: message.content,
+          })),
+        );
+      } catch (error) {
+        if (!isMounted) return;
+
+        setChatError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load chat history.",
+        );
+      }
+    };
+
+    loadMessages();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeModule?.id, userId]);
+
+  const selectedSourcePayload = selectedSources.map((source) => ({
+    id: source.id,
+    title: source.title,
+    type: source.type,
+    value: source.value,
+    summary: source.summary,
+  }));
+
+  const persistMessage = async ({
+    role,
+    content,
+  }: {
+    role: "user" | "assistant";
+    content: string;
+  }): Promise<ChatMessage> => {
+    if (!userId || !activeModule?.id) {
+      return {
+        id: crypto.randomUUID(),
+        role,
+        content,
+      };
     }
 
-    const sourceId = crypto.randomUUID();
-
-    const summary = await trySummarizeSource({
+    const savedMessage = await createChatMessage({
+      userId,
       moduleId: activeModule.id,
-      sourceId,
-      sourceType: payload.sourceType,
-      title: payload.title,
-      value: payload.value,
+      role,
+      content,
     });
 
     return {
-      id: sourceId,
-      title: payload.title,
-      type: payload.sourceType,
-      value: payload.value,
-      selected: true,
-      summary,
-      createdAt: new Date().toISOString(),
+      id: savedMessage.id,
+      role: savedMessage.role,
+      content: savedMessage.content,
     };
   };
 
-  const handleUploadSource = async (payload: SourceUploadPayload) => {
-    if (isUploadingSource || !activeModule) return;
+  const handleSendMessage = async () => {
+    const trimmedMessage = inputValue.trim();
 
-    setUploadError("");
-    setIsUploadingSource(true);
+    if (!trimmedMessage || isChatLoading) return;
+
+    setIsChatLoading(true);
+    setChatError("");
+
+    const optimisticUserMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: trimmedMessage,
+    };
+
+    setMessages((currentMessages) => [
+      ...currentMessages,
+      optimisticUserMessage,
+    ]);
+
+    onInputClear();
 
     try {
-      const source = await buildSourceFromPayload(payload);
-      onSourceAdded(source);
+      const savedUserMessage = await persistMessage({
+        role: "user",
+        content: trimmedMessage,
+      });
+
+      setMessages((currentMessages) =>
+        currentMessages.map((message) =>
+          message.id === optimisticUserMessage.id ? savedUserMessage : message,
+        ),
+      );
+
+      const response = await sendChatToN8n({
+        message: trimmedMessage,
+        topic,
+        moduleId: activeModule?.id,
+        userId,
+        selectedSources: selectedSourcePayload,
+      });
+
+      const assistantContent =
+        response.answer ||
+        "Study Aura can still help you study this topic. Try asking for a summary, key terms, or a quick review.";
+
+      const savedAssistantMessage = await persistMessage({
+        role: "assistant",
+        content: assistantContent,
+      });
+
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        savedAssistantMessage,
+      ]);
+    } catch (error) {
+      const fallbackAssistantMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content:
+          "Study Aura had trouble saving or generating that response. Please try again.",
+      };
+
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        fallbackAssistantMessage,
+      ]);
+
+      setChatError(
+        error instanceof Error ? error.message : "Failed to send message.",
+      );
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
+  const handleUploadSource = async (payload: SourceUploadPayload) => {
+    setIsUploadingSource(true);
+    setUploadError("");
+
+    try {
+      const response = await uploadSourceToN8n({
+        ...payload,
+        moduleId: activeModule?.id,
+        userId,
+      });
+
+      const uploadedSource = buildSourceFromUpload(
+        payload,
+        response.sourceSummary,
+      );
+
+      await onSourceAdded(uploadedSource);
     } catch (error) {
       setUploadError(
-        error instanceof Error
-          ? error.message
-          : "Failed to upload source to n8n.",
+        error instanceof Error ? error.message : "Failed to upload source.",
       );
     } finally {
       setIsUploadingSource(false);
@@ -172,79 +241,31 @@ export const useDashboardActions = ({
   };
 
   const handleUploadSources = async (payloads: SourceUploadPayload[]) => {
-    if (isUploadingSource || !activeModule || payloads.length === 0) return;
-
-    setUploadError("");
     setIsUploadingSource(true);
+    setUploadError("");
 
     try {
-      const sources = await Promise.all(
-        payloads.map((payload) => buildSourceFromPayload(payload)),
-      );
+      const uploadedSources: StudySource[] = [];
 
-      onSourcesAdded(sources);
+      for (const payload of payloads) {
+        const response = await uploadSourceToN8n({
+          ...payload,
+          moduleId: activeModule?.id,
+          userId,
+        });
+
+        uploadedSources.push(
+          buildSourceFromUpload(payload, response.sourceSummary),
+        );
+      }
+
+      await onSourcesAdded(uploadedSources);
     } catch (error) {
       setUploadError(
-        error instanceof Error
-          ? error.message
-          : "Failed to import selected sources.",
+        error instanceof Error ? error.message : "Failed to upload sources.",
       );
     } finally {
       setIsUploadingSource(false);
-    }
-  };
-
-  const handleSendMessage = async () => {
-    const message = inputValue.trim();
-
-    if (!message || isChatLoading || !activeModule) return;
-
-    setChatError("");
-    setIsChatLoading(true);
-
-    const userMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: message,
-    };
-
-    setMessages((currentMessages) => [...currentMessages, userMessage]);
-    onInputClear();
-
-    try {
-      const response = await sendChatToN8n({
-        message,
-        topic,
-        moduleId: activeModule.id,
-        userId: currentUser.id,
-        selectedSources: selectedSources.map((source) => ({
-          id: source.id,
-          title: source.title,
-          type: source.type,
-          value: source.value,
-          summary: source.summary,
-        })),
-      });
-
-      const assistantMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: response.answer,
-      };
-
-      setMessages((currentMessages) => [
-        ...currentMessages,
-        assistantMessage,
-      ]);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to reach n8n webhook.";
-
-      setChatError(errorMessage);
-    } finally {
-      setIsChatLoading(false);
     }
   };
 

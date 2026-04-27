@@ -20,6 +20,7 @@ interface DashboardProps {
   topic: string;
   modules: StudyModule[];
   profile: AuthProfile | null;
+  userId?: string;
   onModulesChange: (modules: StudyModule[]) => void;
   onNavigate: (topic: string) => void;
   onAddSourceToModule: (params: {
@@ -52,6 +53,7 @@ const Dashboard = ({
   topic,
   modules,
   profile,
+  userId,
   onModulesChange,
   onAddSourceToModule,
   onAddSourcesToModule,
@@ -244,6 +246,7 @@ const Dashboard = ({
   } = useDashboardActions({
     inputValue,
     topic: currentModule?.title ?? topic,
+    userId,
     activeModule: currentModule,
     selectedSources,
     onInputClear: () => setInputValue(""),

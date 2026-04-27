@@ -224,6 +224,7 @@ function App() {
           topic={selectedTopic}
           modules={modules}
           profile={profile}
+          userId={user?.id}
           onModulesChange={setModules}
           onNavigate={setSelectedTopic}
           onAddSourceToModule={addSourceToModule}
