@@ -806,3 +806,13 @@ button:disabled {
     flex-basis: 145px;
   }
 }
+
+@keyframes toast-shrink {
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
+  }
+}
