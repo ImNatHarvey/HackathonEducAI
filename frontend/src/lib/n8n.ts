@@ -128,6 +128,7 @@ export type N8nQuizResponse = N8nBaseResponse & {
 };
 
 export type FlashcardDifficulty = "easy" | "medium" | "hard";
+
 export type FlashcardType = "question" | "fill_blank";
 
 export type N8nFlashcardsPayload = {
@@ -247,6 +248,7 @@ export type N8nSlidesResponse = N8nBaseResponse & {
 };
 
 export type AudioOverviewStyle = "calm" | "energetic" | "podcast";
+
 export type AudioOverviewLength = "short" | "standard" | "deep";
 
 export type AudioSegment = {
@@ -301,7 +303,10 @@ const getRequiredEnv = (key: string) => {
 const getPayloadPreview = (payload: unknown) => {
   try {
     const serialized = JSON.stringify(payload);
-    return serialized.length <= 800 ? serialized : `${serialized.slice(0, 800)}...`;
+
+    if (serialized.length <= 800) return serialized;
+
+    return `${serialized.slice(0, 800)}...`;
   } catch {
     return "Unable to serialize payload preview.";
   }
@@ -417,7 +422,9 @@ const postToWebhook = async <TResponse, TPayload extends object>({
       );
     }
 
-    if (error instanceof Error) throw error;
+    if (error instanceof Error) {
+      throw error;
+    }
 
     throw new Error(`${webhookName} workflow failed.`);
   } finally {
@@ -429,16 +436,14 @@ const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 };
 
-const asString = (value: unknown) => {
-  return typeof value === "string" ? value : "";
-};
-
 const unwrapN8nResponse = (response: unknown): unknown => {
   if (Array.isArray(response)) {
     return unwrapN8nResponse(response[0]);
   }
 
-  if (!isRecord(response)) return response;
+  if (!isRecord(response)) {
+    return response;
+  }
 
   if (isRecord(response.json)) return unwrapN8nResponse(response.json);
   if (isRecord(response.body)) return unwrapN8nResponse(response.body);
@@ -462,7 +467,9 @@ const pickFirstString = (
   return "";
 };
 
-const normalizeSourceType = (value: unknown): N8nSourceReaderResponse["sourceType"] => {
+const normalizeSourceType = (
+  value: unknown,
+): N8nSourceReaderResponse["sourceType"] => {
   const normalized = String(value || "").toLowerCase();
 
   if (
@@ -478,9 +485,9 @@ const normalizeSourceType = (value: unknown): N8nSourceReaderResponse["sourceTyp
   return "text";
 };
 
-const normalizeStatus = (
+const normalizeSourceStatus = (
   value: unknown,
-  hasExtractedText: boolean,
+  hasContent: boolean,
 ): N8nSourceReaderResponse["status"] => {
   const normalized = String(value || "").toLowerCase();
 
@@ -493,7 +500,7 @@ const normalizeStatus = (
     return normalized;
   }
 
-  return hasExtractedText ? "ready" : "failed";
+  return hasContent ? "ready" : "failed";
 };
 
 const normalizeSourceReaderResponse = (
@@ -501,26 +508,9 @@ const normalizeSourceReaderResponse = (
 ): N8nSourceReaderResponse => {
   const unwrapped = unwrapN8nResponse(response);
 
-  console.log("[Study Aura] Source Reader unwrapped response:", unwrapped);
-
   if (!isRecord(unwrapped)) {
     throw new Error("Source Reader workflow returned an invalid response.");
   }
-
-  const sourceType = normalizeSourceType(
-    unwrapped.sourceType || unwrapped.source_type || unwrapped.type,
-  );
-
-  const title =
-    pickFirstString(unwrapped, ["title", "name", "sourceTitle"]) ||
-    "Study Source";
-
-  const value =
-    pickFirstString(unwrapped, ["value", "url", "originalUrl", "original_url"]) ||
-    "";
-
-  const originalUrl =
-    pickFirstString(unwrapped, ["originalUrl", "original_url", "url"]) || value;
 
   const extractedText = pickFirstString(unwrapped, [
     "extractedText",
@@ -542,34 +532,45 @@ const normalizeSourceReaderResponse = (
   const summary = pickFirstString(unwrapped, [
     "summary",
     "sourceSummary",
+    "source_summary",
     "description",
     "snippet",
   ]);
 
-  const status = normalizeStatus(unwrapped.status, Boolean(extractedText));
+  const value = pickFirstString(unwrapped, [
+    "value",
+    "url",
+    "originalUrl",
+    "original_url",
+  ]);
+
+  const originalUrl =
+    pickFirstString(unwrapped, ["originalUrl", "original_url", "url"]) || value;
 
   const normalizedResponse: N8nSourceReaderResponse = {
-    provider: asString(unwrapped.provider) || undefined,
+    provider: pickFirstString(unwrapped, ["provider"]) || undefined,
     fallback:
       typeof unwrapped.fallback === "boolean" ? unwrapped.fallback : undefined,
-    sourceType,
-    title,
+    sourceType: normalizeSourceType(
+      unwrapped.sourceType || unwrapped.source_type || unwrapped.type,
+    ),
+    title:
+      pickFirstString(unwrapped, ["title", "name", "sourceTitle"]) ||
+      "Study Source",
     value,
     originalUrl: originalUrl || undefined,
     extractedText: extractedText || undefined,
     summary: summary || undefined,
-    status,
-    statusMessage: pickFirstString(unwrapped, [
-      "statusMessage",
-      "status_message",
-      "message",
-    ]) || undefined,
+    status: normalizeSourceStatus(unwrapped.status, Boolean(extractedText || summary)),
+    statusMessage:
+      pickFirstString(unwrapped, ["statusMessage", "status_message", "message"]) ||
+      undefined,
     parserProvider:
       pickFirstString(unwrapped, [
         "parserProvider",
         "parser_provider",
-        "provider",
         "metadataProvider",
+        "provider",
       ]) || undefined,
   };
 
@@ -577,12 +578,52 @@ const normalizeSourceReaderResponse = (
     sourceType: normalizedResponse.sourceType,
     title: normalizedResponse.title,
     status: normalizedResponse.status,
-    summaryLength: normalizedResponse.summary?.length ?? 0,
+    summaryWords:
+      normalizedResponse.summary?.trim().split(/\s+/).filter(Boolean).length ?? 0,
     extractedTextLength: normalizedResponse.extractedText?.length ?? 0,
     response: normalizedResponse,
   });
 
   return normalizedResponse;
+};
+
+const normalizeWebSearchResults = (response: unknown): N8nWebSearchResponse => {
+  const unwrapped = unwrapN8nResponse(response);
+
+  if (!isRecord(unwrapped)) {
+    throw new Error("Web Search workflow returned an invalid response.");
+  }
+
+  const rawResults =
+    Array.isArray(unwrapped.results)
+      ? unwrapped.results
+      : Array.isArray(unwrapped.items)
+        ? unwrapped.items
+        : Array.isArray(unwrapped.data)
+          ? unwrapped.data
+          : [];
+
+  const results: WebSearchResult[] = rawResults
+    .filter(isRecord)
+    .map((item) => ({
+      title:
+        pickFirstString(item, ["title", "name"]) ||
+        pickFirstString(item, ["url", "link"]) ||
+        "Untitled result",
+      url: pickFirstString(item, ["url", "link", "href"]),
+      snippet: pickFirstString(item, ["snippet", "description", "summary", "text"]),
+    }))
+    .filter((item) => item.url);
+
+  return {
+    provider: pickFirstString(unwrapped, ["provider"]) || undefined,
+    fallback:
+      typeof unwrapped.fallback === "boolean" ? unwrapped.fallback : undefined,
+    success:
+      typeof unwrapped.success === "boolean" ? unwrapped.success : results.length > 0,
+    results,
+    message: pickFirstString(unwrapped, ["message", "statusMessage"]) || undefined,
+  };
 };
 
 const validateQuizResponse = (response: N8nQuizResponse) => {
@@ -721,9 +762,9 @@ export const readSourceWithN8n = async (payload: N8nSourceReaderPayload) => {
 
   console.log("[Study Aura] Source Reader raw response:", rawResponse);
 
-  const normalizedResponse = normalizeSourceReaderResponse(rawResponse);
+  const response = normalizeSourceReaderResponse(rawResponse);
 
-  return validateSourceReaderResponse(normalizedResponse);
+  return validateSourceReaderResponse(response);
 };
 
 export const searchWebSourcesWithN8n = async (
@@ -734,14 +775,13 @@ export const searchWebSourcesWithN8n = async (
     getPayloadPreview(payload),
   );
 
-  const response = await postToWebhook<
-    N8nWebSearchResponse,
-    N8nWebSearchPayload
-  >({
+  const rawResponse = await postToWebhook<unknown, N8nWebSearchPayload>({
     webhookName: "Web Search",
     envKey: "VITE_N8N_WEB_SEARCH_WEBHOOK_URL",
     payload,
   });
+
+  const response = normalizeWebSearchResults(rawResponse);
 
   return validateWebSearchResponse(response);
 };

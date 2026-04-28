@@ -157,7 +157,7 @@ const cleanSummary = (value?: string) => {
 
   if (!cleanValue) return undefined;
 
-  return getWordLimitedText(cleanValue, 500);
+  return getWordLimitedText(cleanValue, 300);
 };
 
 const cleanGeneratedTitle = (value?: string) => {
@@ -273,7 +273,9 @@ const getBestSourceTitle = ({
     originalUrl,
   });
 
-  return contextualTitle || cleanedFileTitle || cleanedPayloadTitle || "Study source";
+  return (
+    contextualTitle || cleanedFileTitle || cleanedPayloadTitle || "Study source"
+  );
 };
 
 const getExistingSources = (activeModule?: StudyModule) => {
@@ -488,29 +490,36 @@ export const useDashboardActions = ({
     };
   };
 
-  const readUrlSourceWithReader = async (
+  const readSourceWithReader = async (
     payload: SourceUploadPayload,
   ): Promise<StudySource> => {
-    const sourceUrl = payload.originalUrl || payload.value;
+    const sourceValue = payload.originalUrl || payload.value;
 
     console.log("[Study Aura] Calling Source Reader n8n workflow:", {
       sourceType: payload.sourceType,
       title: payload.title,
-      value: sourceUrl,
-      originalUrl: sourceUrl,
+      value: sourceValue,
+      originalUrl: payload.originalUrl,
       fileName: payload.fileName,
     });
 
     const response = await readSourceWithN8n({
       sourceType: payload.sourceType,
       title: payload.title,
-      value: sourceUrl,
-      originalUrl: sourceUrl,
+      value: sourceValue,
+      originalUrl: payload.originalUrl || sourceValue,
       moduleId: activeModule?.id,
       userId,
     });
 
-    console.log("[Study Aura] Source Reader n8n response:", response);
+    console.log("[Study Aura] Source Reader n8n response:", {
+      title: response.title,
+      sourceType: response.sourceType,
+      summaryWords:
+        response.summary?.trim().split(/\s+/).filter(Boolean).length ?? 0,
+      extractedTextLength: response.extractedText?.length ?? 0,
+      response,
+    });
 
     const responseExtractedText = response.extractedText || "";
 
@@ -519,17 +528,17 @@ export const useDashboardActions = ({
       responseTitle: response.title,
       extractedText: responseExtractedText,
       summary: response.summary,
-      originalUrl: response.originalUrl ?? sourceUrl,
+      originalUrl: response.originalUrl ?? payload.originalUrl,
       fileName: payload.fileName,
     });
 
     return buildSourceFromUpload({
       sourceType: response.sourceType,
       title: bestTitle,
-      value: response.value || sourceUrl,
+      value: response.value || payload.value,
       summary: response.summary,
       extractedText: responseExtractedText,
-      originalUrl: response.originalUrl ?? sourceUrl,
+      originalUrl: response.originalUrl ?? payload.originalUrl,
       status: response.status === "failed" ? "failed" : "ready",
       statusMessage:
         response.statusMessage ||
@@ -577,7 +586,7 @@ export const useDashboardActions = ({
       parserProvider: "supabase-storage",
     };
 
-    return readUrlSourceWithReader(uploadedFilePayload);
+    return readSourceWithReader(uploadedFilePayload);
   };
 
   const readSourceBeforeSaving = async (
@@ -588,30 +597,7 @@ export const useDashboardActions = ({
         return await readUploadedFileBeforeSaving(payload);
       }
 
-      if (payload.sourceType === "text") {
-        const bestTitle = getBestSourceTitle({
-          payloadTitle: payload.title,
-          extractedText: payload.extractedText ?? payload.value,
-          summary: payload.summary ?? payload.value.slice(0, 180),
-        });
-
-        return buildSourceFromUpload({
-          ...payload,
-          title: bestTitle,
-          extractedText: payload.extractedText ?? payload.value,
-          summary: payload.summary ?? payload.value.slice(0, 180),
-          status: payload.status ?? "ready",
-          statusMessage:
-            payload.statusMessage ?? "Copied text is ready to use as context.",
-          parserProvider: payload.parserProvider ?? "manual-input",
-        });
-      }
-
-      if (!isUrlSource(payload)) {
-        return buildSourceFromUpload(payload);
-      }
-
-      return await readUrlSourceWithReader(payload);
+      return await readSourceWithReader(payload);
     } catch (error) {
       console.error("[Study Aura] Source ingestion failed:", error);
 

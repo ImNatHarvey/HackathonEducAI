@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $json.body || $json;\n\nconst sourceType = String(body.sourceType || body.type || 'text').toLowerCase();\nconst value = String(body.value || body.content || body.url || '').trim();\nconst title = String(body.title || '').trim();\nconst originalUrl = String(body.originalUrl || body.url || value || '').trim();\n\nfunction titleFromValue(input, fallback) {\n  if (title) return title;\n  if (!input) return fallback;\n  try {\n    const url = new URL(input);\n    return url.hostname.replace(/^www\\./, '');\n  } catch {\n    return input.slice(0, 60) || fallback;\n  }\n}\n\nreturn [{\n  json: {\n    sourceType,\n    title: titleFromValue(value, 'Untitled Source'),\n    value,\n    originalUrl: ['website', 'youtube', 'pdf', 'image'].includes(sourceType) ? originalUrl : '',\n    extractedText: '',\n    summary: '',\n    status: 'reading',\n    statusMessage: 'Reading source...',\n    parserProvider: 'none'\n  }\n}];"
+        "jsCode": "const body = $json.body || $json;\n\nconst allowedTypes = ['text', 'website', 'youtube', 'pdf', 'image'];\nconst rawSourceType = String(body.sourceType || body.type || 'text').toLowerCase().trim();\nconst sourceType = allowedTypes.includes(rawSourceType) ? rawSourceType : 'text';\nconst value = String(body.value || body.content || body.url || '').trim();\nconst title = String(body.title || '').trim();\nconst originalUrl = String(body.originalUrl || body.url || value || '').trim();\n\nfunction titleFromValue(input, fallback) {\n  if (title) return title;\n  if (!input) return fallback;\n\n  try {\n    const url = new URL(input);\n    const fileName = decodeURIComponent(url.pathname.split('/').filter(Boolean).pop() || '')\n      .replace(/\\.[a-z0-9]+$/i, '')\n      .replace(/^[a-f0-9-]{12,}-/i, '')\n      .replace(/[_-]+/g, ' ')\n      .trim();\n\n    if (fileName && fileName.length > 3) return fileName.slice(0, 70);\n    return url.hostname.replace(/^www\\./, '');\n  } catch {\n    return input.slice(0, 70) || fallback;\n  }\n}\n\nreturn [{\n  json: {\n    sourceType,\n    title: titleFromValue(value, 'Untitled Source'),\n    value,\n    originalUrl: ['website', 'youtube', 'pdf', 'image'].includes(sourceType) ? originalUrl : '',\n    extractedText: '',\n    summary: '',\n    status: 'reading',\n    statusMessage: 'Reading source...',\n    parserProvider: 'none'\n  }\n}];"
       },
       "id": "6bb691be-aa92-44ce-a8cf-f57632ad688b",
       "name": "Normalize Source Input",
@@ -167,7 +167,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const text = String($json.value || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 60000;\nconst safeText = text.length > MAX_CHARS ? text.slice(0, MAX_CHARS) + '\\n\\n[Text trimmed for demo token limit.]' : text;\n\nreturn [{\n  json: {\n    ...$json,\n    extractedText: safeText,\n    summary: safeText.length > 280 ? safeText.slice(0, 280) + '...' : safeText,\n    status: safeText ? 'ready' : 'failed',\n    statusMessage: safeText ? 'Text source is ready.' : 'No text content was provided.',\n    parserProvider: 'direct-text'\n  }\n}];"
+        "jsCode": "const text = String($json.value || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 60000;\nconst safeText = text.length > MAX_CHARS ? text.slice(0, MAX_CHARS) + '\\n\\n[Text trimmed for demo token limit.]' : text;\n\nreturn [{\n  json: {\n    ...$json,\n    extractedText: safeText,\n    summary: safeText.length > 1200 ? safeText.slice(0, 1200) + '...' : safeText,\n    status: safeText ? 'ready' : 'failed',\n    statusMessage: safeText ? 'Text source is ready.' : 'No text content was provided.',\n    parserProvider: 'direct-text'\n  }\n}];"
       },
       "id": "c0e01730-a493-4414-a705-06c803002b51",
       "name": "Text Direct Reader",
@@ -254,7 +254,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer fc-f7965a6d2c6f4c7f88f5ab8f1d39060d"
+              "value": "=Bearer {{$env.FIRECRAWL_API_KEY}}"
             },
             {
               "name": "Content-Type",
@@ -391,7 +391,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst text = data.text || data.transcript || data.content || '';\nconst cleanedText = String(text || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 60000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[YouTube transcript trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 120 && !$json.error && data.status !== 'failed';\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'YouTube audio transcribed using local yt-dlp + Groq Whisper helper.' : (data.statusMessage || 'Local YouTube helper failed. Trying transcript providers.'),\n    parserProvider: ok ? (data.provider || 'yt-dlp-groq-whisper') : 'yt-dlp-groq-whisper-failed'\n  }\n}];"
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst text = data.text || data.transcript || data.content || '';\nconst cleanedText = String(text || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 60000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[YouTube transcript trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 120 && !$json.error && data.status !== 'failed';\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'YouTube audio transcribed using local helper.' : (data.statusMessage || 'Local YouTube helper failed. Trying transcript providers.'),\n    parserProvider: ok ? (data.provider || 'yt-dlp-groq-whisper') : 'yt-dlp-groq-whisper-failed'\n  }\n}];"
       },
       "id": "722fe920-c8a3-438b-b1ae-0b25e806b2cb",
       "name": "Normalize YouTube Local Helper Result",
@@ -443,7 +443,7 @@
           "parameters": [
             {
               "name": "x-api-key",
-              "value": "=sd_a941ea78c5f7a2077d81615950b57a13"
+              "value": "={{$env.SUPADATA_API_KEY}}"
             },
             {
               "name": "Content-Type",
@@ -522,7 +522,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer sk_sQ_xXvpZPA9X6JCITbnAhOd6m9LxkkU7prxUcMNWvT0"
+              "value": "=Bearer {{$env.TRANSCRIPTAPI_KEY}}"
             },
             {
               "name": "Content-Type",
@@ -569,7 +569,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer NNGYb9yCIJYuF0V5igcfD3E6DeTuE4is"
+              "value": "=Bearer {{$env.MISTRAL_API_KEY}}"
             },
             {
               "name": "Content-Type",
@@ -596,7 +596,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst pages = $json.pages || $json.data?.pages || [];\nconst text = Array.isArray(pages)\n  ? pages.map(p => p.markdown || p.text || '').join('\\n\\n')\n  : ($json.text || $json.markdown || '');\n\nconst cleanedText = String(text || '')\n  .replace(/!\\[[^\\]]*\\]\\([^)]+\\)/g, ' ')\n  .replace(/\\\\n/g, '\\n')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .replace(/[ \\t]{2,}/g, ' ')\n  .trim();\n\nconst MAX_CHARS = 60000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[PDF content trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 120 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'PDF extracted using Mistral OCR.' : 'Mistral OCR failed. Trying Gemini PDF/vision fallback.',\n    parserProvider: ok ? 'mistral-ocr' : 'mistral-ocr-failed'\n  }\n}];"
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst pages = $json.pages || $json.data?.pages || [];\nconst text = Array.isArray(pages)\n  ? pages.map(p => p.markdown || p.text || '').join('\\n\\n')\n  : ($json.text || $json.markdown || '');\n\nconst cleanedText = String(text || '')\n  .replace(/!\\[[^\\]]*\\]\\([^)]+\\)/g, ' ')\n  .replace(/\\\\n/g, '\\n')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .replace(/[ \\t]{2,}/g, ' ')\n  .trim();\n\nconst MAX_CHARS = 60000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[PDF content trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 120 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'PDF extracted using Mistral OCR.' : 'Mistral OCR failed. Trying Gemini PDF fallback.',\n    parserProvider: ok ? 'mistral-ocr' : 'mistral-ocr-failed'\n  }\n}];"
       },
       "id": "1828037f-2e4a-44cd-986a-64a755532194",
       "name": "Normalize Mistral PDF Result",
@@ -642,13 +642,13 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/{{$env.GEMINI_FALLBACK_MODEL || 'gemini-3.1-flash-lite-preview'}}:generateContent",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
             {
               "name": "key",
-              "value": "=AIzaSyAs-6lRqPa5oVGcYlSi5F_yJbsKo4Ej1jM"
+              "value": "={{$env.GEMINI_API_KEY}}"
             }
           ]
         },
@@ -691,7 +691,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer NNGYb9yCIJYuF0V5igcfD3E6DeTuE4is"
+              "value": "=Bearer {{$env.MISTRAL_API_KEY}}"
             },
             {
               "name": "Content-Type",
@@ -764,13 +764,13 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/{{$env.GEMINI_FALLBACK_MODEL || 'gemini-3.1-flash-lite-preview'}}:generateContent",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
             {
               "name": "key",
-              "value": "=AIzaSyAs-6lRqPa5oVGcYlSi5F_yJbsKo4Ej1jM"
+              "value": "={{$env.GEMINI_API_KEY}}"
             }
           ]
         },
@@ -819,7 +819,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $json;\n\nfunction cleanText(value) {\n  return String(value || '')\n    .replace(/\\r\\n/g, '\\n')\n    .replace(/\\n{4,}/g, '\\n\\n\\n')\n    .trim();\n}\n\nfunction compactText(value) {\n  return String(value || '').replace(/\\s+/g, ' ').trim();\n}\n\nconst extractedCandidates = [\n  item.extractedText,\n  item.fullExtractedText,\n  item.text,\n  item.content,\n  item.markdown,\n  item.summary,\n  item.value\n];\n\nconst fullExtractedText = cleanText(extractedCandidates.find(value => cleanText(value).length > 0) || '');\nconst summaryBase = compactText(item.summary || fullExtractedText || item.value);\nconst summary = summaryBase.length > 700 ? `${summaryBase.slice(0, 700)}...` : summaryBase;\n\nreturn [{\n  json: {\n    sourceType: item.sourceType || 'text',\n    title: item.title || 'Untitled Source',\n    value: item.value || '',\n    originalUrl: item.originalUrl || '',\n    extractedText: fullExtractedText,\n    summary,\n    status: item.status || (fullExtractedText ? 'ready' : 'failed'),\n    statusMessage: item.statusMessage || (fullExtractedText ? 'Source reader finished.' : 'No readable content was extracted.'),\n    parserProvider: item.parserProvider || 'unknown',\n    extractionLength: fullExtractedText.length\n  }\n}];"
+        "jsCode": "const item = $json;\n\nfunction cleanText(value) {\n  return String(value || '')\n    .replace(/\\r\\n/g, '\\n')\n    .replace(/\\n{4,}/g, '\\n\\n')\n    .trim();\n}\n\nfunction compactText(value) {\n  return String(value || '').replace(/\\s+/g, ' ').trim();\n}\n\nconst extractedCandidates = [\n  item.extractedText,\n  item.fullExtractedText,\n  item.text,\n  item.content,\n  item.markdown,\n  item.summary,\n  item.value\n];\n\nconst fullExtractedText = cleanText(extractedCandidates.find(value => cleanText(value).length > 0) || '');\nconst summaryBase = compactText(item.summary || fullExtractedText || item.value);\nconst summary = summaryBase.length > 1800 ? `${summaryBase.slice(0, 1800)}...` : summaryBase;\n\nreturn [{\n  json: {\n    sourceType: item.sourceType || 'text',\n    title: item.title || 'Untitled Source',\n    value: item.value || '',\n    originalUrl: item.originalUrl || '',\n    extractedText: fullExtractedText,\n    summary,\n    status: item.status || (fullExtractedText ? 'ready' : 'failed'),\n    statusMessage: item.statusMessage || (fullExtractedText ? 'Source reader finished.' : 'No readable content was extracted.'),\n    parserProvider: item.parserProvider || 'unknown',\n    extractionLength: fullExtractedText.length\n  }\n}];"
       },
       "id": "a6309b7f-ad8b-4bc9-8c15-1242e60407b0",
       "name": "Final Response Shape",
@@ -832,7 +832,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $json;\n\nfunction cleanText(value) {\n  return String(value || \"\")\n    .replace(/\\r\\n/g, \"\\n\")\n    .replace(/\\n{4,}/g, \"\\n\\n\")\n    .trim();\n}\n\nfunction compactText(value) {\n  return String(value || \"\").replace(/\\s+/g, \" \").trim();\n}\n\nfunction isGenericTitle(value) {\n  const title = compactText(value)\n    .toLowerCase()\n    .replace(/\\.[a-z0-9]+$/i, \"\");\n\n  if (!title) return true;\n\n  return /^(img|image|screenshot|screen shot|photo|document|scan|untitled|file|upload|source|study source)[-_\\s]?\\d*/i.test(title);\n}\n\nconst fullExtractedText = cleanText(\n  item.extractedText ||\n    item.fullExtractedText ||\n    item.text ||\n    item.content ||\n    item.markdown ||\n    item.summary ||\n    item.value ||\n    \"\",\n);\n\nconst excerpt =\n  fullExtractedText.length > 12000\n    ? `${fullExtractedText.slice(0, 12000)}\\n\\n[Excerpt only for metadata generation. Keep the original extractedText unchanged in later nodes.]`\n    : fullExtractedText;\n\nconst existingSummary = compactText(item.summary);\n\nconst shouldGenerateMetadata =\n  Boolean(fullExtractedText) &&\n  (isGenericTitle(item.title) || !existingSummary || existingSummary.length < 180);\n\nconst prompt = `PART 1 — ROLE AND GOAL\nYou are Study Aura's Source Metadata Agent.\nCreate a clean, student-friendly, presentation-ready source title and a useful study summary.\n\nPART 2 — SOURCE CONTEXT\nSource type: ${item.sourceType || \"unknown\"}\nCurrent title: ${item.title || \"Untitled Source\"}\nOriginal URL or value: ${item.originalUrl || item.value || \"\"}\nParser provider: ${item.parserProvider || \"unknown\"}\n\nExtracted content excerpt:\n${excerpt}\n\nPART 3 — OUTPUT CONTRACT\nReturn ONLY valid JSON.\nDo not use markdown fences.\nDo not add extra text before or after the JSON.\n\nSchema:\n{\n  \"title\": \"5 to 9 words, specific, clean, no file extensions, no raw URLs\",\n  \"summary\": \"4 to 6 complete sentences explaining what this source contains and what students can learn from it.\",\n  \"confidence\": \"high\"\n}\n\nRules:\n- Do not use generic names like IMG_1231, screenshot, document, file, upload, source, or untitled.\n- If the content is an image description, title the actual subject of the image.\n- If the image is educational, explain its learning value in the summary.\n- If the content is a PDF/document, title the actual topic, not the filename.\n- If the content is a webpage, title the page topic, not the domain.\n- If unsure, infer the best educational title from the strongest subject in the excerpt.\n- Keep the title professional and demo-ready.\n- Keep the summary informative, not too short.\n- The summary must be based only on the extracted content excerpt.`;\n\nreturn [\n  {\n    json: {\n      ...item,\n      fullExtractedText,\n      extractedText: fullExtractedText,\n      metadataExcerpt: excerpt,\n      metadataPrompt: prompt,\n      shouldGenerateMetadata,\n      aiMetadataStatus: shouldGenerateMetadata ? \"pending\" : \"ready\",\n    },\n  },\n];"
+        "jsCode": "const item = $json;\n\nfunction cleanText(value) {\n  return String(value || '')\n    .replace(/\\r\\n/g, '\\n')\n    .replace(/\\n{4,}/g, '\\n\\n')\n    .trim();\n}\n\nfunction compactText(value) {\n  return String(value || '').replace(/\\s+/g, ' ').trim();\n}\n\nfunction isGenericTitle(value) {\n  const title = compactText(value)\n    .toLowerCase()\n    .replace(/\\.[a-z0-9]+$/i, '');\n\n  if (!title) return true;\n\n  return /^(img|image|screenshot|screen shot|photo|document|scan|untitled|file|upload|source|study source)[-_\\s]?\\d*/i.test(title);\n}\n\nconst fullExtractedText = cleanText(\n  item.extractedText ||\n    item.fullExtractedText ||\n    item.text ||\n    item.content ||\n    item.markdown ||\n    item.summary ||\n    item.value ||\n    ''\n);\n\nconst excerpt = fullExtractedText.length > 12000\n  ? `${fullExtractedText.slice(0, 12000)}\\n\\n[Excerpt only for metadata generation. Keep the original extractedText unchanged in later nodes.]`\n  : fullExtractedText;\n\nconst existingSummary = compactText(item.summary);\nconst shouldGenerateMetadata = Boolean(fullExtractedText) && (isGenericTitle(item.title) || !existingSummary || existingSummary.length < 500);\n\nconst prompt = `PART 1 — ROLE AND GOAL\nYou are Study Aura's Source Metadata Agent.\nCreate a clean, student-friendly, presentation-ready source title and a useful study summary.\n\nPART 2 — SOURCE CONTEXT\nSource type: ${item.sourceType || 'unknown'}\nCurrent title: ${item.title || 'Untitled Source'}\nOriginal URL or value: ${item.originalUrl || item.value || ''}\nParser provider: ${item.parserProvider || 'unknown'}\n\nExtracted content excerpt:\n${excerpt}\n\nPART 3 — OUTPUT CONTRACT\nReturn ONLY valid JSON.\nDo not use markdown fences.\nDo not add extra text before or after the JSON.\n\nSchema:\n{\n  \"title\": \"5 to 9 words, specific, clean, no file extensions, no raw URLs\",\n  \"summary\": \"200 to 300 words explaining what this source contains, the main study points, and what students can learn from it.\",\n  \"confidence\": \"high\"\n}\n\nRules:\n- Do not use generic names like IMG_1231, screenshot, document, file, upload, source, or untitled.\n- If the content is an image description, title the actual subject of the image.\n- If the image is educational, explain its learning value in the summary.\n- If the content is a PDF/document, title the actual topic, not the filename.\n- If the content is a webpage, title the page topic, not the domain.\n- If the content is a YouTube transcript, title the lesson topic, not the video URL.\n- If unsure, infer the best educational title from the strongest subject in the excerpt.\n- Keep the title professional and demo-ready.\n- Keep the summary informative and useful, around 200 to 300 words.\n- The summary must be based only on the extracted content excerpt.`;\n\nreturn [{\n  json: {\n    ...item,\n    fullExtractedText,\n    extractedText: fullExtractedText,\n    metadataExcerpt: excerpt,\n    metadataPrompt: prompt,\n    shouldGenerateMetadata,\n    aiMetadataStatus: shouldGenerateMetadata ? 'pending' : 'ready'\n  }\n}];"
       },
       "id": "cf452119-25bd-4b99-8e11-1083c494a2e6",
       "name": "Prepare AI Metadata Prompt",
@@ -848,7 +848,7 @@
         "promptType": "define",
         "text": "={{ $json.metadataPrompt }}",
         "options": {
-          "systemMessage": "You create clean educational source titles and summaries for Study Aura. Return only valid JSON with keys: title and summary. No markdown fences."
+          "systemMessage": "You create clean educational source titles and 200 to 300 word summaries for Study Aura. Return only valid JSON with keys: title, summary, confidence. No markdown fences."
         }
       },
       "id": "7b1a215d-65d9-4210-b3e8-de380f7d4795",
@@ -863,7 +863,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const current = $input.first().json;\n\nconst rawOutput =\n  current.output ||\n  current.text ||\n  current.response ||\n  current.content ||\n  \"\";\n\nfunction extractJson(input) {\n  const raw = String(input || \"\").trim();\n\n  if (!raw) return {};\n\n  const cleaned = raw\n    .replace(/^```json/i, \"\")\n    .replace(/^```/i, \"\")\n    .replace(/```$/i, \"\")\n    .trim();\n\n  try {\n    return JSON.parse(cleaned);\n  } catch {\n    const match = cleaned.match(/\\{[\\s\\S]*\\}/);\n\n    if (!match) return {};\n\n    try {\n      return JSON.parse(match[0]);\n    } catch {\n      return {};\n    }\n  }\n}\n\nconst parsed = extractJson(rawOutput);\n\nreturn [\n  {\n    json: {\n      ...current,\n      geminiMetadata: {\n        title: String(parsed.title || \"\").trim(),\n        summary: String(parsed.summary || \"\").trim(),\n        confidence: String(parsed.confidence || \"\").trim(),\n      },\n      metadataProvider: parsed.title\n        ? \"gemini-title-agent\"\n        : \"gemini-title-agent-failed\",\n    },\n  },\n];"
+        "jsCode": "const current = $input.first().json;\nconst rawOutput = current.output || current.text || current.response || current.content || '';\n\nfunction extractJson(input) {\n  const raw = String(input || '').trim();\n  if (!raw) return {};\n  const cleaned = raw.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/i, '').trim();\n  try { return JSON.parse(cleaned); } catch {\n    const match = cleaned.match(/\\{[\\s\\S]*\\}/);\n    if (!match) return {};\n    try { return JSON.parse(match[0]); } catch { return {}; }\n  }\n}\n\nconst parsed = extractJson(rawOutput);\n\nreturn [{\n  json: {\n    ...current,\n    geminiMetadata: {\n      title: String(parsed.title || '').trim(),\n      summary: String(parsed.summary || '').trim(),\n      confidence: String(parsed.confidence || '').trim()\n    },\n    metadataProvider: parsed.title ? 'gemini-title-agent' : 'gemini-title-agent-failed'\n  }\n}];"
       },
       "id": "174eaaf7-cca1-4f2f-af58-64a839e5794e",
       "name": "Normalize Gemini Metadata",
@@ -911,7 +911,7 @@
         "promptType": "define",
         "text": "={{ $json.metadataPrompt }}",
         "options": {
-          "systemMessage": "You create clean educational source titles and summaries for Study Aura. Return only valid JSON with keys: title and summary. No markdown fences."
+          "systemMessage": "You create clean educational source titles and 200 to 300 word summaries for Study Aura. Return only valid JSON with keys: title, summary, confidence. No markdown fences."
         }
       },
       "id": "f5c6aefa-359d-48a6-898e-6851b3cbc805",
@@ -926,7 +926,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const current = $input.first().json;\n\nconst rawOutput =\n  current.output ||\n  current.text ||\n  current.response ||\n  current.content ||\n  \"\";\n\nfunction extractJson(input) {\n  const raw = String(input || \"\").trim();\n\n  if (!raw) return {};\n\n  const cleaned = raw\n    .replace(/^```json/i, \"\")\n    .replace(/^```/i, \"\")\n    .replace(/```$/i, \"\")\n    .trim();\n\n  try {\n    return JSON.parse(cleaned);\n  } catch {\n    const match = cleaned.match(/\\{[\\s\\S]*\\}/);\n\n    if (!match) return {};\n\n    try {\n      return JSON.parse(match[0]);\n    } catch {\n      return {};\n    }\n  }\n}\n\nconst parsed = extractJson(rawOutput);\n\nreturn [\n  {\n    json: {\n      ...current,\n      groqMetadata: {\n        title: String(parsed.title || \"\").trim(),\n        summary: String(parsed.summary || \"\").trim(),\n        confidence: String(parsed.confidence || \"\").trim(),\n      },\n      metadataProvider: parsed.title\n        ? \"groq-title-agent\"\n        : \"groq-title-agent-failed\",\n    },\n  },\n];"
+        "jsCode": "const current = $input.first().json;\nconst rawOutput = current.output || current.text || current.response || current.content || '';\n\nfunction extractJson(input) {\n  const raw = String(input || '').trim();\n  if (!raw) return {};\n  const cleaned = raw.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/i, '').trim();\n  try { return JSON.parse(cleaned); } catch {\n    const match = cleaned.match(/\\{[\\s\\S]*\\}/);\n    if (!match) return {};\n    try { return JSON.parse(match[0]); } catch { return {}; }\n  }\n}\n\nconst parsed = extractJson(rawOutput);\n\nreturn [{\n  json: {\n    ...current,\n    groqMetadata: {\n      title: String(parsed.title || '').trim(),\n      summary: String(parsed.summary || '').trim(),\n      confidence: String(parsed.confidence || '').trim()\n    },\n    metadataProvider: parsed.title ? 'groq-title-agent' : 'groq-title-agent-failed'\n  }\n}];"
       },
       "id": "2381460d-7367-49be-b642-691be0e09fec",
       "name": "Normalize Groq Metadata",
@@ -939,7 +939,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const current = $input.first().json;\n\nlet source = {};\ntry {\n  source = $(\"Final Response Shape\").first().json;\n} catch {\n  source = {};\n}\n\nlet prepared = {};\ntry {\n  prepared = $(\"Prepare AI Metadata Prompt\").first().json;\n} catch {\n  prepared = {};\n}\n\nconst geminiMetadata =\n  current.geminiMetadata ||\n  (() => {\n    try {\n      return $(\"Normalize Gemini Metadata\").first().json.geminiMetadata || {};\n    } catch {\n      return {};\n    }\n  })();\n\nconst groqMetadata =\n  current.groqMetadata ||\n  (() => {\n    try {\n      return $(\"Normalize Groq Metadata\").first().json.groqMetadata || {};\n    } catch {\n      return {};\n    }\n  })();\n\nfunction compactText(value) {\n  return String(value || \"\").replace(/\\s+/g, \" \").trim();\n}\n\nfunction keepReadableText(value) {\n  return String(value || \"\")\n    .replace(/\\r\\n/g, \"\\n\")\n    .replace(/\\n{4,}/g, \"\\n\\n\")\n    .trim();\n}\n\nfunction isBadTitle(value) {\n  const title = compactText(value).toLowerCase();\n\n  if (!title) return true;\n\n  return (\n    title === \"study source\" ||\n    title === \"untitled source\" ||\n    title === \"source\" ||\n    title === \"image\" ||\n    title === \"pdf\" ||\n    title === \"document\" ||\n    title === \"file\" ||\n    /^img[_\\-\\s]?\\d*/i.test(title) ||\n    /^image[_\\-\\s]?\\d*/i.test(title) ||\n    /^screenshot[_\\-\\s]?\\d*/i.test(title) ||\n    /^screen shot[_\\-\\s]?\\d*/i.test(title) ||\n    /^document[_\\-\\s]?\\d*/i.test(title)\n  );\n}\n\nfunction makeFallbackTitle(source, prepared) {\n  const text = compactText(\n    source.summary || source.extractedText || prepared.fullExtractedText || prepared.metadataExcerpt,\n  );\n\n  if (text) {\n    const firstSentence =\n      text\n        .split(/[.!?]/)\n        .map((part) => compactText(part))\n        .find((part) => part.length >= 12 && part.length <= 90) || \"\";\n\n    if (firstSentence) return firstSentence.slice(0, 70);\n  }\n\n  const urlValue = source.originalUrl || prepared.originalUrl || source.value || prepared.value;\n\n  if (urlValue) {\n    try {\n      const url = new URL(urlValue);\n      const rawFileName = decodeURIComponent(url.pathname.split(\"/\").filter(Boolean).pop() || \"\");\n\n      const fileName = rawFileName\n        .replace(/\\.[a-z0-9]+$/i, \"\")\n        .replace(/^[a-f0-9-]{12,}-/i, \"\")\n        .replace(/[_-]+/g, \" \")\n        .trim();\n\n      if (fileName && !isBadTitle(fileName)) return fileName.slice(0, 70);\n\n      return url.hostname.replace(/^www\\./, \"\");\n    } catch {}\n  }\n\n  return \"Study Source\";\n}\n\nconst extractedText = keepReadableText(\n  source.extractedText || prepared.fullExtractedText || prepared.extractedText || current.fullExtractedText || current.extractedText || \"\",\n);\n\nconst aiTitle = compactText(geminiMetadata.title || groqMetadata.title);\nconst aiSummary = compactText(geminiMetadata.summary || groqMetadata.summary);\nconst originalSummary = compactText(source.summary || prepared.summary || current.summary);\n\nconst title = !isBadTitle(aiTitle)\n  ? aiTitle\n  : !isBadTitle(source.title || prepared.title || current.title)\n    ? compactText(source.title || prepared.title || current.title)\n    : makeFallbackTitle(source, prepared);\n\nconst summary =\n  aiSummary ||\n  originalSummary ||\n  (extractedText.length > 900 ? `${extractedText.slice(0, 900)}...` : extractedText) ||\n  \"No summary was generated for this source.\";\n\nreturn [\n  {\n    json: {\n      sourceType: source.sourceType || prepared.sourceType || current.sourceType || \"text\",\n      title,\n      value: source.value || prepared.value || current.value || \"\",\n      originalUrl: source.originalUrl || prepared.originalUrl || current.originalUrl || \"\",\n      extractedText,\n      summary,\n      status: extractedText ? \"ready\" : source.status || prepared.status || current.status || \"failed\",\n      statusMessage: extractedText\n        ? source.statusMessage || prepared.statusMessage || current.statusMessage || \"Source reader finished.\"\n        : \"No readable content was extracted.\",\n      parserProvider: source.parserProvider || prepared.parserProvider || current.parserProvider || \"unknown\",\n      metadataProvider: geminiMetadata.title\n        ? \"gemini-ai-agent-title\"\n        : groqMetadata.title\n          ? \"groq-ai-agent-title\"\n          : \"fallback-title\",\n      extractionLength: extractedText.length,\n    },\n  },\n];"
+        "jsCode": "const current = $input.first().json;\n\nlet source = {};\ntry { source = $('Final Response Shape').first().json; } catch { source = {}; }\nlet prepared = {};\ntry { prepared = $('Prepare AI Metadata Prompt').first().json; } catch { prepared = {}; }\n\nconst geminiMetadata = current.geminiMetadata || (() => {\n  try { return $('Normalize Gemini Metadata').first().json.geminiMetadata || {}; } catch { return {}; }\n})();\n\nconst groqMetadata = current.groqMetadata || (() => {\n  try { return $('Normalize Groq Metadata').first().json.groqMetadata || {}; } catch { return {}; }\n})();\n\nfunction compactText(value) {\n  return String(value || '').replace(/\\s+/g, ' ').trim();\n}\n\nfunction keepReadableText(value) {\n  return String(value || '').replace(/\\r\\n/g, '\\n').replace(/\\n{4,}/g, '\\n\\n').trim();\n}\n\nfunction wordLimit(value, maxWords) {\n  const words = compactText(value).split(/\\s+/).filter(Boolean);\n  if (words.length <= maxWords) return compactText(value);\n  return words.slice(0, maxWords).join(' ') + '...';\n}\n\nfunction isBadTitle(value) {\n  const title = compactText(value).toLowerCase();\n  if (!title) return true;\n  return (\n    title === 'study source' || title === 'untitled source' || title === 'source' ||\n    title === 'image' || title === 'pdf' || title === 'document' || title === 'file' ||\n    /^img[_\\-\\s]?\\d*/i.test(title) || /^image[_\\-\\s]?\\d*/i.test(title) ||\n    /^screenshot[_\\-\\s]?\\d*/i.test(title) || /^screen shot[_\\-\\s]?\\d*/i.test(title) ||\n    /^document[_\\-\\s]?\\d*/i.test(title)\n  );\n}\n\nfunction makeFallbackTitle(source, prepared) {\n  const text = compactText(source.summary || source.extractedText || prepared.fullExtractedText || prepared.metadataExcerpt);\n  if (text) {\n    const firstSentence = text.split(/[.!?]/).map(part => compactText(part)).find(part => part.length >= 12 && part.length <= 90) || '';\n    if (firstSentence) return firstSentence.slice(0, 70);\n  }\n\n  const urlValue = source.originalUrl || prepared.originalUrl || source.value || prepared.value;\n  if (urlValue) {\n    try {\n      const url = new URL(urlValue);\n      const rawFileName = decodeURIComponent(url.pathname.split('/').filter(Boolean).pop() || '');\n      const fileName = rawFileName.replace(/\\.[a-z0-9]+$/i, '').replace(/^[a-f0-9-]{12,}-/i, '').replace(/[_-]+/g, ' ').trim();\n      if (fileName && !isBadTitle(fileName)) return fileName.slice(0, 70);\n      return url.hostname.replace(/^www\\./, '');\n    } catch {}\n  }\n\n  return 'Study Source';\n}\n\nconst extractedText = keepReadableText(source.extractedText || prepared.fullExtractedText || prepared.extractedText || current.fullExtractedText || current.extractedText || '');\nconst aiTitle = compactText(geminiMetadata.title || groqMetadata.title);\nconst aiSummary = compactText(geminiMetadata.summary || groqMetadata.summary);\nconst originalSummary = compactText(source.summary || prepared.summary || current.summary);\n\nconst title = !isBadTitle(aiTitle)\n  ? aiTitle\n  : !isBadTitle(source.title || prepared.title || current.title)\n    ? compactText(source.title || prepared.title || current.title)\n    : makeFallbackTitle(source, prepared);\n\nconst summary = wordLimit(\n  aiSummary || originalSummary || (extractedText.length > 1800 ? `${extractedText.slice(0, 1800)}...` : extractedText) || 'No summary was generated for this source.',\n  300\n);\n\nreturn [{\n  json: {\n    sourceType: source.sourceType || prepared.sourceType || current.sourceType || 'text',\n    title,\n    value: source.value || prepared.value || current.value || '',\n    originalUrl: source.originalUrl || prepared.originalUrl || current.originalUrl || '',\n    extractedText,\n    summary,\n    status: extractedText ? 'ready' : source.status || prepared.status || current.status || 'failed',\n    statusMessage: extractedText\n      ? source.statusMessage || prepared.statusMessage || current.statusMessage || 'Source reader finished.'\n      : 'No readable content was extracted.',\n    parserProvider: source.parserProvider || prepared.parserProvider || current.parserProvider || 'unknown',\n    metadataProvider: geminiMetadata.title ? 'gemini-ai-agent-title' : groqMetadata.title ? 'groq-ai-agent-title' : 'fallback-title',\n    extractionLength: extractedText.length\n  }\n}];"
       },
       "id": "d12b437d-2475-4c87-b470-aba10f82680a",
       "name": "Final Response with AI Title",
@@ -952,9 +952,9 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.1-flash-lite-preview",
+        "modelName": "models/{{$env.GEMINI_TITLE_MODEL || 'gemini-3.1-flash-lite-preview'}}",
         "options": {
-          "maxOutputTokens": 500,
+          "maxOutputTokens": 900,
           "temperature": 0.2
         }
       },
@@ -975,9 +975,9 @@
     },
     {
       "parameters": {
-        "model": "llama-3.1-8b-instant",
+        "model": "{{$env.GROQ_TITLE_MODEL || 'llama-3.1-8b-instant'}}",
         "options": {
-          "maxTokensToSample": 500,
+          "maxTokensToSample": 900,
           "temperature": 0.2
         }
       },
@@ -1524,16 +1524,14 @@
       ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "9bcb730c-be44-46e6-80a8-48e155fc7618",
+  "versionId": "study-aura-source-reader-300-words",
   "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "f764945c1c84e3150fef3e723867048d510331bfb76c2fd5193ecd91ac2a5a2e"
+    "templateCredsSetupCompleted": true
   },
-  "id": "wtaESjFFTNuYuSq7",
   "tags": []
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { StudySource } from "./dashboardTypes";
 
 type SourcePreviewModalProps = {
@@ -9,6 +9,7 @@ type SourcePreviewModalProps = {
 };
 
 type DisplaySourceStatus = NonNullable<StudySource["status"]> | "used";
+type PreviewTab = "summary" | "original";
 
 const sourceIcons: Record<StudySource["type"], string> = {
   text: "📝",
@@ -64,19 +65,23 @@ const isUrlLike = (value?: string) => {
   return /^https?:\/\//i.test(String(value || "").trim());
 };
 
-const getReadableOriginalSource = (source: StudySource) => {
-  if (source.fileName) return source.fileName;
-
-  if (source.originalUrl || source.value) {
-    try {
-      const url = new URL(source.originalUrl || source.value);
-      return url.hostname.replace(/^www\./, "");
-    } catch {
-      return source.originalUrl || source.value;
-    }
+const getOriginalSourceText = (source: StudySource) => {
+  if (source.type === "text") {
+    return normalizeText(source.value || source.extractedText || source.summary);
   }
 
-  return "Manual source";
+  if (source.fileName) {
+    return [
+      `File name: ${source.fileName}`,
+      source.fileType ? `File type: ${source.fileType}` : "",
+      source.fileSize ? `File size: ${formatFileSize(source.fileSize)}` : "",
+      source.originalUrl ? `Storage URL: ${source.originalUrl}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  return source.originalUrl || source.value || "No original source is available.";
 };
 
 const SourcePreviewModal = ({
@@ -85,6 +90,12 @@ const SourcePreviewModal = ({
   onToggleSource,
   onDeleteSource,
 }: SourcePreviewModalProps) => {
+  const [activeTab, setActiveTab] = useState<PreviewTab>("summary");
+
+  useEffect(() => {
+    setActiveTab("summary");
+  }, [source?.id]);
+
   const sourceDebug = useMemo(() => {
     if (!source) return null;
 
@@ -120,8 +131,16 @@ const SourcePreviewModal = ({
     normalizeText(source.statusMessage) ||
     "No summary is available yet. This source may still be processing or the reader did not return enough content.";
 
-  const originalSource = source.originalUrl || source.value;
-  const readableOriginalSource = getReadableOriginalSource(source);
+  const originalSourceText = getOriginalSourceText(source);
+  const sourceUrl = source.originalUrl || source.value;
+
+  const panelTitle = activeTab === "summary" ? "Summary" : "Original Source";
+  const panelDescription =
+    activeTab === "summary"
+      ? "Clean study summary generated from this source."
+      : "Raw source saved before Study Aura processed it.";
+  const panelBadge = activeTab === "summary" ? "Study Context" : "Source";
+  const panelContent = activeTab === "summary" ? summaryText : originalSourceText;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-aura-bg/80 px-3 py-3 backdrop-blur-xl">
@@ -174,7 +193,10 @@ const SourcePreviewModal = ({
         </div>
 
         <div className="min-h-0 flex-1 px-7 py-5">
-          <div className="grid h-full min-h-0 gap-5 xl:grid-cols-[0.52fr_1.48fr]">
+          <div
+            className="grid h-full min-h-0 gap-5"
+            style={{ gridTemplateColumns: "minmax(320px, 420px) minmax(0, 1fr)" }}
+          >
             <aside className="flex min-h-0 flex-col gap-4">
               <div className="rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-5">
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-aura-cyan">
@@ -216,27 +238,44 @@ const SourcePreviewModal = ({
                     </div>
                   )}
 
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-aura-dim">
-                      Original Source
-                    </p>
+                  {sourceUrl?.startsWith("http") && (
+                    <a
+                      href={sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex rounded-full border border-aura-cyan/30 bg-aura-cyan/10 px-3 py-1 text-xs font-bold text-aura-cyan transition hover:border-aura-cyan/60 hover:text-aura-text"
+                    >
+                      Open source ↗
+                    </a>
+                  )}
+                </div>
+              </div>
 
-                    {originalSource?.startsWith("http") ? (
-                      <a
-                        href={originalSource}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-1 block max-w-full truncate text-xs font-bold leading-5 text-aura-cyan transition hover:text-aura-text"
-                        title={originalSource}
-                      >
-                        {readableOriginalSource}
-                      </a>
-                    ) : (
-                      <p className="mt-1 break-words text-xs font-semibold leading-5 text-aura-muted">
-                        {readableOriginalSource}
-                      </p>
-                    )}
-                  </div>
+              <div className="rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-3">
+                <div className="grid gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("summary")}
+                    className={`rounded-2xl border px-4 py-3 text-sm font-black transition ${
+                      activeTab === "summary"
+                        ? "border-aura-cyan/60 bg-aura-cyan/10 text-aura-cyan"
+                        : "border-aura-border bg-aura-panel text-aura-muted hover:border-aura-cyan/45 hover:text-aura-text"
+                    }`}
+                  >
+                    Summary
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("original")}
+                    className={`rounded-2xl border px-4 py-3 text-sm font-black transition ${
+                      activeTab === "original"
+                        ? "border-aura-cyan/60 bg-aura-cyan/10 text-aura-cyan"
+                        : "border-aura-border bg-aura-panel text-aura-muted hover:border-aura-cyan/45 hover:text-aura-text"
+                    }`}
+                  >
+                    Original Source
+                  </button>
                 </div>
               </div>
 
@@ -267,21 +306,21 @@ const SourcePreviewModal = ({
               <div className="flex items-start justify-between gap-3 border-b border-aura-border pb-4">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-aura-cyan">
-                    Summary
+                    {panelTitle}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-aura-muted">
-                    Clean study summary generated from this source.
+                    {panelDescription}
                   </p>
                 </div>
 
                 <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-aura-muted">
-                  Study Context
+                  {panelBadge}
                 </span>
               </div>
 
               <div className="aura-scrollbar mt-4 min-h-0 flex-1 overflow-y-auto rounded-2xl border border-aura-border bg-aura-panel p-5">
-                <p className="whitespace-pre-wrap text-sm leading-7 text-aura-muted">
-                  {summaryText}
+                <p className="whitespace-pre-wrap break-words text-sm leading-7 text-aura-muted">
+                  {panelContent}
                 </p>
               </div>
             </section>
