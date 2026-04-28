@@ -1,70 +1,86 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { currentUser } from "../components/user/userMock";
 import {
   searchWebSourcesWithN8n,
+  type N8nWebSearchResponse,
   type WebSearchResult,
 } from "../lib/n8n";
 
 type UseWebSearchSourcesParams = {
   moduleId?: string;
-};
-
-const createFallbackResults = (query: string): WebSearchResult[] => {
-  const encodedQuery = encodeURIComponent(query.trim() || "study topic");
-
-  return [
-    {
-      title: `Search result for ${query}`,
-      url: `https://www.google.com/search?q=${encodedQuery}`,
-      snippet:
-        "Fallback search link. Connect VITE_N8N_WEB_SEARCH_WEBHOOK_URL to return Tavily or search API results.",
-    },
-  ];
+  maxResults?: number;
 };
 
 export const useWebSearchSources = ({
   moduleId,
+  maxResults = 5,
 }: UseWebSearchSourcesParams) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<WebSearchResult[]>([]);
   const [selectedUrls, setSelectedUrls] = useState<string[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [lastResponse, setLastResponse] = useState<N8nWebSearchResponse | null>(
+    null,
+  );
 
-  const handleSearch = async () => {
-    const trimmedQuery = query.trim();
+  const selectedResults = useMemo(() => {
+    const selectedSet = new Set(selectedUrls);
+    return results.filter((result) => selectedSet.has(result.url));
+  }, [results, selectedUrls]);
+
+  const providerLabel = useMemo(() => {
+    if (!lastResponse?.provider) return "";
+    return lastResponse.fallback
+      ? `${lastResponse.provider} fallback`
+      : lastResponse.provider;
+  }, [lastResponse]);
+
+  const searchWithQuery = async (nextQuery: string) => {
+    const trimmedQuery = nextQuery.trim();
 
     if (!trimmedQuery || isSearching) return;
 
+    setQuery(trimmedQuery);
     setIsSearching(true);
     setSearchError("");
     setResults([]);
     setSelectedUrls([]);
+    setLastResponse(null);
 
     try {
       const response = await searchWebSourcesWithN8n({
         query: trimmedQuery,
         moduleId,
-        maxResults: 5,
+        maxResults,
         userId: currentUser.id,
       });
 
-      if (!response.success) {
-        throw new Error(response.message || "Web search failed.");
+      setLastResponse(response);
+
+      if (!response.success || response.results.length === 0) {
+        throw new Error(
+          response.message || "Web Search AI Agent did not return results.",
+        );
       }
 
-      setResults(response.results.slice(0, 5));
+      setResults(response.results.slice(0, maxResults));
     } catch (error) {
-      setSearchError(
+      const message =
         error instanceof Error
           ? error.message
-          : "Failed to search web sources.",
-      );
+          : "Failed to search web sources.";
 
-      setResults(createFallbackResults(trimmedQuery));
+      setSearchError(message);
+      setResults([]);
+      setSelectedUrls([]);
     } finally {
       setIsSearching(false);
     }
+  };
+
+  const handleSearch = async () => {
+    await searchWithQuery(query);
   };
 
   const handleToggleResult = (url: string) => {
@@ -75,12 +91,21 @@ export const useWebSearchSources = ({
     );
   };
 
+  const selectAllResults = () => {
+    setSelectedUrls(results.map((result) => result.url));
+  };
+
+  const clearSelectedResults = () => {
+    setSelectedUrls([]);
+  };
+
   const resetSearch = () => {
     setQuery("");
     setResults([]);
     setSelectedUrls([]);
     setSearchError("");
     setIsSearching(false);
+    setLastResponse(null);
   };
 
   return {
@@ -88,10 +113,16 @@ export const useWebSearchSources = ({
     setQuery,
     results,
     selectedUrls,
+    selectedResults,
     isSearching,
     searchError,
+    lastResponse,
+    providerLabel,
     handleSearch,
+    searchWithQuery,
     handleToggleResult,
+    selectAllResults,
+    clearSelectedResults,
     resetSearch,
   };
 };

@@ -94,10 +94,12 @@ export type WebSearchResult = {
   title: string;
   url: string;
   snippet: string;
+  sourceType?: "website";
 };
 
 export type N8nWebSearchResponse = N8nBaseResponse & {
   success: boolean;
+  query?: string;
   results: WebSearchResult[];
   message?: string;
 };
@@ -605,13 +607,14 @@ const normalizeWebSearchResults = (response: unknown): N8nWebSearchResponse => {
 
   const results: WebSearchResult[] = rawResults
     .filter(isRecord)
-    .map((item) => ({
+    .map((item): WebSearchResult => ({
       title:
         pickFirstString(item, ["title", "name"]) ||
         pickFirstString(item, ["url", "link"]) ||
         "Untitled result",
       url: pickFirstString(item, ["url", "link", "href"]),
       snippet: pickFirstString(item, ["snippet", "description", "summary", "text"]),
+      sourceType: "website" as const,
     }))
     .filter((item) => item.url);
 
@@ -621,6 +624,9 @@ const normalizeWebSearchResults = (response: unknown): N8nWebSearchResponse => {
       typeof unwrapped.fallback === "boolean" ? unwrapped.fallback : undefined,
     success:
       typeof unwrapped.success === "boolean" ? unwrapped.success : results.length > 0,
+    query:
+      pickFirstString(unwrapped, ["query", "searchQuery", "search_query"]) ||
+      undefined,
     results,
     message: pickFirstString(unwrapped, ["message", "statusMessage"]) || undefined,
   };

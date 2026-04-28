@@ -305,6 +305,10 @@ const Dashboard = ({
     handleUploadSources(payloads);
   };
 
+  const handleSubmitWebSources = (payloads: SourceUploadPayload[]) => {
+    handleUploadSources(payloads);
+  };
+
   const handleOpenTool = (toolName: AIToolName) => {
     setSavedOutputToView(null);
     setActiveTool(toolName);
@@ -366,11 +370,13 @@ const Dashboard = ({
         <div className="min-h-105 overflow-hidden xl:min-h-0">
           <SourcesPanel
             moduleTitle={currentModule?.title ?? topic}
+            moduleId={currentModule?.id}
             sources={currentSources}
             selectedSourceCount={selectedSourceCount}
             isUploadingSource={isUploadingSource}
             uploadError={uploadError}
             onUpload={() => setIsAddSourceOpen(true)}
+            onUploadWebSources={handleSubmitWebSources}
             onToggleSource={handleToggleSource}
             onSelectAllSources={handleSelectAllSources}
             onClearSelectedSources={handleClearSelectedSources}

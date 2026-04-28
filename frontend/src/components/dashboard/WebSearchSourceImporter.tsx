@@ -18,11 +18,18 @@ const WebSearchSourceImporter = ({
     setQuery,
     results,
     selectedUrls,
+    selectedResults,
     isSearching,
     searchError,
+    lastResponse,
+    providerLabel,
     handleSearch,
     handleToggleResult,
-  } = useWebSearchSources({ moduleId });
+    resetSearch,
+  } = useWebSearchSources({
+    moduleId,
+    maxResults: 5,
+  });
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
@@ -32,15 +39,16 @@ const WebSearchSourceImporter = ({
   };
 
   const handleImportSelected = () => {
-    const payloads = results
-      .filter((result) => selectedUrls.includes(result.url))
-      .map<SourceUploadPayload>((result) => ({
-        sourceType: "website",
-        title: result.title,
-        value: result.url,
-      }));
+    if (selectedResults.length === 0 || isImporting) return;
+
+    const payloads = selectedResults.map<SourceUploadPayload>((result) => ({
+      sourceType: "website",
+      title: result.title,
+      value: result.url,
+    }));
 
     onImportSources(payloads);
+    resetSearch();
   };
 
   return (
@@ -56,8 +64,8 @@ const WebSearchSourceImporter = ({
           </h3>
 
           <p className="mt-1 text-sm leading-6 text-aura-muted">
-            Search the web through n8n, review the top 5 links, then import
-            useful results as website sources.
+            Use the Web Search AI Agent pipeline to suggest educational sources,
+            then import selected links into Study Aura.
           </p>
         </div>
       </div>
@@ -87,12 +95,30 @@ const WebSearchSourceImporter = ({
         </div>
       )}
 
+      {lastResponse?.message && !searchError && (
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-bold text-aura-muted">
+          <span>{lastResponse.message}</span>
+
+          {providerLabel && (
+            <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-1 text-aura-cyan">
+              {providerLabel}
+            </span>
+          )}
+        </div>
+      )}
+
       {results.length > 0 && (
         <div className="mt-5 space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-aura-dim">
-              Top Results
-            </p>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-aura-dim">
+                Top Results
+              </p>
+
+              <p className="mt-1 text-xs font-semibold text-aura-muted">
+                {selectedUrls.length} selected / {results.length} shown
+              </p>
+            </div>
 
             <button
               type="button"
@@ -106,43 +132,45 @@ const WebSearchSourceImporter = ({
             </button>
           </div>
 
-          {results.map((result) => {
-            const isSelected = selectedUrls.includes(result.url);
+          <div className="max-h-[360px] space-y-3 overflow-y-auto pr-1">
+            {results.map((result) => {
+              const isSelected = selectedUrls.includes(result.url);
 
-            return (
-              <label
-                key={result.url}
-                className={`block cursor-pointer rounded-2xl border p-4 transition hover:-translate-y-0.5 ${
-                  isSelected
-                    ? "border-aura-cyan/60 bg-aura-cyan/10"
-                    : "border-aura-border bg-aura-panel hover:border-aura-cyan/40"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => handleToggleResult(result.url)}
-                    className="mt-1 h-4 w-4 shrink-0 accent-aura-cyan"
-                  />
+              return (
+                <label
+                  key={result.url}
+                  className={`block cursor-pointer rounded-2xl border p-4 transition hover:-translate-y-0.5 ${
+                    isSelected
+                      ? "border-aura-cyan/60 bg-aura-cyan/10"
+                      : "border-aura-border bg-aura-panel hover:border-aura-cyan/40"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => handleToggleResult(result.url)}
+                      className="mt-1 h-4 w-4 shrink-0 accent-aura-cyan"
+                    />
 
-                  <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 text-sm font-black leading-5 text-aura-text">
-                      {result.title}
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-2 text-sm font-black leading-5 text-aura-text">
+                        {result.title}
+                      </p>
 
-                    <p className="mt-1 truncate text-xs font-semibold text-aura-cyan">
-                      {result.url}
-                    </p>
+                      <p className="mt-1 truncate text-xs font-semibold text-aura-cyan">
+                        {result.url}
+                      </p>
 
-                    <p className="mt-2 line-clamp-3 text-xs leading-5 text-aura-muted">
-                      {result.snippet}
-                    </p>
+                      <p className="mt-2 line-clamp-3 text-xs leading-5 text-aura-muted">
+                        {result.snippet || "No preview snippet provided."}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </label>
-            );
-          })}
+                </label>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

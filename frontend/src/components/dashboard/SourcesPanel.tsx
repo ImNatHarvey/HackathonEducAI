@@ -3,15 +3,22 @@ import EmptyState from "../states/EmptyState";
 import ErrorState from "../states/ErrorState";
 import LoadingState from "../states/LoadingState";
 import SourcePreviewModal from "./SourcePreviewModal";
-import type { SourceStatus, StudySource } from "./dashboardTypes";
+import WebSearchSourceModal from "./WebSearchSourceModal";
+import type {
+  SourceStatus,
+  SourceUploadPayload,
+  StudySource,
+} from "./dashboardTypes";
 
 type SourcesPanelProps = {
   moduleTitle: string;
+  moduleId?: string;
   sources: StudySource[];
   selectedSourceCount: number;
   isUploadingSource: boolean;
   uploadError: string;
   onUpload: () => void;
+  onUploadWebSources: (payloads: SourceUploadPayload[]) => void;
   onToggleSource: (sourceId: string) => void;
   onSelectAllSources: () => void;
   onClearSelectedSources: () => void;
@@ -62,17 +69,21 @@ const sourceStatusClasses: Record<DisplaySourceStatus, string> = {
 
 const SourcesPanel = ({
   moduleTitle,
+  moduleId,
   sources,
   selectedSourceCount,
   isUploadingSource,
   uploadError,
   onUpload,
+  onUploadWebSources,
   onToggleSource,
   onSelectAllSources,
   onClearSelectedSources,
   onDeleteSource,
 }: SourcesPanelProps) => {
   const [webSearchValue, setWebSearchValue] = useState("");
+  const [webSearchQuery, setWebSearchQuery] = useState("");
+  const [isWebSearchOpen, setIsWebSearchOpen] = useState(false);
   const [previewSourceId, setPreviewSourceId] = useState<string | null>(null);
 
   const hasSources = sources.length > 0;
@@ -88,7 +99,8 @@ const SourcesPanel = ({
 
     if (!query) return;
 
-    console.log("Search web sources:", query);
+    setWebSearchQuery(query);
+    setIsWebSearchOpen(true);
   };
 
   return (
@@ -323,6 +335,15 @@ const SourcesPanel = ({
           )}
         </div>
       </aside>
+
+      <WebSearchSourceModal
+        isOpen={isWebSearchOpen}
+        initialQuery={webSearchQuery}
+        moduleId={moduleId}
+        isImporting={isUploadingSource}
+        onClose={() => setIsWebSearchOpen(false)}
+        onImportSources={onUploadWebSources}
+      />
 
       <SourcePreviewModal
         source={previewSource}
