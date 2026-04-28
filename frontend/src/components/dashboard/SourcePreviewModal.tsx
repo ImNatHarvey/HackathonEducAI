@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import type { StudySource } from "./dashboardTypes";
 
 type SourcePreviewModalProps = {
@@ -9,7 +9,6 @@ type SourcePreviewModalProps = {
 };
 
 type DisplaySourceStatus = NonNullable<StudySource["status"]> | "used";
-type PreviewTab = "summary" | "fullText";
 
 const sourceIcons: Record<StudySource["type"], string> = {
   text: "📝",
@@ -50,6 +49,21 @@ const formatFileSize = (size?: number) => {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const normalizeText = (value?: string) => {
+  return String(value || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/`{1,3}/g, "")
+    .replace(/#+\s*/g, "")
+    .replace(/\n{4,}/g, "\n\n")
+    .trim();
+};
+
+const isUrlLike = (value?: string) => {
+  return /^https?:\/\//i.test(String(value || "").trim());
+};
+
 const getReadableOriginalSource = (source: StudySource) => {
   if (source.fileName) return source.fileName;
 
@@ -71,11 +85,25 @@ const SourcePreviewModal = ({
   onToggleSource,
   onDeleteSource,
 }: SourcePreviewModalProps) => {
-  const [activeTab, setActiveTab] = useState<PreviewTab>("summary");
+  const sourceDebug = useMemo(() => {
+    if (!source) return null;
+
+    return {
+      id: source.id,
+      title: source.title,
+      type: source.type,
+      summaryLength: source.summary?.length ?? 0,
+      extractedTextLength: source.extractedText?.length ?? 0,
+      valueLength: source.value?.length ?? 0,
+      hasOriginalUrl: Boolean(source.originalUrl),
+    };
+  }, [source]);
 
   useEffect(() => {
-    setActiveTab("summary");
-  }, [source?.id]);
+    if (sourceDebug) {
+      console.log("[Study Aura] Source preview source:", sourceDebug);
+    }
+  }, [sourceDebug]);
 
   if (!source) return null;
 
@@ -83,14 +111,14 @@ const SourcePreviewModal = ({
     ? "used"
     : source.status ?? "ready";
 
-  const summaryText =
-    source.summary ||
-    source.statusMessage ||
-    "No summary is available yet. This can happen if the source reader did not return a summary.";
+  const valueAsText = !isUrlLike(source.value) ? normalizeText(source.value) : "";
 
-  const fullExtractedText =
-    source.extractedText ||
-    "No full extracted text is available yet. If the source looks incomplete, the n8n Source Reader response may be returning trimmed content.";
+  const summaryText =
+    normalizeText(source.summary) ||
+    normalizeText(source.extractedText) ||
+    valueAsText ||
+    normalizeText(source.statusMessage) ||
+    "No summary is available yet. This source may still be processing or the reader did not return enough content.";
 
   const originalSource = source.originalUrl || source.value;
   const readableOriginalSource = getReadableOriginalSource(source);
@@ -146,7 +174,7 @@ const SourcePreviewModal = ({
         </div>
 
         <div className="min-h-0 flex-1 px-7 py-5">
-          <div className="grid h-full min-h-0 gap-5 xl:grid-cols-[0.68fr_1.32fr]">
+          <div className="grid h-full min-h-0 gap-5 xl:grid-cols-[0.52fr_1.48fr]">
             <aside className="flex min-h-0 flex-col gap-4">
               <div className="rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-5">
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-aura-cyan">
@@ -212,34 +240,6 @@ const SourcePreviewModal = ({
                 </div>
               </div>
 
-              <div className="rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-3">
-                <div className="grid gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("summary")}
-                    className={`rounded-2xl border px-4 py-3 text-sm font-black transition ${
-                      activeTab === "summary"
-                        ? "border-aura-cyan/60 bg-aura-cyan/10 text-aura-cyan"
-                        : "border-aura-border bg-aura-panel text-aura-muted hover:border-aura-cyan/45 hover:text-aura-text"
-                    }`}
-                  >
-                    Summary
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("fullText")}
-                    className={`rounded-2xl border px-4 py-3 text-sm font-black transition ${
-                      activeTab === "fullText"
-                        ? "border-aura-cyan/60 bg-aura-cyan/10 text-aura-cyan"
-                        : "border-aura-border bg-aura-panel text-aura-muted hover:border-aura-cyan/45 hover:text-aura-text"
-                    }`}
-                  >
-                    Full Extracted Text
-                  </button>
-                </div>
-              </div>
-
               <div className="mt-auto grid gap-2">
                 {onToggleSource && (
                   <button
@@ -267,23 +267,21 @@ const SourcePreviewModal = ({
               <div className="flex items-start justify-between gap-3 border-b border-aura-border pb-4">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-aura-cyan">
-                    {activeTab === "summary" ? "Summary" : "Full Extracted Text"}
+                    Summary
                   </p>
                   <p className="mt-1 text-xs font-semibold text-aura-muted">
-                    {activeTab === "summary"
-                      ? "Readable preview generated from this source."
-                      : "Complete content returned by the source reader."}
+                    Clean study summary generated from this source.
                   </p>
                 </div>
 
                 <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-aura-muted">
-                  {activeTab === "summary" ? "Preview" : "Full Text"}
+                  Study Context
                 </span>
               </div>
 
               <div className="aura-scrollbar mt-4 min-h-0 flex-1 overflow-y-auto rounded-2xl border border-aura-border bg-aura-panel p-5">
                 <p className="whitespace-pre-wrap text-sm leading-7 text-aura-muted">
-                  {activeTab === "summary" ? summaryText : fullExtractedText}
+                  {summaryText}
                 </p>
               </div>
             </section>

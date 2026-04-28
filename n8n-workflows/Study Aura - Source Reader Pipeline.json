@@ -8,13 +8,13 @@
         "responseMode": "lastNode",
         "options": {}
       },
-      "id": "source-reader-webhook",
+      "id": "1083dfd9-6e6f-4202-bbdd-13d1496676b4",
       "name": "Source Reader Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        944,
-        928
+        -240,
+        160
       ],
       "webhookId": "study-aura-source-reader"
     },
@@ -22,13 +22,13 @@
       "parameters": {
         "jsCode": "const body = $json.body || $json;\n\nconst sourceType = String(body.sourceType || body.type || 'text').toLowerCase();\nconst value = String(body.value || body.content || body.url || '').trim();\nconst title = String(body.title || '').trim();\nconst originalUrl = String(body.originalUrl || body.url || value || '').trim();\n\nfunction titleFromValue(input, fallback) {\n  if (title) return title;\n  if (!input) return fallback;\n  try {\n    const url = new URL(input);\n    return url.hostname.replace(/^www\\./, '');\n  } catch {\n    return input.slice(0, 60) || fallback;\n  }\n}\n\nreturn [{\n  json: {\n    sourceType,\n    title: titleFromValue(value, 'Untitled Source'),\n    value,\n    originalUrl: ['website', 'youtube', 'pdf', 'image'].includes(sourceType) ? originalUrl : '',\n    extractedText: '',\n    summary: '',\n    status: 'reading',\n    statusMessage: 'Reading source...',\n    parserProvider: 'none'\n  }\n}];"
       },
-      "id": "normalize-source-input",
+      "id": "6bb691be-aa92-44ce-a8cf-f57632ad688b",
       "name": "Normalize Source Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1168,
-        928
+        -16,
+        160
       ]
     },
     {
@@ -156,26 +156,26 @@
           "fallbackOutput": "extra"
         }
       },
-      "id": "route-source-type",
+      "id": "2b44a0a9-8e25-41d5-8211-d26834203cbc",
       "name": "Route Source Type",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
-        1392,
-        928
+        208,
+        160
       ]
     },
     {
       "parameters": {
-        "jsCode": "const text = String($json.value || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 18000;\nconst safeText = text.length > MAX_CHARS ? text.slice(0, MAX_CHARS) + '\\n\\n[Text trimmed for demo token limit.]' : text;\n\nreturn [{\n  json: {\n    ...$json,\n    extractedText: safeText,\n    summary: safeText.length > 280 ? safeText.slice(0, 280) + '...' : safeText,\n    status: safeText ? 'ready' : 'failed',\n    statusMessage: safeText ? 'Text source is ready.' : 'No text content was provided.',\n    parserProvider: 'direct-text'\n  }\n}];"
+        "jsCode": "const text = String($json.value || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 60000;\nconst safeText = text.length > MAX_CHARS ? text.slice(0, MAX_CHARS) + '\\n\\n[Text trimmed for demo token limit.]' : text;\n\nreturn [{\n  json: {\n    ...$json,\n    extractedText: safeText,\n    summary: safeText.length > 280 ? safeText.slice(0, 280) + '...' : safeText,\n    status: safeText ? 'ready' : 'failed',\n    statusMessage: safeText ? 'Text source is ready.' : 'No text content was provided.',\n    parserProvider: 'direct-text'\n  }\n}];"
       },
-      "id": "text-direct-reader",
+      "id": "c0e01730-a493-4414-a705-06c803002b51",
       "name": "Text Direct Reader",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1664,
-        560
+        480,
+        -208
       ]
     },
     {
@@ -190,27 +190,27 @@
           "timeout": 30000
         }
       },
-      "id": "website-jina-reader",
+      "id": "c012588a-4a22-4fd1-93de-948558e4175c",
       "name": "Website Fallback 1 - Jina Reader",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1664,
-        752
+        480,
+        -16
       ],
       "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst body = $json.body || $json.data || $json;\nconst rawText = typeof body === 'string' ? body : JSON.stringify(body || '');\nconst text = rawText.replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 18000;\nconst safeText = text.length > MAX_CHARS ? text.slice(0, MAX_CHARS) + '\\n\\n[Website content trimmed for demo token limit.]' : text;\nconst ok = safeText && safeText.length > 200 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'Website extracted using Jina Reader.' : 'Jina Reader could not extract enough content.',\n    parserProvider: ok ? 'jina-reader' : 'jina-reader-failed'\n  }\n}];"
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst body = $json.body || $json.data || $json;\nconst rawText = typeof body === 'string' ? body : JSON.stringify(body || '');\nconst text = rawText.replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 60000;\nconst safeText = text.length > MAX_CHARS ? text.slice(0, MAX_CHARS) + '\\n\\n[Website content trimmed for demo token limit.]' : text;\nconst ok = safeText && safeText.length > 200 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'Website extracted using Jina Reader.' : 'Jina Reader could not extract enough content.',\n    parserProvider: ok ? 'jina-reader' : 'jina-reader-failed'\n  }\n}];"
       },
-      "id": "normalize-jina-result",
+      "id": "c4403dbe-333b-434a-89b0-22a7aeef2456",
       "name": "Normalize Jina Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1888,
-        752
+        704,
+        -16
       ]
     },
     {
@@ -236,13 +236,13 @@
         },
         "options": {}
       },
-      "id": "jina-success",
+      "id": "905d02a5-d356-4178-ac89-fd7a18a59390",
       "name": "Jina Success?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2112,
-        752
+        928,
+        -16
       ]
     },
     {
@@ -254,7 +254,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer REPLACE_WITH_FIRECRAWL_API_KEY"
+              "value": "=Bearer fc-f7965a6d2c6f4c7f88f5ab8f1d39060d"
             },
             {
               "name": "Content-Type",
@@ -269,27 +269,27 @@
           "timeout": 30000
         }
       },
-      "id": "website-firecrawl",
+      "id": "0960bd3a-7c82-40d2-9784-ff4402769c21",
       "name": "Website Fallback 2 - Firecrawl",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2352,
-        848
+        1168,
+        80
       ],
       "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst rawText = data.markdown || data.content || data.text || '';\nconst text = String(rawText).replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 18000;\nconst safeText = text.length > MAX_CHARS ? text.slice(0, MAX_CHARS) + '\\n\\n[Website content trimmed for demo token limit.]' : text;\nconst ok = safeText && safeText.length > 200 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'Website extracted using Firecrawl.' : 'Firecrawl could not extract enough content.',\n    parserProvider: ok ? 'firecrawl' : 'firecrawl-failed'\n  }\n}];"
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst rawText = data.markdown || data.content || data.text || '';\nconst text = String(rawText).replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 60000;\nconst safeText = text.length > MAX_CHARS ? text.slice(0, MAX_CHARS) + '\\n\\n[Website content trimmed for demo token limit.]' : text;\nconst ok = safeText && safeText.length > 200 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'Website extracted using Firecrawl.' : 'Firecrawl could not extract enough content.',\n    parserProvider: ok ? 'firecrawl' : 'firecrawl-failed'\n  }\n}];"
       },
-      "id": "normalize-firecrawl-result",
+      "id": "6a897680-1399-4c03-8d01-221dbee2c6fe",
       "name": "Normalize Firecrawl Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2576,
-        848
+        1392,
+        80
       ]
     },
     {
@@ -315,13 +315,13 @@
         },
         "options": {}
       },
-      "id": "firecrawl-success",
+      "id": "bb1f9dd2-9387-454f-8b43-d772d8b86fe9",
       "name": "Firecrawl Success?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2784,
-        848
+        1600,
+        80
       ]
     },
     {
@@ -336,27 +336,27 @@
           "timeout": 30000
         }
       },
-      "id": "website-raw-html",
+      "id": "7cdf75f3-4dc1-4586-9561-644aae2cfe40",
       "name": "Website Fallback 3 - Raw HTML",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3024,
-        944
+        1840,
+        176
       ],
       "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst html = typeof $json.body === 'string' ? $json.body : JSON.stringify($json);\nconst text = html\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&amp;/g, '&')\n  .replace(/\\s+/g, ' ')\n  .trim();\nconst MAX_CHARS = 18000;\nconst safeText = text.length > MAX_CHARS ? text.slice(0, MAX_CHARS) + '\\n\\n[Website content trimmed for demo token limit.]' : text;\nconst ok = safeText.length > 120;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'failed',\n    statusMessage: ok ? 'Website extracted using raw HTML fallback.' : 'Could not read this website. Try copied text instead.',\n    parserProvider: ok ? 'raw-html-fallback' : 'website-failed'\n  }\n}];"
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst html = typeof $json.body === 'string' ? $json.body : JSON.stringify($json);\nconst text = html\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&amp;/g, '&')\n  .replace(/\\s+/g, ' ')\n  .trim();\nconst MAX_CHARS = 60000;\nconst safeText = text.length > MAX_CHARS ? text.slice(0, MAX_CHARS) + '\\n\\n[Website content trimmed for demo token limit.]' : text;\nconst ok = safeText.length > 120;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'failed',\n    statusMessage: ok ? 'Website extracted using raw HTML fallback.' : 'Could not read this website. Try copied text instead.',\n    parserProvider: ok ? 'raw-html-fallback' : 'website-failed'\n  }\n}];"
       },
-      "id": "normalize-raw-html-result",
+      "id": "25172ed1-cf72-4b04-9e97-6c9938c89622",
       "name": "Normalize Raw HTML Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3248,
-        944
+        2064,
+        176
       ]
     },
     {
@@ -379,27 +379,27 @@
           "timeout": 180000
         }
       },
-      "id": "youtube-local-helper",
+      "id": "52e262c6-b7da-48d1-99aa-91d2db3e6785",
       "name": "YouTube Fallback 1 - Local Helper",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1664,
-        960
+        480,
+        192
       ],
       "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst text = data.text || data.transcript || data.content || '';\nconst cleanedText = String(text || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 18000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[YouTube transcript trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 120 && !$json.error && data.status !== 'failed';\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'YouTube audio transcribed using local yt-dlp + Groq Whisper helper.' : (data.statusMessage || 'Local YouTube helper failed. Trying transcript providers.'),\n    parserProvider: ok ? (data.provider || 'yt-dlp-groq-whisper') : 'yt-dlp-groq-whisper-failed'\n  }\n}];"
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst text = data.text || data.transcript || data.content || '';\nconst cleanedText = String(text || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 60000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[YouTube transcript trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 120 && !$json.error && data.status !== 'failed';\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'YouTube audio transcribed using local yt-dlp + Groq Whisper helper.' : (data.statusMessage || 'Local YouTube helper failed. Trying transcript providers.'),\n    parserProvider: ok ? (data.provider || 'yt-dlp-groq-whisper') : 'yt-dlp-groq-whisper-failed'\n  }\n}];"
       },
-      "id": "normalize-youtube-local-helper-result",
+      "id": "722fe920-c8a3-438b-b1ae-0b25e806b2cb",
       "name": "Normalize YouTube Local Helper Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1888,
-        960
+        704,
+        192
       ]
     },
     {
@@ -425,13 +425,13 @@
         },
         "options": {}
       },
-      "id": "youtube-local-helper-success",
+      "id": "8a0c0182-c9a9-4120-8eaa-412ed90c0df7",
       "name": "YouTube Local Helper Success?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2112,
-        960
+        928,
+        192
       ]
     },
     {
@@ -443,7 +443,7 @@
           "parameters": [
             {
               "name": "x-api-key",
-              "value": "=REPLACE_WITH_SUPADATA_API_KEY"
+              "value": "=sd_a941ea78c5f7a2077d81615950b57a13"
             },
             {
               "name": "Content-Type",
@@ -458,27 +458,27 @@
           "timeout": 30000
         }
       },
-      "id": "youtube-supadata",
+      "id": "1cdabc07-439e-44dd-8fc3-3770cba189b4",
       "name": "YouTube Fallback 2 - Supadata Transcript",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2352,
-        1072
+        1168,
+        304
       ],
       "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst text = data.text || data.transcript || data.content || (Array.isArray(data.segments) ? data.segments.map(s => s.text).join(' ') : '');\nconst cleanedText = String(text || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 18000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[YouTube transcript trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 120 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'YouTube transcript extracted using Supadata.' : 'Supadata transcript failed. Trying secondary transcript provider.',\n    parserProvider: ok ? 'supadata-transcript' : 'supadata-transcript-failed'\n  }\n}];"
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst text = data.text || data.transcript || data.content || (Array.isArray(data.segments) ? data.segments.map(s => s.text).join(' ') : '');\nconst cleanedText = String(text || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 60000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[YouTube transcript trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 120 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'YouTube transcript extracted using Supadata.' : 'Supadata transcript failed. Trying secondary transcript provider.',\n    parserProvider: ok ? 'supadata-transcript' : 'supadata-transcript-failed'\n  }\n}];"
       },
-      "id": "normalize-youtube-supadata-result",
+      "id": "be18f332-9555-423d-9ee9-911dfa97052f",
       "name": "Normalize YouTube Supadata Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2576,
-        1072
+        1392,
+        304
       ]
     },
     {
@@ -504,13 +504,13 @@
         },
         "options": {}
       },
-      "id": "youtube-supadata-success",
+      "id": "2dec67d1-e19b-4b40-b768-3e3749cc0fbd",
       "name": "YouTube Supadata Success?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2784,
-        1072
+        1600,
+        304
       ]
     },
     {
@@ -522,7 +522,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer REPLACE_WITH_TRANSCRIPTAPI_API_KEY"
+              "value": "=Bearer sk_sQ_xXvpZPA9X6JCITbnAhOd6m9LxkkU7prxUcMNWvT0"
             },
             {
               "name": "Content-Type",
@@ -537,27 +537,27 @@
           "timeout": 30000
         }
       },
-      "id": "youtube-transcriptapi",
+      "id": "b192c3df-9aaf-41bb-8913-064b0e126c6c",
       "name": "YouTube Fallback 3 - TranscriptAPI",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3024,
-        1184
+        1840,
+        416
       ],
       "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst text = data.text || data.transcript || data.content || (Array.isArray(data.segments) ? data.segments.map(s => s.text).join(' ') : '');\nconst cleanedText = String(text || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 18000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[YouTube transcript trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 120 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'failed',\n    statusMessage: ok ? 'YouTube transcript extracted using TranscriptAPI.' : 'Could not extract or transcribe this YouTube video. Try copied text or another video.',\n    parserProvider: ok ? 'transcriptapi' : 'youtube-failed'\n  }\n}];"
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst text = data.text || data.transcript || data.content || (Array.isArray(data.segments) ? data.segments.map(s => s.text).join(' ') : '');\nconst cleanedText = String(text || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 60000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[YouTube transcript trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 120 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'failed',\n    statusMessage: ok ? 'YouTube transcript extracted using TranscriptAPI.' : 'Could not extract or transcribe this YouTube video. Try copied text or another video.',\n    parserProvider: ok ? 'transcriptapi' : 'youtube-failed'\n  }\n}];"
       },
-      "id": "normalize-youtube-transcriptapi-result",
+      "id": "107f891f-ace6-4b78-a7bd-90c4b1db3b75",
       "name": "Normalize YouTube TranscriptAPI Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3248,
-        1184
+        2064,
+        416
       ]
     },
     {
@@ -569,7 +569,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer REPLACE_WITH_MISTRAL_API_KEY"
+              "value": "=Bearer NNGYb9yCIJYuF0V5igcfD3E6DeTuE4is"
             },
             {
               "name": "Content-Type",
@@ -584,27 +584,27 @@
           "timeout": 60000
         }
       },
-      "id": "pdf-mistral-ocr",
+      "id": "7450083f-8533-4492-ad32-a72e251c65f1",
       "name": "PDF Fallback 1 - Mistral OCR",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1664,
-        1200
+        480,
+        432
       ],
       "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst pages = $json.pages || $json.data?.pages || [];\nconst text = Array.isArray(pages)\n  ? pages.map(p => p.markdown || p.text || '').join('\\n\\n')\n  : ($json.text || $json.markdown || '');\n\nconst cleanedText = String(text || '')\n  .replace(/!\\[[^\\]]*\\]\\([^)]+\\)/g, ' ')\n  .replace(/\\\\n/g, '\\n')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .replace(/[ \\t]{2,}/g, ' ')\n  .trim();\n\nconst MAX_CHARS = 18000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[PDF content trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 120 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'PDF extracted using Mistral OCR.' : 'Mistral OCR failed. Trying Gemini PDF/vision fallback.',\n    parserProvider: ok ? 'mistral-ocr' : 'mistral-ocr-failed'\n  }\n}];"
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst pages = $json.pages || $json.data?.pages || [];\nconst text = Array.isArray(pages)\n  ? pages.map(p => p.markdown || p.text || '').join('\\n\\n')\n  : ($json.text || $json.markdown || '');\n\nconst cleanedText = String(text || '')\n  .replace(/!\\[[^\\]]*\\]\\([^)]+\\)/g, ' ')\n  .replace(/\\\\n/g, '\\n')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .replace(/[ \\t]{2,}/g, ' ')\n  .trim();\n\nconst MAX_CHARS = 60000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[PDF content trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 120 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'PDF extracted using Mistral OCR.' : 'Mistral OCR failed. Trying Gemini PDF/vision fallback.',\n    parserProvider: ok ? 'mistral-ocr' : 'mistral-ocr-failed'\n  }\n}];"
       },
-      "id": "normalize-mistral-pdf-result",
+      "id": "1828037f-2e4a-44cd-986a-64a755532194",
       "name": "Normalize Mistral PDF Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1888,
-        1200
+        704,
+        432
       ]
     },
     {
@@ -630,25 +630,25 @@
         },
         "options": {}
       },
-      "id": "mistral-pdf-success",
+      "id": "8d765433-64e6-4294-a6d8-6c13035c7c12",
       "name": "Mistral PDF Success?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2112,
-        1200
+        928,
+        432
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
             {
               "name": "key",
-              "value": "=REPLACE_WITH_GEMINI_API_KEY"
+              "value": "=AIzaSyAs-6lRqPa5oVGcYlSi5F_yJbsKo4Ej1jM"
             }
           ]
         },
@@ -659,27 +659,27 @@
           "timeout": 60000
         }
       },
-      "id": "pdf-gemini-fallback",
+      "id": "fb28bae6-980d-4abb-ac6b-1a363fbaf0ea",
       "name": "PDF Fallback 2 - Gemini Document Prompt",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2352,
-        1312
+        1168,
+        544
       ],
       "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst text = $json.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('\\n') || '';\nconst cleanedText = String(text || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 18000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[PDF fallback content trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 80 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'failed',\n    statusMessage: ok ? 'PDF analyzed using Gemini fallback.' : 'Could not extract this PDF. Try copied text or a clearer PDF.',\n    parserProvider: ok ? 'gemini-pdf-fallback' : 'pdf-failed'\n  }\n}];"
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst text = $json.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('\\n') || '';\nconst cleanedText = String(text || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 60000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[PDF fallback content trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 80 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'failed',\n    statusMessage: ok ? 'PDF analyzed using Gemini fallback.' : 'Could not extract this PDF. Try copied text or a clearer PDF.',\n    parserProvider: ok ? 'gemini-pdf-fallback' : 'pdf-failed'\n  }\n}];"
       },
-      "id": "normalize-gemini-pdf-result",
+      "id": "34af9eb9-e662-44ec-bee0-693d366aa13f",
       "name": "Normalize Gemini PDF Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2576,
-        1312
+        1392,
+        544
       ]
     },
     {
@@ -691,7 +691,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer REPLACE_WITH_MISTRAL_API_KEY"
+              "value": "=Bearer NNGYb9yCIJYuF0V5igcfD3E6DeTuE4is"
             },
             {
               "name": "Content-Type",
@@ -706,27 +706,27 @@
           "timeout": 60000
         }
       },
-      "id": "image-pixtral",
+      "id": "7a331b59-0b03-40a6-940a-eef3bb7c449f",
       "name": "Image Fallback 1 - Pixtral",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1664,
-        1472
+        480,
+        704
       ],
       "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst text = $json.choices?.[0]?.message?.content || $json.text || '';\nconst cleanedText = String(text || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 18000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[Image content trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 40 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'Image extracted using Pixtral vision.' : 'Pixtral could not extract enough content. Trying Gemini Vision fallback.',\n    parserProvider: ok ? 'mistral-pixtral' : 'mistral-pixtral-failed'\n  }\n}];"
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst text = $json.choices?.[0]?.message?.content || $json.text || '';\nconst cleanedText = String(text || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 60000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[Image content trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 40 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'Image extracted using Pixtral vision.' : 'Pixtral could not extract enough content. Trying Gemini Vision fallback.',\n    parserProvider: ok ? 'mistral-pixtral' : 'mistral-pixtral-failed'\n  }\n}];"
       },
-      "id": "normalize-pixtral-result",
+      "id": "4712a583-da1c-4441-9701-2d8e26eaba63",
       "name": "Normalize Pixtral Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1888,
-        1472
+        704,
+        704
       ]
     },
     {
@@ -752,25 +752,25 @@
         },
         "options": {}
       },
-      "id": "pixtral-success",
+      "id": "e924582f-7ef2-4ec1-ba81-4678cf5c51df",
       "name": "Pixtral Success?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2112,
-        1472
+        928,
+        704
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
             {
               "name": "key",
-              "value": "=REPLACE_WITH_GEMINI_API_KEY"
+              "value": "=AIzaSyAs-6lRqPa5oVGcYlSi5F_yJbsKo4Ej1jM"
             }
           ]
         },
@@ -781,54 +781,220 @@
           "timeout": 60000
         }
       },
-      "id": "image-gemini-vision",
+      "id": "f37b04d8-a50e-4be1-a1a1-1b1d2a86c725",
       "name": "Image Fallback 2 - Gemini Vision Prompt",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2352,
-        1568
+        1168,
+        800
       ],
       "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst text = $json.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('\\n') || '';\nconst cleanedText = String(text || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 18000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[Image content trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 40 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'failed',\n    statusMessage: ok ? 'Image extracted using Gemini fallback.' : 'Could not read this image. Try a clearer image or copied text.',\n    parserProvider: ok ? 'gemini-vision' : 'image-failed'\n  }\n}];"
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst text = $json.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('\\n') || '';\nconst cleanedText = String(text || '').replace(/\\s+/g, ' ').trim();\nconst MAX_CHARS = 60000;\nconst safeText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) + '\\n\\n[Image content trimmed for demo token limit.]' : cleanedText;\nconst ok = safeText && safeText.length > 40 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? safeText : '',\n    status: ok ? 'ready' : 'failed',\n    statusMessage: ok ? 'Image extracted using Gemini fallback.' : 'Could not read this image. Try a clearer image or copied text.',\n    parserProvider: ok ? 'gemini-vision' : 'image-failed'\n  }\n}];"
       },
-      "id": "normalize-gemini-image-result",
+      "id": "edd13c10-fd6d-446b-a801-9b6af823ba0b",
       "name": "Normalize Gemini Image Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2576,
-        1568
+        1392,
+        800
       ]
     },
     {
       "parameters": {
         "jsCode": "return [{\n  json: {\n    ...$json,\n    status: 'failed',\n    statusMessage: `Unsupported source type: ${$json.sourceType}`,\n    parserProvider: 'unsupported-source-type'\n  }\n}];"
       },
-      "id": "unsupported-source-type",
+      "id": "61d3815d-67a8-48b3-a8e6-8935d4f031cf",
       "name": "Unsupported Source Type",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1664,
-        1680
+        480,
+        912
       ]
     },
     {
       "parameters": {
-        "jsCode": "const item = $json;\nconst MAX_CHARS = 18000;\nconst cleanedExtractedText = String(item.extractedText || '')\n  .replace(/\\s+/g, ' ')\n  .trim();\nconst safeExtractedText = cleanedExtractedText.length > MAX_CHARS\n  ? cleanedExtractedText.slice(0, MAX_CHARS) + '\\n\\n[Source content trimmed for demo token limit.]'\n  : cleanedExtractedText;\nconst fallbackText = String(item.value || '')\n  .replace(/\\s+/g, ' ')\n  .trim();\nconst textForSummary = safeExtractedText || fallbackText;\nconst summary = item.summary || (textForSummary.length > 360 ? textForSummary.slice(0, 360) + '...' : textForSummary);\n\nreturn [{\n  json: {\n    sourceType: item.sourceType || 'text',\n    title: item.title || 'Untitled Source',\n    value: item.value || '',\n    originalUrl: item.originalUrl || '',\n    extractedText: safeExtractedText,\n    summary,\n    status: item.status || 'failed',\n    statusMessage: item.statusMessage || 'Source reader finished.',\n    parserProvider: item.parserProvider || 'unknown'\n  }\n}];"
+        "jsCode": "const item = $json;\n\nfunction cleanText(value) {\n  return String(value || '')\n    .replace(/\\r\\n/g, '\\n')\n    .replace(/\\n{4,}/g, '\\n\\n\\n')\n    .trim();\n}\n\nfunction compactText(value) {\n  return String(value || '').replace(/\\s+/g, ' ').trim();\n}\n\nconst extractedCandidates = [\n  item.extractedText,\n  item.fullExtractedText,\n  item.text,\n  item.content,\n  item.markdown,\n  item.summary,\n  item.value\n];\n\nconst fullExtractedText = cleanText(extractedCandidates.find(value => cleanText(value).length > 0) || '');\nconst summaryBase = compactText(item.summary || fullExtractedText || item.value);\nconst summary = summaryBase.length > 700 ? `${summaryBase.slice(0, 700)}...` : summaryBase;\n\nreturn [{\n  json: {\n    sourceType: item.sourceType || 'text',\n    title: item.title || 'Untitled Source',\n    value: item.value || '',\n    originalUrl: item.originalUrl || '',\n    extractedText: fullExtractedText,\n    summary,\n    status: item.status || (fullExtractedText ? 'ready' : 'failed'),\n    statusMessage: item.statusMessage || (fullExtractedText ? 'Source reader finished.' : 'No readable content was extracted.'),\n    parserProvider: item.parserProvider || 'unknown',\n    extractionLength: fullExtractedText.length\n  }\n}];"
       },
-      "id": "final-response-shape",
+      "id": "a6309b7f-ad8b-4bc9-8c15-1242e60407b0",
       "name": "Final Response Shape",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3552,
-        1040
+        2368,
+        272
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $json;\n\nfunction cleanText(value) {\n  return String(value || \"\")\n    .replace(/\\r\\n/g, \"\\n\")\n    .replace(/\\n{4,}/g, \"\\n\\n\")\n    .trim();\n}\n\nfunction compactText(value) {\n  return String(value || \"\").replace(/\\s+/g, \" \").trim();\n}\n\nfunction isGenericTitle(value) {\n  const title = compactText(value)\n    .toLowerCase()\n    .replace(/\\.[a-z0-9]+$/i, \"\");\n\n  if (!title) return true;\n\n  return /^(img|image|screenshot|screen shot|photo|document|scan|untitled|file|upload|source|study source)[-_\\s]?\\d*/i.test(title);\n}\n\nconst fullExtractedText = cleanText(\n  item.extractedText ||\n    item.fullExtractedText ||\n    item.text ||\n    item.content ||\n    item.markdown ||\n    item.summary ||\n    item.value ||\n    \"\",\n);\n\nconst excerpt =\n  fullExtractedText.length > 12000\n    ? `${fullExtractedText.slice(0, 12000)}\\n\\n[Excerpt only for metadata generation. Keep the original extractedText unchanged in later nodes.]`\n    : fullExtractedText;\n\nconst existingSummary = compactText(item.summary);\n\nconst shouldGenerateMetadata =\n  Boolean(fullExtractedText) &&\n  (isGenericTitle(item.title) || !existingSummary || existingSummary.length < 180);\n\nconst prompt = `PART 1 — ROLE AND GOAL\nYou are Study Aura's Source Metadata Agent.\nCreate a clean, student-friendly, presentation-ready source title and a useful study summary.\n\nPART 2 — SOURCE CONTEXT\nSource type: ${item.sourceType || \"unknown\"}\nCurrent title: ${item.title || \"Untitled Source\"}\nOriginal URL or value: ${item.originalUrl || item.value || \"\"}\nParser provider: ${item.parserProvider || \"unknown\"}\n\nExtracted content excerpt:\n${excerpt}\n\nPART 3 — OUTPUT CONTRACT\nReturn ONLY valid JSON.\nDo not use markdown fences.\nDo not add extra text before or after the JSON.\n\nSchema:\n{\n  \"title\": \"5 to 9 words, specific, clean, no file extensions, no raw URLs\",\n  \"summary\": \"4 to 6 complete sentences explaining what this source contains and what students can learn from it.\",\n  \"confidence\": \"high\"\n}\n\nRules:\n- Do not use generic names like IMG_1231, screenshot, document, file, upload, source, or untitled.\n- If the content is an image description, title the actual subject of the image.\n- If the image is educational, explain its learning value in the summary.\n- If the content is a PDF/document, title the actual topic, not the filename.\n- If the content is a webpage, title the page topic, not the domain.\n- If unsure, infer the best educational title from the strongest subject in the excerpt.\n- Keep the title professional and demo-ready.\n- Keep the summary informative, not too short.\n- The summary must be based only on the extracted content excerpt.`;\n\nreturn [\n  {\n    json: {\n      ...item,\n      fullExtractedText,\n      extractedText: fullExtractedText,\n      metadataExcerpt: excerpt,\n      metadataPrompt: prompt,\n      shouldGenerateMetadata,\n      aiMetadataStatus: shouldGenerateMetadata ? \"pending\" : \"ready\",\n    },\n  },\n];"
+      },
+      "id": "cf452119-25bd-4b99-8e11-1083c494a2e6",
+      "name": "Prepare AI Metadata Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2608,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.metadataPrompt }}",
+        "options": {
+          "systemMessage": "You create clean educational source titles and summaries for Study Aura. Return only valid JSON with keys: title and summary. No markdown fences."
+        }
+      },
+      "id": "7b1a215d-65d9-4210-b3e8-de380f7d4795",
+      "name": "Title Agent 1 - Gemini",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        2848,
+        272
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const current = $input.first().json;\n\nconst rawOutput =\n  current.output ||\n  current.text ||\n  current.response ||\n  current.content ||\n  \"\";\n\nfunction extractJson(input) {\n  const raw = String(input || \"\").trim();\n\n  if (!raw) return {};\n\n  const cleaned = raw\n    .replace(/^```json/i, \"\")\n    .replace(/^```/i, \"\")\n    .replace(/```$/i, \"\")\n    .trim();\n\n  try {\n    return JSON.parse(cleaned);\n  } catch {\n    const match = cleaned.match(/\\{[\\s\\S]*\\}/);\n\n    if (!match) return {};\n\n    try {\n      return JSON.parse(match[0]);\n    } catch {\n      return {};\n    }\n  }\n}\n\nconst parsed = extractJson(rawOutput);\n\nreturn [\n  {\n    json: {\n      ...current,\n      geminiMetadata: {\n        title: String(parsed.title || \"\").trim(),\n        summary: String(parsed.summary || \"\").trim(),\n        confidence: String(parsed.confidence || \"\").trim(),\n      },\n      metadataProvider: parsed.title\n        ? \"gemini-title-agent\"\n        : \"gemini-title-agent-failed\",\n    },\n  },\n];"
+      },
+      "id": "174eaaf7-cca1-4f2f-af58-64a839e5794e",
+      "name": "Normalize Gemini Metadata",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3072,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.geminiMetadata.title }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e0ab4575-349a-4e5f-a117-89fb799ba23d",
+      "name": "Gemini Metadata Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3296,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.metadataPrompt }}",
+        "options": {
+          "systemMessage": "You create clean educational source titles and summaries for Study Aura. Return only valid JSON with keys: title and summary. No markdown fences."
+        }
+      },
+      "id": "f5c6aefa-359d-48a6-898e-6851b3cbc805",
+      "name": "Title Agent 2 - Groq Fallback",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        3536,
+        368
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const current = $input.first().json;\n\nconst rawOutput =\n  current.output ||\n  current.text ||\n  current.response ||\n  current.content ||\n  \"\";\n\nfunction extractJson(input) {\n  const raw = String(input || \"\").trim();\n\n  if (!raw) return {};\n\n  const cleaned = raw\n    .replace(/^```json/i, \"\")\n    .replace(/^```/i, \"\")\n    .replace(/```$/i, \"\")\n    .trim();\n\n  try {\n    return JSON.parse(cleaned);\n  } catch {\n    const match = cleaned.match(/\\{[\\s\\S]*\\}/);\n\n    if (!match) return {};\n\n    try {\n      return JSON.parse(match[0]);\n    } catch {\n      return {};\n    }\n  }\n}\n\nconst parsed = extractJson(rawOutput);\n\nreturn [\n  {\n    json: {\n      ...current,\n      groqMetadata: {\n        title: String(parsed.title || \"\").trim(),\n        summary: String(parsed.summary || \"\").trim(),\n        confidence: String(parsed.confidence || \"\").trim(),\n      },\n      metadataProvider: parsed.title\n        ? \"groq-title-agent\"\n        : \"groq-title-agent-failed\",\n    },\n  },\n];"
+      },
+      "id": "2381460d-7367-49be-b642-691be0e09fec",
+      "name": "Normalize Groq Metadata",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3760,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const current = $input.first().json;\n\nlet source = {};\ntry {\n  source = $(\"Final Response Shape\").first().json;\n} catch {\n  source = {};\n}\n\nlet prepared = {};\ntry {\n  prepared = $(\"Prepare AI Metadata Prompt\").first().json;\n} catch {\n  prepared = {};\n}\n\nconst geminiMetadata =\n  current.geminiMetadata ||\n  (() => {\n    try {\n      return $(\"Normalize Gemini Metadata\").first().json.geminiMetadata || {};\n    } catch {\n      return {};\n    }\n  })();\n\nconst groqMetadata =\n  current.groqMetadata ||\n  (() => {\n    try {\n      return $(\"Normalize Groq Metadata\").first().json.groqMetadata || {};\n    } catch {\n      return {};\n    }\n  })();\n\nfunction compactText(value) {\n  return String(value || \"\").replace(/\\s+/g, \" \").trim();\n}\n\nfunction keepReadableText(value) {\n  return String(value || \"\")\n    .replace(/\\r\\n/g, \"\\n\")\n    .replace(/\\n{4,}/g, \"\\n\\n\")\n    .trim();\n}\n\nfunction isBadTitle(value) {\n  const title = compactText(value).toLowerCase();\n\n  if (!title) return true;\n\n  return (\n    title === \"study source\" ||\n    title === \"untitled source\" ||\n    title === \"source\" ||\n    title === \"image\" ||\n    title === \"pdf\" ||\n    title === \"document\" ||\n    title === \"file\" ||\n    /^img[_\\-\\s]?\\d*/i.test(title) ||\n    /^image[_\\-\\s]?\\d*/i.test(title) ||\n    /^screenshot[_\\-\\s]?\\d*/i.test(title) ||\n    /^screen shot[_\\-\\s]?\\d*/i.test(title) ||\n    /^document[_\\-\\s]?\\d*/i.test(title)\n  );\n}\n\nfunction makeFallbackTitle(source, prepared) {\n  const text = compactText(\n    source.summary || source.extractedText || prepared.fullExtractedText || prepared.metadataExcerpt,\n  );\n\n  if (text) {\n    const firstSentence =\n      text\n        .split(/[.!?]/)\n        .map((part) => compactText(part))\n        .find((part) => part.length >= 12 && part.length <= 90) || \"\";\n\n    if (firstSentence) return firstSentence.slice(0, 70);\n  }\n\n  const urlValue = source.originalUrl || prepared.originalUrl || source.value || prepared.value;\n\n  if (urlValue) {\n    try {\n      const url = new URL(urlValue);\n      const rawFileName = decodeURIComponent(url.pathname.split(\"/\").filter(Boolean).pop() || \"\");\n\n      const fileName = rawFileName\n        .replace(/\\.[a-z0-9]+$/i, \"\")\n        .replace(/^[a-f0-9-]{12,}-/i, \"\")\n        .replace(/[_-]+/g, \" \")\n        .trim();\n\n      if (fileName && !isBadTitle(fileName)) return fileName.slice(0, 70);\n\n      return url.hostname.replace(/^www\\./, \"\");\n    } catch {}\n  }\n\n  return \"Study Source\";\n}\n\nconst extractedText = keepReadableText(\n  source.extractedText || prepared.fullExtractedText || prepared.extractedText || current.fullExtractedText || current.extractedText || \"\",\n);\n\nconst aiTitle = compactText(geminiMetadata.title || groqMetadata.title);\nconst aiSummary = compactText(geminiMetadata.summary || groqMetadata.summary);\nconst originalSummary = compactText(source.summary || prepared.summary || current.summary);\n\nconst title = !isBadTitle(aiTitle)\n  ? aiTitle\n  : !isBadTitle(source.title || prepared.title || current.title)\n    ? compactText(source.title || prepared.title || current.title)\n    : makeFallbackTitle(source, prepared);\n\nconst summary =\n  aiSummary ||\n  originalSummary ||\n  (extractedText.length > 900 ? `${extractedText.slice(0, 900)}...` : extractedText) ||\n  \"No summary was generated for this source.\";\n\nreturn [\n  {\n    json: {\n      sourceType: source.sourceType || prepared.sourceType || current.sourceType || \"text\",\n      title,\n      value: source.value || prepared.value || current.value || \"\",\n      originalUrl: source.originalUrl || prepared.originalUrl || current.originalUrl || \"\",\n      extractedText,\n      summary,\n      status: extractedText ? \"ready\" : source.status || prepared.status || current.status || \"failed\",\n      statusMessage: extractedText\n        ? source.statusMessage || prepared.statusMessage || current.statusMessage || \"Source reader finished.\"\n        : \"No readable content was extracted.\",\n      parserProvider: source.parserProvider || prepared.parserProvider || current.parserProvider || \"unknown\",\n      metadataProvider: geminiMetadata.title\n        ? \"gemini-ai-agent-title\"\n        : groqMetadata.title\n          ? \"groq-ai-agent-title\"\n          : \"fallback-title\",\n      extractionLength: extractedText.length,\n    },\n  },\n];"
+      },
+      "id": "d12b437d-2475-4c87-b470-aba10f82680a",
+      "name": "Final Response with AI Title",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4016,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite-preview",
+        "options": {
+          "maxOutputTokens": 500,
+          "temperature": 0.2
+        }
+      },
+      "id": "249d0910-f59a-4972-9962-7ca4f1051733",
+      "name": "Gemini Chat Model - Select Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2848,
+        64
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "KENDZxdgQGHYC9Xu",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "maxTokensToSample": 500,
+          "temperature": 0.2
+        }
+      },
+      "id": "c89f3f9b-a2ff-489c-9fda-5d593fa51bf3",
+      "name": "Groq Chat Model - Select Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        3536,
+        576
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "WkVbnLQ5QnaDY6HA",
+          "name": "Groq account"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -1250,6 +1416,112 @@
           }
         ]
       ]
+    },
+    "Final Response Shape": {
+      "main": [
+        [
+          {
+            "node": "Prepare AI Metadata Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare AI Metadata Prompt": {
+      "main": [
+        [
+          {
+            "node": "Title Agent 1 - Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Title Agent 1 - Gemini": {
+      "main": [
+        [
+          {
+            "node": "Normalize Gemini Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Gemini Metadata": {
+      "main": [
+        [
+          {
+            "node": "Gemini Metadata Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Metadata Success?": {
+      "main": [
+        [
+          {
+            "node": "Final Response with AI Title",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Title Agent 2 - Groq Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Title Agent 2 - Groq Fallback": {
+      "main": [
+        [
+          {
+            "node": "Normalize Groq Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Groq Metadata": {
+      "main": [
+        [
+          {
+            "node": "Final Response with AI Title",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Chat Model - Select Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Title Agent 1 - Gemini",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model - Select Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Title Agent 2 - Groq Fallback",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -1257,6 +1529,11 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "study-aura-source-reader-reordered-fallbacks-v3",
+  "versionId": "9bcb730c-be44-46e6-80a8-48e155fc7618",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f764945c1c84e3150fef3e723867048d510331bfb76c2fd5193ecd91ac2a5a2e"
+  },
+  "id": "wtaESjFFTNuYuSq7",
   "tags": []
 }

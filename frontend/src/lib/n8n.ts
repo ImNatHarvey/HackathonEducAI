@@ -128,7 +128,6 @@ export type N8nQuizResponse = N8nBaseResponse & {
 };
 
 export type FlashcardDifficulty = "easy" | "medium" | "hard";
-
 export type FlashcardType = "question" | "fill_blank";
 
 export type N8nFlashcardsPayload = {
@@ -224,9 +223,6 @@ export type StudySlide = {
   bullets: string[];
   speakerNotes: string;
   visualIdea: string;
-
-  // For future image API fallback:
-  // Unsplash → Pexels → Pixabay
   visualQuery?: string;
   imageUrl?: string;
   imageAlt?: string;
@@ -251,7 +247,6 @@ export type N8nSlidesResponse = N8nBaseResponse & {
 };
 
 export type AudioOverviewStyle = "calm" | "energetic" | "podcast";
-
 export type AudioOverviewLength = "short" | "standard" | "deep";
 
 export type AudioSegment = {
@@ -306,10 +301,7 @@ const getRequiredEnv = (key: string) => {
 const getPayloadPreview = (payload: unknown) => {
   try {
     const serialized = JSON.stringify(payload);
-
-    if (serialized.length <= 800) return serialized;
-
-    return `${serialized.slice(0, 800)}...`;
+    return serialized.length <= 800 ? serialized : `${serialized.slice(0, 800)}...`;
   } catch {
     return "Unable to serialize payload preview.";
   }
@@ -425,14 +417,172 @@ const postToWebhook = async <TResponse, TPayload extends object>({
       );
     }
 
-    if (error instanceof Error) {
-      throw error;
-    }
+    if (error instanceof Error) throw error;
 
     throw new Error(`${webhookName} workflow failed.`);
   } finally {
     window.clearTimeout(timeoutId);
   }
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+};
+
+const asString = (value: unknown) => {
+  return typeof value === "string" ? value : "";
+};
+
+const unwrapN8nResponse = (response: unknown): unknown => {
+  if (Array.isArray(response)) {
+    return unwrapN8nResponse(response[0]);
+  }
+
+  if (!isRecord(response)) return response;
+
+  if (isRecord(response.json)) return unwrapN8nResponse(response.json);
+  if (isRecord(response.body)) return unwrapN8nResponse(response.body);
+  if (isRecord(response.data)) return unwrapN8nResponse(response.data);
+
+  return response;
+};
+
+const pickFirstString = (
+  object: Record<string, unknown>,
+  keys: string[],
+): string => {
+  for (const key of keys) {
+    const value = object[key];
+
+    if (typeof value === "string" && value.trim()) {
+      return value;
+    }
+  }
+
+  return "";
+};
+
+const normalizeSourceType = (value: unknown): N8nSourceReaderResponse["sourceType"] => {
+  const normalized = String(value || "").toLowerCase();
+
+  if (
+    normalized === "text" ||
+    normalized === "youtube" ||
+    normalized === "website" ||
+    normalized === "pdf" ||
+    normalized === "image"
+  ) {
+    return normalized;
+  }
+
+  return "text";
+};
+
+const normalizeStatus = (
+  value: unknown,
+  hasExtractedText: boolean,
+): N8nSourceReaderResponse["status"] => {
+  const normalized = String(value || "").toLowerCase();
+
+  if (
+    normalized === "ready" ||
+    normalized === "reading" ||
+    normalized === "failed" ||
+    normalized === "pending"
+  ) {
+    return normalized;
+  }
+
+  return hasExtractedText ? "ready" : "failed";
+};
+
+const normalizeSourceReaderResponse = (
+  response: unknown,
+): N8nSourceReaderResponse => {
+  const unwrapped = unwrapN8nResponse(response);
+
+  console.log("[Study Aura] Source Reader unwrapped response:", unwrapped);
+
+  if (!isRecord(unwrapped)) {
+    throw new Error("Source Reader workflow returned an invalid response.");
+  }
+
+  const sourceType = normalizeSourceType(
+    unwrapped.sourceType || unwrapped.source_type || unwrapped.type,
+  );
+
+  const title =
+    pickFirstString(unwrapped, ["title", "name", "sourceTitle"]) ||
+    "Study Source";
+
+  const value =
+    pickFirstString(unwrapped, ["value", "url", "originalUrl", "original_url"]) ||
+    "";
+
+  const originalUrl =
+    pickFirstString(unwrapped, ["originalUrl", "original_url", "url"]) || value;
+
+  const extractedText = pickFirstString(unwrapped, [
+    "extractedText",
+    "extracted_text",
+    "fullExtractedText",
+    "full_extracted_text",
+    "rawText",
+    "raw_text",
+    "text",
+    "content",
+    "markdown",
+    "transcript",
+    "ocrText",
+    "ocr_text",
+    "documentText",
+    "document_text",
+  ]);
+
+  const summary = pickFirstString(unwrapped, [
+    "summary",
+    "sourceSummary",
+    "description",
+    "snippet",
+  ]);
+
+  const status = normalizeStatus(unwrapped.status, Boolean(extractedText));
+
+  const normalizedResponse: N8nSourceReaderResponse = {
+    provider: asString(unwrapped.provider) || undefined,
+    fallback:
+      typeof unwrapped.fallback === "boolean" ? unwrapped.fallback : undefined,
+    sourceType,
+    title,
+    value,
+    originalUrl: originalUrl || undefined,
+    extractedText: extractedText || undefined,
+    summary: summary || undefined,
+    status,
+    statusMessage: pickFirstString(unwrapped, [
+      "statusMessage",
+      "status_message",
+      "message",
+    ]) || undefined,
+    parserProvider:
+      pickFirstString(unwrapped, [
+        "parserProvider",
+        "parser_provider",
+        "provider",
+        "metadataProvider",
+      ]) || undefined,
+  };
+
+  console.log("[Study Aura] Source Reader normalized response:", {
+    sourceType: normalizedResponse.sourceType,
+    title: normalizedResponse.title,
+    status: normalizedResponse.status,
+    summaryLength: normalizedResponse.summary?.length ?? 0,
+    extractedTextLength: normalizedResponse.extractedText?.length ?? 0,
+    response: normalizedResponse,
+  });
+
+  return normalizedResponse;
 };
 
 const validateQuizResponse = (response: N8nQuizResponse) => {
@@ -563,16 +713,17 @@ export const readSourceWithN8n = async (payload: N8nSourceReaderPayload) => {
     getPayloadPreview(payload),
   );
 
-  const response = await postToWebhook<
-    N8nSourceReaderResponse,
-    N8nSourceReaderPayload
-  >({
+  const rawResponse = await postToWebhook<unknown, N8nSourceReaderPayload>({
     webhookName: "Source Reader",
     envKey: "VITE_N8N_SOURCE_READER_WEBHOOK_URL",
     payload,
   });
 
-  return validateSourceReaderResponse(response);
+  console.log("[Study Aura] Source Reader raw response:", rawResponse);
+
+  const normalizedResponse = normalizeSourceReaderResponse(rawResponse);
+
+  return validateSourceReaderResponse(normalizedResponse);
 };
 
 export const searchWebSourcesWithN8n = async (

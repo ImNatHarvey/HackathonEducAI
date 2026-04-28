@@ -126,19 +126,42 @@ const isGenericFileTitle = (title?: string) => {
 
   if (!normalizedTitle) return true;
 
-  return genericFileTitlePatterns.some((pattern) => pattern.test(normalizedTitle));
+  return genericFileTitlePatterns.some((pattern) =>
+    pattern.test(normalizedTitle),
+  );
+};
+
+const cleanSourceText = (value?: string) => {
+  return (value || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/`{1,3}/g, "")
+    .replace(/\n{4,}/g, "\n\n")
+    .trim();
+};
+
+const getWordLimitedText = (value: string, maxWords: number) => {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+
+  if (words.length <= maxWords) return value.trim();
+
+  return `${words.slice(0, maxWords).join(" ")}...`;
 };
 
 const cleanSummary = (value?: string) => {
-  const cleanValue = (value || "").replace(/\s+/g, " ").trim();
+  const cleanValue = cleanSourceText(value)
+    .replace(/#+\s*/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
   if (!cleanValue) return undefined;
 
-  return cleanValue.length > 220 ? `${cleanValue.slice(0, 220)}...` : cleanValue;
+  return getWordLimitedText(cleanValue, 500);
 };
 
 const cleanGeneratedTitle = (value?: string) => {
-  const cleanedValue = (value || "")
+  const cleanedValue = cleanSourceText(value)
     .replace(/^#+\s*/gm, "")
     .replace(/\*\*/g, "")
     .replace(/[`"']/g, "")
@@ -317,13 +340,18 @@ const buildSourceFromUpload = (
 ): StudySource => {
   const now = new Date().toISOString();
 
+  const valueIsUrl = /^https?:\/\//i.test(payload.value || "");
+  const extractedText =
+    cleanSourceText(payload.extractedText) ||
+    (!valueIsUrl ? cleanSourceText(payload.value) : "");
+
   return {
     id: crypto.randomUUID(),
     title: payload.title,
     type: payload.sourceType,
     value: payload.value,
-    summary: cleanSummary(summary ?? payload.summary ?? payload.extractedText),
-    extractedText: payload.extractedText,
+    summary: cleanSummary(summary ?? payload.summary ?? extractedText),
+    extractedText,
     originalUrl: payload.originalUrl,
     status: payload.status ?? "ready",
     statusMessage: payload.statusMessage,
@@ -421,7 +449,7 @@ export const useDashboardActions = ({
       id: source.id,
       title: source.title,
       type: source.type,
-      value: source.extractedText || source.value,
+      value: source.extractedText || source.summary || source.value,
       summary: source.summary,
       extractedText: source.extractedText,
       originalUrl: source.originalUrl,
@@ -484,10 +512,12 @@ export const useDashboardActions = ({
 
     console.log("[Study Aura] Source Reader n8n response:", response);
 
+    const responseExtractedText = response.extractedText || "";
+
     const bestTitle = getBestSourceTitle({
       payloadTitle: payload.title,
       responseTitle: response.title,
-      extractedText: response.extractedText,
+      extractedText: responseExtractedText,
       summary: response.summary,
       originalUrl: response.originalUrl ?? sourceUrl,
       fileName: payload.fileName,
@@ -498,7 +528,7 @@ export const useDashboardActions = ({
       title: bestTitle,
       value: response.value || sourceUrl,
       summary: response.summary,
-      extractedText: response.extractedText,
+      extractedText: responseExtractedText,
       originalUrl: response.originalUrl ?? sourceUrl,
       status: response.status === "failed" ? "failed" : "ready",
       statusMessage:
