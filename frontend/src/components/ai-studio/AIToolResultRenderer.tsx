@@ -82,11 +82,22 @@ const getWordCount = (text: string) => {
   return splitWords(text).filter((part) => part.isWord).length;
 };
 
+const getWordIndexFromCharIndex = (text: string, charIndex: number) => {
+  const beforeBoundary = text.slice(0, Math.max(0, charIndex));
+  const wordsBeforeBoundary = beforeBoundary
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  return Math.max(0, wordsBeforeBoundary.length - 1);
+};
+
 const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [highlightedWordIndex, setHighlightedWordIndex] = useState(-1);
   const intervalRef = useRef<number | null>(null);
+  const fallbackTimeoutRef = useRef<number | null>(null);
 
   const audioOverview = result.audioOverview;
 
@@ -120,6 +131,11 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
       window.clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+
+    if (fallbackTimeoutRef.current !== null) {
+      window.clearTimeout(fallbackTimeoutRef.current);
+      fallbackTimeoutRef.current = null;
+    }
   };
 
   const stopSpeech = () => {
@@ -133,7 +149,7 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
     setHighlightedWordIndex(-1);
   };
 
-  const startHighlighting = (text: string) => {
+  const startHighlightFallback = (text: string) => {
     clearHighlightTimer();
 
     const wordCount = getWordCount(text);
@@ -143,8 +159,8 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
       return;
     }
 
-    const estimatedDurationMs = Math.max(2500, wordCount * 390);
-    const stepMs = Math.max(120, estimatedDurationMs / wordCount);
+    const estimatedDurationMs = Math.max(2200, wordCount * 320);
+    const stepMs = Math.max(90, estimatedDurationMs / wordCount);
 
     let currentWord = 0;
     setHighlightedWordIndex(0);
@@ -168,13 +184,39 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
 
     stopSpeech();
 
+    let receivedBoundary = false;
+
     const utterance = new SpeechSynthesisUtterance(currentText);
     utterance.rate = 0.95;
     utterance.pitch = 1;
 
     utterance.onstart = () => {
       setIsSpeaking(true);
-      startHighlighting(currentText);
+      setHighlightedWordIndex(0);
+
+      fallbackTimeoutRef.current = window.setTimeout(() => {
+        if (!receivedBoundary) {
+          startHighlightFallback(currentText);
+        }
+      }, 600);
+    };
+
+    utterance.onboundary = (event) => {
+      receivedBoundary = true;
+
+      if (intervalRef.current !== null) {
+        window.clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+
+      if (typeof event.charIndex === "number") {
+        const wordIndex = getWordIndexFromCharIndex(
+          currentText,
+          event.charIndex,
+        );
+
+        setHighlightedWordIndex(wordIndex);
+      }
     };
 
     utterance.onend = () => {
@@ -226,15 +268,16 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
 
       const isActive = wordPosition === highlightedWordIndex;
       const isPast = highlightedWordIndex > wordPosition;
+      const isHighlighted = isActive || isPast;
 
       return (
         <span
           key={`${part.value}-${index}`}
           className={
             isActive
-              ? "rounded-lg bg-aura-cyan/25 px-1 text-aura-text shadow-[0_0_18px_rgba(34,211,238,0.18)]"
-              : isPast
-                ? "text-aura-text"
+              ? "rounded-lg bg-aura-cyan/30 px-1 text-aura-text shadow-[0_0_18px_rgba(34,211,238,0.22)]"
+              : isHighlighted
+                ? "rounded-lg bg-aura-cyan/15 px-1 text-aura-text"
                 : "text-aura-muted"
           }
         >
