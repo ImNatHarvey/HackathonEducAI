@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, DragEvent, FormEvent } from "react";
 import type { SourceType, SourceUploadPayload } from "./dashboardTypes";
 import { InlineErrorState } from "../states/ErrorState";
@@ -152,6 +152,19 @@ const AddSourceModal = ({
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
+  const resetForm = () => {
+    setInputMode("auto");
+    setValue("");
+    setFiles([]);
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isOpen && !isUploading) {
+      resetForm();
+    }
+  }, [isOpen, isUploading]);
+
   const inferredSourceType = useMemo(() => {
     return inferSourceType(value, inputMode);
   }, [value, inputMode]);
@@ -184,13 +197,6 @@ const AddSourceModal = ({
     return "";
   }, [value, files.length, inputMode]);
 
-  const resetForm = () => {
-    setInputMode("auto");
-    setValue("");
-    setFiles([]);
-    setIsDragging(false);
-  };
-
   const handleClose = () => {
     if (isUploading) return;
 
@@ -203,11 +209,14 @@ const AddSourceModal = ({
 
     setFiles((currentFiles) => {
       const existingKeys = new Set(
-        currentFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`),
+        currentFiles.map(
+          (file) => `${file.name}-${file.size}-${file.lastModified}`,
+        ),
       );
 
       const uniqueNewFiles = nextFiles.filter(
-        (file) => !existingKeys.has(`${file.name}-${file.size}-${file.lastModified}`),
+        (file) =>
+          !existingKeys.has(`${file.name}-${file.size}-${file.lastModified}`),
       );
 
       return [...currentFiles, ...uniqueNewFiles];
@@ -287,7 +296,7 @@ const AddSourceModal = ({
         value: file.name,
         file,
         status: "pending",
-        statusMessage: "Uploading file...",
+        statusMessage: "Waiting to upload...",
         fileName: file.name,
         fileType: file.type || "unknown",
         fileSize: file.size,
@@ -312,7 +321,7 @@ const AddSourceModal = ({
       status: isTextSource ? "ready" : "pending",
       statusMessage: isTextSource
         ? "Copied text is ready to use as context."
-        : "Reading source...",
+        : "Waiting to read source...",
       parserProvider: isTextSource ? "manual-input" : undefined,
     });
   };
@@ -579,7 +588,7 @@ const AddSourceModal = ({
 
             {(validationMessage || uploadError) && !isUploading && (
               <InlineErrorState
-                title={uploadError ? "Upload failed" : "Missing source"}
+                title={uploadError ? "Source warning" : "Missing source"}
                 description={uploadError || validationMessage}
               />
             )}

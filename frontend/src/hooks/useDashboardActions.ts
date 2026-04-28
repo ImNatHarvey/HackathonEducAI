@@ -28,6 +28,11 @@ type UseDashboardActionsParams = {
   onSourcesAdded: (sources: StudySource[]) => void | Promise<void>;
 };
 
+type DuplicateCheckResult = {
+  isDuplicate: boolean;
+  reason?: string;
+};
+
 const fallbackChatResponses = [
   "Aura is having trouble reaching the AI engine right now, but your message was saved. Please try again in a moment.",
   "The AI workflow is temporarily busy. Your module and selected sources are safe, so you can retry shortly.",
@@ -39,6 +44,17 @@ const fallbackChatResponses = [
   "Aura saved your message, but the generation service is not responding right now. Please try again later.",
   "The AI workflow is online, but the model seems overloaded. Give it a moment, then send your question again.",
   "Study Aura could not generate an answer this time. Your chat history is saved, so nothing was lost.",
+];
+
+const genericFileTitlePatterns = [
+  /^img[_-\s]?\d+/i,
+  /^image[_-\s]?\d*/i,
+  /^screenshot[_-\s]?\d*/i,
+  /^screen shot[_-\s]?\d*/i,
+  /^photo[_-\s]?\d*/i,
+  /^document[_-\s]?\d*/i,
+  /^scan[_-\s]?\d*/i,
+  /^untitled/i,
 ];
 
 const getRandomFallbackChatResponse = () => {
@@ -87,12 +103,212 @@ const isUrlSource = (payload: SourceUploadPayload) => {
   );
 };
 
+const normalizeDuplicateValue = (value?: string) => {
+  return (value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/$/, "");
+};
+
+const normalizeTitle = (value?: string) => {
+  return (value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\.[a-z0-9]+$/i, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+};
+
+const isGenericFileTitle = (title?: string) => {
+  const normalizedTitle = normalizeTitle(title);
+
+  if (!normalizedTitle) return true;
+
+  return genericFileTitlePatterns.some((pattern) => pattern.test(normalizedTitle));
+};
+
 const cleanSummary = (value?: string) => {
   const cleanValue = (value || "").replace(/\s+/g, " ").trim();
 
   if (!cleanValue) return undefined;
 
   return cleanValue.length > 220 ? `${cleanValue.slice(0, 220)}...` : cleanValue;
+};
+
+const cleanGeneratedTitle = (value?: string) => {
+  const cleanedValue = (value || "")
+    .replace(/^#+\s*/gm, "")
+    .replace(/\*\*/g, "")
+    .replace(/[`"']/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleanedValue) return "";
+
+  return cleanedValue.length > 70
+    ? `${cleanedValue.slice(0, 70).trim()}...`
+    : cleanedValue;
+};
+
+const titleFromUrl = (value?: string) => {
+  if (!value) return "";
+
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./, "");
+    const pathParts = url.pathname
+      .split("/")
+      .filter(Boolean)
+      .map((part) =>
+        decodeURIComponent(part)
+          .replace(/\.[a-z0-9]+$/i, "")
+          .replace(/[-_]+/g, " ")
+          .trim(),
+      )
+      .filter(Boolean);
+
+    const lastPath = pathParts[pathParts.length - 1];
+
+    if (lastPath && lastPath.length > 4) {
+      return cleanGeneratedTitle(lastPath);
+    }
+
+    return cleanGeneratedTitle(host);
+  } catch {
+    return "";
+  }
+};
+
+const titleFromExtractedText = ({
+  extractedText,
+  summary,
+  fallbackTitle,
+  originalUrl,
+}: {
+  extractedText?: string;
+  summary?: string;
+  fallbackTitle?: string;
+  originalUrl?: string;
+}) => {
+  const titleCandidate =
+    summary ||
+    extractedText
+      ?.split("\n")
+      .map((line) => line.trim())
+      .find((line) => line.length >= 8 && line.length <= 90);
+
+  const cleanedCandidate = cleanGeneratedTitle(titleCandidate);
+
+  if (cleanedCandidate && !isGenericFileTitle(cleanedCandidate)) {
+    return cleanedCandidate;
+  }
+
+  const urlTitle = titleFromUrl(originalUrl);
+
+  if (urlTitle && !isGenericFileTitle(urlTitle)) {
+    return urlTitle;
+  }
+
+  return cleanGeneratedTitle(fallbackTitle) || "Study source";
+};
+
+const getBestSourceTitle = ({
+  payloadTitle,
+  responseTitle,
+  extractedText,
+  summary,
+  originalUrl,
+  fileName,
+}: {
+  payloadTitle?: string;
+  responseTitle?: string;
+  extractedText?: string;
+  summary?: string;
+  originalUrl?: string;
+  fileName?: string;
+}) => {
+  const cleanedResponseTitle = cleanGeneratedTitle(responseTitle);
+  const cleanedPayloadTitle = cleanGeneratedTitle(payloadTitle);
+  const cleanedFileTitle = cleanGeneratedTitle(
+    fileName?.replace(/\.[^.]+$/, ""),
+  );
+
+  if (cleanedResponseTitle && !isGenericFileTitle(cleanedResponseTitle)) {
+    return cleanedResponseTitle;
+  }
+
+  if (cleanedPayloadTitle && !isGenericFileTitle(cleanedPayloadTitle)) {
+    return cleanedPayloadTitle;
+  }
+
+  const contextualTitle = titleFromExtractedText({
+    extractedText,
+    summary,
+    fallbackTitle: cleanedFileTitle || cleanedPayloadTitle,
+    originalUrl,
+  });
+
+  return contextualTitle || cleanedFileTitle || cleanedPayloadTitle || "Study source";
+};
+
+const getExistingSources = (activeModule?: StudyModule) => {
+  return activeModule?.sources ?? [];
+};
+
+const checkDuplicateSource = (
+  payload: SourceUploadPayload,
+  existingSources: StudySource[],
+): DuplicateCheckResult => {
+  const payloadUrl = normalizeDuplicateValue(payload.originalUrl || payload.value);
+  const payloadTitle = normalizeTitle(payload.title);
+  const payloadFileName = normalizeDuplicateValue(payload.fileName);
+  const payloadFileSize = payload.fileSize;
+
+  const duplicate = existingSources.find((source) => {
+    const sourceUrl = normalizeDuplicateValue(source.originalUrl || source.value);
+    const sourceTitle = normalizeTitle(source.title);
+    const sourceFileName = normalizeDuplicateValue(source.fileName);
+    const sourceFileSize = source.fileSize;
+
+    if (payload.fileName && source.fileName) {
+      return (
+        payloadFileName === sourceFileName &&
+        Boolean(payloadFileSize) &&
+        payloadFileSize === sourceFileSize
+      );
+    }
+
+    if (payload.originalUrl || isUrlSource(payload)) {
+      return Boolean(payloadUrl) && payloadUrl === sourceUrl;
+    }
+
+    return Boolean(payloadTitle) && payloadTitle === sourceTitle;
+  });
+
+  if (!duplicate) {
+    return { isDuplicate: false };
+  }
+
+  if (payload.fileName && duplicate.fileName) {
+    return {
+      isDuplicate: true,
+      reason: `"${payload.fileName}" is already in this module.`,
+    };
+  }
+
+  if (payload.originalUrl || isUrlSource(payload)) {
+    return {
+      isDuplicate: true,
+      reason: "This link/source was already added to this module.",
+    };
+  }
+
+  return {
+    isDuplicate: true,
+    reason: `"${payload.title}" is already in this module.`,
+  };
 };
 
 const buildSourceFromUpload = (
@@ -268,15 +484,26 @@ export const useDashboardActions = ({
 
     console.log("[Study Aura] Source Reader n8n response:", response);
 
+    const bestTitle = getBestSourceTitle({
+      payloadTitle: payload.title,
+      responseTitle: response.title,
+      extractedText: response.extractedText,
+      summary: response.summary,
+      originalUrl: response.originalUrl ?? sourceUrl,
+      fileName: payload.fileName,
+    });
+
     return buildSourceFromUpload({
       sourceType: response.sourceType,
-      title: response.title || payload.title,
+      title: bestTitle,
       value: response.value || sourceUrl,
       summary: response.summary,
       extractedText: response.extractedText,
       originalUrl: response.originalUrl ?? sourceUrl,
-      status: response.status,
-      statusMessage: response.statusMessage,
+      status: response.status === "failed" ? "failed" : "ready",
+      statusMessage:
+        response.statusMessage ||
+        "Source is ready and can be used as context.",
       parserProvider: response.parserProvider,
       fileName: payload.fileName,
       fileType: payload.fileType,
@@ -332,8 +559,15 @@ export const useDashboardActions = ({
       }
 
       if (payload.sourceType === "text") {
+        const bestTitle = getBestSourceTitle({
+          payloadTitle: payload.title,
+          extractedText: payload.extractedText ?? payload.value,
+          summary: payload.summary ?? payload.value.slice(0, 180),
+        });
+
         return buildSourceFromUpload({
           ...payload,
+          title: bestTitle,
           extractedText: payload.extractedText ?? payload.value,
           summary: payload.summary ?? payload.value.slice(0, 180),
           status: payload.status ?? "ready",
@@ -446,6 +680,19 @@ export const useDashboardActions = ({
     setUploadError("");
 
     try {
+      const duplicateCheck = checkDuplicateSource(
+        payload,
+        getExistingSources(activeModule),
+      );
+
+      if (duplicateCheck.isDuplicate) {
+        setUploadError(
+          duplicateCheck.reason ||
+            "This source already exists in the current module.",
+        );
+        return;
+      }
+
       const sourceToSave = await readSourceBeforeSaving(payload);
 
       if (sourceToSave.status === "failed") {
@@ -470,9 +717,43 @@ export const useDashboardActions = ({
     setUploadError("");
 
     try {
-      const uploadedSources: StudySource[] = [];
+      const existingSources = getExistingSources(activeModule);
+      const acceptedPayloads: SourceUploadPayload[] = [];
+      const skippedReasons: string[] = [];
 
       for (const payload of payloads) {
+        const duplicateCheck = checkDuplicateSource(payload, [
+          ...existingSources,
+          ...acceptedPayloads.map((acceptedPayload) =>
+            buildSourceFromUpload({
+              ...acceptedPayload,
+              status: "pending",
+            }),
+          ),
+        ]);
+
+        if (duplicateCheck.isDuplicate) {
+          skippedReasons.push(
+            duplicateCheck.reason ||
+              `"${payload.title}" was skipped because it already exists.`,
+          );
+          continue;
+        }
+
+        acceptedPayloads.push(payload);
+      }
+
+      if (acceptedPayloads.length === 0) {
+        setUploadError(
+          skippedReasons[0] ||
+            "No sources were added because they already exist in this module.",
+        );
+        return;
+      }
+
+      const uploadedSources: StudySource[] = [];
+
+      for (const payload of acceptedPayloads) {
         const sourceToSave = await readSourceBeforeSaving(payload);
         uploadedSources.push(sourceToSave);
       }
@@ -481,12 +762,22 @@ export const useDashboardActions = ({
         (source) => source.status === "failed",
       );
 
-      if (failedSources.length > 0) {
-        setUploadError(
-          `${failedSources.length} source${
-            failedSources.length === 1 ? "" : "s"
-          } saved, but extraction failed. You can retry the reader pipeline later.`,
-        );
+      if (failedSources.length > 0 || skippedReasons.length > 0) {
+        const statusMessages: string[] = [];
+
+        if (failedSources.length > 0) {
+          statusMessages.push(
+            `${failedSources.length} source${
+              failedSources.length === 1 ? "" : "s"
+            } saved, but extraction failed.`,
+          );
+        }
+
+        if (skippedReasons.length > 0) {
+          statusMessages.push(`${skippedReasons.length} duplicate skipped.`);
+        }
+
+        setUploadError(statusMessages.join(" "));
       }
 
       await onSourcesAdded(uploadedSources);

@@ -1,6 +1,6 @@
 export type SourceType = "text" | "youtube" | "website" | "pdf" | "image";
 
-export type SourceStatus = "ready" | "reading" | "failed" | "pending";
+export type SourceStatus = "pending" | "reading" | "ready" | "failed";
 
 export type StudySource = {
   id: string;
