@@ -274,6 +274,9 @@ export type N8nAudioResponse = N8nBaseResponse & {
     estimatedDuration: string;
     segments: AudioSegment[];
     recap: string[];
+    script: string;
+    audioUrl?: string;
+    provider?: string;
   };
 };
 
@@ -672,6 +675,114 @@ const validateSlidesResponse = (response: N8nSlidesResponse) => {
   return response;
 };
 
+const normalizeAudioResponse = (response: unknown): N8nAudioResponse => {
+  const unwrapped = unwrapN8nResponse(response);
+
+  if (!isRecord(unwrapped)) {
+    throw new Error("Audio Overview workflow returned an invalid response.");
+  }
+
+  const rawOverview = isRecord(unwrapped.audioOverview)
+    ? unwrapped.audioOverview
+    : isRecord(unwrapped.audio_overview)
+      ? unwrapped.audio_overview
+      : unwrapped;
+
+  const rawSegments = Array.isArray(rawOverview.segments)
+    ? rawOverview.segments
+    : [];
+
+  const segments: AudioSegment[] = rawSegments
+    .filter(isRecord)
+    .map((segment) => ({
+      speaker:
+        pickFirstString(segment, ["speaker", "role", "name"]) || "Narrator",
+      text:
+        pickFirstString(segment, ["text", "content", "script", "line"]) ||
+        "Review this section carefully.",
+    }))
+    .filter((segment) => segment.text.trim());
+
+  const fallbackScript = pickFirstString(rawOverview, [
+    "script",
+    "fullScript",
+    "full_script",
+    "narration",
+    "text",
+  ]);
+
+  const normalizedSegments =
+    segments.length > 0
+      ? segments
+      : fallbackScript
+        ? [{ speaker: "Narrator", text: fallbackScript }]
+        : [
+            {
+              speaker: "Narrator",
+              text: "Welcome to this Study Aura audio overview. Review the selected source, focus on the main idea, and practice recalling the key details.",
+            },
+          ];
+
+  const rawRecap = Array.isArray(rawOverview.recap)
+    ? rawOverview.recap
+    : Array.isArray(rawOverview.keyTakeaways)
+      ? rawOverview.keyTakeaways
+      : Array.isArray(rawOverview.key_takeaways)
+        ? rawOverview.key_takeaways
+        : [];
+
+  const recap = rawRecap
+    .map((item) => String(item))
+    .filter(Boolean)
+    .slice(0, 5);
+
+  const script =
+    fallbackScript ||
+    normalizedSegments
+      .map((segment) => `${segment.speaker}: ${segment.text}`)
+      .join("\n\n");
+
+  return {
+    provider: pickFirstString(unwrapped, ["provider"]) || undefined,
+    fallback:
+      typeof unwrapped.fallback === "boolean" ? unwrapped.fallback : undefined,
+    audioOverview: {
+      title:
+        pickFirstString(rawOverview, ["title", "name"]) ||
+        "Study Aura Audio Overview",
+      description:
+        pickFirstString(rawOverview, ["description", "summary", "subtitle"]) ||
+        "Generated audio overview script.",
+      estimatedDuration:
+        pickFirstString(rawOverview, [
+          "estimatedDuration",
+          "estimated_duration",
+          "durationEstimate",
+          "duration",
+        ]) || "2 minutes",
+      segments: normalizedSegments,
+      recap:
+        recap.length > 0
+          ? recap
+          : [
+              "Review the main idea",
+              "Practice active recall",
+              "Connect examples to concepts",
+            ],
+      script,
+      audioUrl:
+        pickFirstString(rawOverview, [
+          "audioUrl",
+          "audio_url",
+          "url",
+          "fileUrl",
+          "file_url",
+        ]) || undefined,
+      provider: pickFirstString(unwrapped, ["provider"]) || undefined,
+    },
+  };
+};
+
 const validateAudioResponse = (response: N8nAudioResponse) => {
   if (
     !response.audioOverview ||
@@ -880,11 +991,13 @@ export const generateAudioOverviewWithN8n = async (
     getPayloadPreview(payload),
   );
 
-  const response = await postToWebhook<N8nAudioResponse, N8nAudioPayload>({
+  const rawResponse = await postToWebhook<unknown, N8nAudioPayload>({
     webhookName: "Audio Overview",
     envKey: "VITE_N8N_AUDIO_WEBHOOK_URL",
     payload,
   });
+
+  const response = normalizeAudioResponse(rawResponse);
 
   return validateAudioResponse(response);
 };
