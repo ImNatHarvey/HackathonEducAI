@@ -1,0 +1,17 @@
+{
+  "name": "study-aura-youtube-helper",
+  "version": "1.0.0",
+  "description": "Local YouTube audio transcription helper for Study Aura.",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.19.2",
+    "form-data": "^4.0.0",
+    "node-fetch": "^3.3.2"
+  }
+}

@@ -8,22 +8,28 @@
         "responseMode": "lastNode",
         "options": {}
       },
-      "id": "webhook-source-reader",
+      "id": "ee1c91d0-bab3-4041-a7c5-026df78d9a93",
       "name": "Source Reader Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-900, 0],
+      "position": [
+        944,
+        928
+      ],
       "webhookId": "study-aura-source-reader"
     },
     {
       "parameters": {
         "jsCode": "const body = $json.body || $json;\n\nconst sourceType = String(body.sourceType || body.type || 'text').toLowerCase();\nconst value = String(body.value || body.content || body.url || '').trim();\nconst title = String(body.title || '').trim();\nconst originalUrl = String(body.originalUrl || body.url || value || '').trim();\n\nfunction titleFromValue(input, fallback) {\n  if (title) return title;\n  if (!input) return fallback;\n  try {\n    const url = new URL(input);\n    return url.hostname.replace(/^www\\./, '');\n  } catch {\n    return input.slice(0, 60) || fallback;\n  }\n}\n\nreturn [{\n  json: {\n    sourceType,\n    title: titleFromValue(value, 'Untitled Source'),\n    value,\n    originalUrl: ['website', 'youtube', 'pdf', 'image'].includes(sourceType) ? originalUrl : '',\n    extractedText: '',\n    summary: '',\n    status: 'reading',\n    statusMessage: 'Reading source...',\n    parserProvider: 'none'\n  }\n}];"
       },
-      "id": "normalize-input",
+      "id": "dc6ecb98-7579-4271-8c41-4e84f7ceee1c",
       "name": "Normalize Source Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-680, 0]
+      "position": [
+        1168,
+        928
+      ]
     },
     {
       "parameters": {
@@ -34,7 +40,8 @@
                 "options": {
                   "caseSensitive": false,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "strict",
+                  "version": 1
                 },
                 "conditions": [
                   {
@@ -56,7 +63,8 @@
                 "options": {
                   "caseSensitive": false,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "strict",
+                  "version": 1
                 },
                 "conditions": [
                   {
@@ -78,7 +86,8 @@
                 "options": {
                   "caseSensitive": false,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "strict",
+                  "version": 1
                 },
                 "conditions": [
                   {
@@ -100,7 +109,8 @@
                 "options": {
                   "caseSensitive": false,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "strict",
+                  "version": 1
                 },
                 "conditions": [
                   {
@@ -122,7 +132,8 @@
                 "options": {
                   "caseSensitive": false,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "strict",
+                  "version": 1
                 },
                 "conditions": [
                   {
@@ -145,21 +156,27 @@
           "fallbackOutput": "extra"
         }
       },
-      "id": "route-source-type",
+      "id": "c96c05ae-6b76-40ce-9d50-07217d1784ed",
       "name": "Route Source Type",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [-460, 0]
+      "position": [
+        1392,
+        928
+      ]
     },
     {
       "parameters": {
         "jsCode": "const text = $json.value || '';\nreturn [{\n  json: {\n    ...$json,\n    extractedText: text,\n    summary: text.length > 280 ? text.slice(0, 280) + '...' : text,\n    status: text ? 'ready' : 'failed',\n    statusMessage: text ? 'Text source is ready.' : 'No text content was provided.',\n    parserProvider: 'direct-text'\n  }\n}];"
       },
-      "id": "text-direct-reader",
+      "id": "c25afcd9-bb3a-4185-a460-de827afc9812",
       "name": "Text Direct Reader",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-180, -360]
+      "position": [
+        1664,
+        560
+      ]
     },
     {
       "parameters": {
@@ -173,22 +190,28 @@
           "timeout": 30000
         }
       },
-      "id": "website-jina-reader",
+      "id": "8c9b0fb0-c2e6-40d5-9466-6bcbc7b4c711",
       "name": "Website Fallback 1 - Jina Reader",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-180, -180],
+      "position": [
+        1664,
+        752
+      ],
       "continueOnFail": true
     },
     {
       "parameters": {
         "jsCode": "const input = $('Normalize Source Input').item.json;\nconst body = $json.body || $json.data || $json;\nconst text = typeof body === 'string' ? body : JSON.stringify(body || '');\nconst ok = text && text.length > 200 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'Website extracted using Jina Reader.' : 'Jina Reader could not extract enough content.',\n    parserProvider: ok ? 'jina-reader' : 'jina-reader-failed'\n  }\n}];"
       },
-      "id": "website-jina-normalize",
+      "id": "dd9999ad-2725-4488-b6f5-1a819fbf83bb",
       "name": "Normalize Jina Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [40, -180]
+      "position": [
+        1888,
+        752
+      ]
     },
     {
       "parameters": {
@@ -196,7 +219,8 @@
           "options": {
             "caseSensitive": false,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 1
           },
           "conditions": [
             {
@@ -212,11 +236,14 @@
         },
         "options": {}
       },
-      "id": "website-jina-success",
+      "id": "c01f4c72-43b3-494f-a177-1ee5f7a463f5",
       "name": "Jina Success?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [260, -180]
+      "position": [
+        2112,
+        752
+      ]
     },
     {
       "parameters": {
@@ -227,7 +254,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer {{$env.FIRECRAWL_API_KEY}}"
+              "value": "=Bearer fc-f7965a6d2c6f4c7f88f5ab8f1d39060d"
             },
             {
               "name": "Content-Type",
@@ -242,22 +269,28 @@
           "timeout": 30000
         }
       },
-      "id": "website-firecrawl",
+      "id": "a9cd7eb4-6fa3-4283-8e67-93e9ddb58d09",
       "name": "Website Fallback 2 - Firecrawl",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [500, -80],
+      "position": [
+        2352,
+        848
+      ],
       "continueOnFail": true
     },
     {
       "parameters": {
         "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst text = data.markdown || data.content || data.text || '';\nconst ok = text && text.length > 200 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'Website extracted using Firecrawl.' : 'Firecrawl could not extract enough content.',\n    parserProvider: ok ? 'firecrawl' : 'firecrawl-failed'\n  }\n}];"
       },
-      "id": "website-firecrawl-normalize",
+      "id": "e4c370ad-28c5-44f2-b0f8-df8f606a71f7",
       "name": "Normalize Firecrawl Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [720, -80]
+      "position": [
+        2576,
+        848
+      ]
     },
     {
       "parameters": {
@@ -265,7 +298,8 @@
           "options": {
             "caseSensitive": false,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 1
           },
           "conditions": [
             {
@@ -281,11 +315,14 @@
         },
         "options": {}
       },
-      "id": "website-firecrawl-success",
+      "id": "e8267b55-76a6-4c7a-a222-8630c5ca7973",
       "name": "Firecrawl Success?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [940, -80]
+      "position": [
+        2784,
+        848
+      ]
     },
     {
       "parameters": {
@@ -299,22 +336,28 @@
           "timeout": 30000
         }
       },
-      "id": "website-html-fallback",
+      "id": "36fc2aad-eab3-4fcd-817f-f667321350e5",
       "name": "Website Fallback 3 - Raw HTML",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1180, 20],
+      "position": [
+        3024,
+        944
+      ],
       "continueOnFail": true
     },
     {
       "parameters": {
         "jsCode": "const input = $('Normalize Source Input').item.json;\nconst html = typeof $json.body === 'string' ? $json.body : JSON.stringify($json);\nconst text = html\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&amp;/g, '&')\n  .replace(/\\s+/g, ' ')\n  .trim();\nconst ok = text.length > 120;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'failed',\n    statusMessage: ok ? 'Website extracted using raw HTML fallback.' : 'Could not read this website. Try copied text instead.',\n    parserProvider: ok ? 'raw-html-fallback' : 'website-failed'\n  }\n}];"
       },
-      "id": "website-html-normalize",
+      "id": "7d0bc63f-7d30-4abc-82a8-c0d5a314a998",
       "name": "Normalize Raw HTML Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1400, 20]
+      "position": [
+        3248,
+        944
+      ]
     },
     {
       "parameters": {
@@ -325,7 +368,7 @@
           "parameters": [
             {
               "name": "x-api-key",
-              "value": "={{$env.SUPADATA_API_KEY}}"
+              "value": "=sd_a941ea78c5f7a2077d81615950b57a13"
             },
             {
               "name": "Content-Type",
@@ -340,22 +383,28 @@
           "timeout": 30000
         }
       },
-      "id": "youtube-transcript-primary",
+      "id": "50ea789c-3f1f-4256-be51-fce52b1c4b27",
       "name": "YouTube Fallback 1 - Transcript API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-180, 40],
+      "position": [
+        1664,
+        960
+      ],
       "continueOnFail": true
     },
     {
       "parameters": {
         "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst text = data.text || data.transcript || data.content || (Array.isArray(data.segments) ? data.segments.map(s => s.text).join(' ') : '');\nconst ok = text && text.length > 120 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'YouTube transcript extracted.' : 'Primary transcript provider failed.',\n    parserProvider: ok ? 'youtube-transcript-api' : 'youtube-transcript-api-failed'\n  }\n}];"
       },
-      "id": "youtube-primary-normalize",
+      "id": "599fea7a-26d7-4bb4-a8f4-68224286aef5",
       "name": "Normalize YouTube Primary Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [40, 40]
+      "position": [
+        1888,
+        960
+      ]
     },
     {
       "parameters": {
@@ -363,7 +412,8 @@
           "options": {
             "caseSensitive": false,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 1
           },
           "conditions": [
             {
@@ -379,11 +429,14 @@
         },
         "options": {}
       },
-      "id": "youtube-primary-success",
+      "id": "a83ae5ba-3123-4190-b672-5f130c85b507",
       "name": "YouTube Primary Success?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [260, 40]
+      "position": [
+        2112,
+        960
+      ]
     },
     {
       "parameters": {
@@ -394,7 +447,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer {{$env.TRANSCRIPTAPI_API_KEY}}"
+              "value": "=Bearer sk_sQ_xXvpZPA9X6JCITbnAhOd6m9LxkkU7prxUcMNWvT0"
             },
             {
               "name": "Content-Type",
@@ -409,22 +462,28 @@
           "timeout": 30000
         }
       },
-      "id": "youtube-transcript-secondary",
+      "id": "679b58b4-7045-4471-8f8b-654cf199f385",
       "name": "YouTube Fallback 2 - TranscriptAPI",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [500, 140],
+      "position": [
+        2352,
+        1072
+      ],
       "continueOnFail": true
     },
     {
       "parameters": {
         "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst text = data.text || data.transcript || data.content || '';\nconst ok = text && text.length > 120 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'failed',\n    statusMessage: ok ? 'YouTube transcript extracted using secondary provider.' : 'Could not extract transcript. Try copied text from the video or another source.',\n    parserProvider: ok ? 'transcriptapi' : 'youtube-failed'\n  }\n}];"
       },
-      "id": "youtube-secondary-normalize",
+      "id": "319aea3c-f1c8-4d15-8c66-beb310c65cae",
       "name": "Normalize YouTube Secondary Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [720, 140]
+      "position": [
+        2576,
+        1072
+      ]
     },
     {
       "parameters": {
@@ -435,7 +494,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer {{$env.LLAMAPARSE_API_KEY}}"
+              "value": "=Bearer llx-y901JINUpGF7ygqKaK2fzXsWv9bqr4OWYk8yIMgNEVDZB37u"
             }
           ]
         },
@@ -444,8 +503,7 @@
         "bodyParameters": {
           "parameters": [
             {
-              "parameterType": "formData",
-              "name": "file_url",
+              "name": "input_url",
               "value": "={{$json.originalUrl}}"
             }
           ]
@@ -454,22 +512,28 @@
           "timeout": 60000
         }
       },
-      "id": "pdf-llamaparse",
+      "id": "5b809f60-bb82-4184-a0b4-47bf43522801",
       "name": "PDF Fallback 1 - LlamaParse",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-180, 280],
+      "position": [
+        1664,
+        1200
+      ],
       "continueOnFail": true
     },
     {
       "parameters": {
         "jsCode": "const input = $('Normalize Source Input').item.json;\nconst data = $json.data || $json;\nconst text = data.markdown || data.text || data.content || data.result || '';\nconst ok = text && text.length > 120 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'PDF extracted using LlamaParse.' : 'LlamaParse did not return readable text yet. Falling back.',\n    parserProvider: ok ? 'llamaparse' : 'llamaparse-failed'\n  }\n}];"
       },
-      "id": "pdf-llamaparse-normalize",
+      "id": "1f41aa0b-c111-4abe-a326-5ae855629006",
       "name": "Normalize LlamaParse Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [40, 280]
+      "position": [
+        1888,
+        1200
+      ]
     },
     {
       "parameters": {
@@ -477,7 +541,8 @@
           "options": {
             "caseSensitive": false,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 1
           },
           "conditions": [
             {
@@ -493,11 +558,14 @@
         },
         "options": {}
       },
-      "id": "pdf-llamaparse-success",
+      "id": "fbc9d2df-fbb1-48aa-9676-0014eef76844",
       "name": "LlamaParse Success?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [260, 280]
+      "position": [
+        2112,
+        1200
+      ]
     },
     {
       "parameters": {
@@ -508,7 +576,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer {{$env.MISTRAL_API_KEY}}"
+              "value": "=Bearer NNGYb9yCIJYuF0V5igcfD3E6DeTuE4is"
             },
             {
               "name": "Content-Type",
@@ -523,22 +591,28 @@
           "timeout": 60000
         }
       },
-      "id": "pdf-mistral-ocr",
+      "id": "66976faf-5360-4146-877c-a0254c3a2ea5",
       "name": "PDF Fallback 2 - Mistral OCR",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [500, 380],
+      "position": [
+        2352,
+        1312
+      ],
       "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst pages = $json.pages || $json.data?.pages || [];\nconst text = Array.isArray(pages)\n  ? pages.map(p => p.markdown || p.text || '').join('\\n\\n')\n  : ($json.text || $json.markdown || '');\nconst ok = text && text.length > 120 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'failed',\n    statusMessage: ok ? 'PDF extracted using Mistral OCR.' : 'Could not extract this PDF. Try copied text or a clearer PDF link.',\n    parserProvider: ok ? 'mistral-ocr' : 'pdf-failed'\n  }\n}];"
+        "jsCode": "const input = $('Normalize Source Input').item.json;\nconst pages = $json.pages || $json.data?.pages || [];\nconst text = Array.isArray(pages)\n  ? pages.map(p => p.markdown || p.text || '').join('\\n\\n')\n  : ($json.text || $json.markdown || '');\nconst cleanedText = text\n  .replace(/!\\[[^\\]]*\\]\\([^)]+\\)/g, \" \")\n  .replace(/\\\\n/g, \"\\n\")\n  .replace(/\\n{3,}/g, \"\\n\\n\")\n  .replace(/[ \\t]{2,}/g, \" \")\n  .trim();\n\nconst ok = cleanedText && cleanedText.length > 120 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? cleanedText : '',\n    status: ok ? 'ready' : 'failed',\n    statusMessage: ok ? 'PDF extracted using Mistral OCR.' : 'Could not extract this PDF. Try copied text or a clearer PDF link.',\n    parserProvider: ok ? 'mistral-ocr' : 'pdf-failed'\n  }\n}];"
       },
-      "id": "pdf-mistral-normalize",
+      "id": "62785ccd-79f1-4fdb-94cc-7f24b5e4f16a",
       "name": "Normalize Mistral PDF Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [720, 380]
+      "position": [
+        2576,
+        1312
+      ]
     },
     {
       "parameters": {
@@ -549,7 +623,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer {{$env.MISTRAL_API_KEY}}"
+              "value": "=Bearer NNGYb9yCIJYuF0V5igcfD3E6DeTuE4is"
             },
             {
               "name": "Content-Type",
@@ -559,27 +633,33 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"pixtral-12b-2409\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\"type\": \"text\", \"text\": \"Extract all readable educational content from this image. Return clean markdown only.\"},\n        {\"type\": \"image_url\", \"image_url\": \"{{$json.originalUrl}}\"}\n      ]\n    }\n  ]\n}",
+        "jsonBody": "={\n  \"model\": \"pixtral-12b-2409\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"Analyze this educational image. If there is readable text, extract it accurately. If there is no readable text, describe the image clearly and explain what a student can learn from it. If the image contains a diagram, chart, map, illustration, animal, object, or scene, identify the important parts and summarize the educational meaning. Return clean markdown only.\"\n        },\n        {\n          \"type\": \"image_url\",\n          \"image_url\": \"{{$json.originalUrl}}\"\n        }\n      ]\n    }\n  ]\n}",
         "options": {
           "timeout": 60000
         }
       },
-      "id": "image-pixtral",
+      "id": "62eb022c-9759-4928-b29c-c786a3e761e2",
       "name": "Image Fallback 1 - Pixtral",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-180, 540],
+      "position": [
+        1664,
+        1472
+      ],
       "continueOnFail": true
     },
     {
       "parameters": {
         "jsCode": "const input = $('Normalize Source Input').item.json;\nconst text = $json.choices?.[0]?.message?.content || $json.text || '';\nconst ok = text && text.length > 80 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'pending',\n    statusMessage: ok ? 'Image extracted using Pixtral vision.' : 'Pixtral could not extract enough content.',\n    parserProvider: ok ? 'mistral-pixtral' : 'mistral-pixtral-failed'\n  }\n}];"
       },
-      "id": "image-pixtral-normalize",
+      "id": "b87a5ea2-8f82-4c02-b3fd-2f5aba7f10a1",
       "name": "Normalize Pixtral Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [40, 540]
+      "position": [
+        1888,
+        1472
+      ]
     },
     {
       "parameters": {
@@ -587,7 +667,8 @@
           "options": {
             "caseSensitive": false,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 1
           },
           "conditions": [
             {
@@ -603,11 +684,14 @@
         },
         "options": {}
       },
-      "id": "image-pixtral-success",
+      "id": "e4a82784-10b3-4c05-9bb7-72f2f3804570",
       "name": "Pixtral Success?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [260, 540]
+      "position": [
+        2112,
+        1472
+      ]
     },
     {
       "parameters": {
@@ -618,55 +702,68 @@
           "parameters": [
             {
               "name": "key",
-              "value": "={{$env.GEMINI_API_KEY}}"
+              "value": "=AIzaSyB4r_z3MYaXkd6mDBmmWrfWdmwq3HxM2qM"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\"text\": \"Extract all readable educational content from this image URL. Return clean markdown only. Image URL: {{$json.originalUrl}}\"}\n      ]\n    }\n  ]\n}",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"Analyze this educational image. If there is readable text, extract it accurately. If there is no readable text, describe the image clearly and explain what a student can learn from it. If the image contains a diagram, chart, map, illustration, animal, object, or scene, identify the important parts and summarize the educational meaning. Return clean markdown only. Image URL: {{$json.originalUrl}}\"\n        }\n      ]\n    }\n  ]\n}",
         "options": {
           "timeout": 60000
         }
       },
-      "id": "image-gemini",
+      "id": "c4a862e3-4df7-4de0-801a-92a0d766f890",
       "name": "Image Fallback 2 - Gemini Vision Prompt",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [500, 640],
+      "position": [
+        2352,
+        1568
+      ],
       "continueOnFail": true
     },
     {
       "parameters": {
         "jsCode": "const input = $('Normalize Source Input').item.json;\nconst text = $json.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('\\n') || '';\nconst ok = text && text.length > 80 && !$json.error;\n\nreturn [{\n  json: {\n    ...input,\n    extractedText: ok ? text : '',\n    status: ok ? 'ready' : 'failed',\n    statusMessage: ok ? 'Image extracted using Gemini fallback.' : 'Could not read this image. Try a clearer image or copied text.',\n    parserProvider: ok ? 'gemini-vision' : 'image-failed'\n  }\n}];"
       },
-      "id": "image-gemini-normalize",
+      "id": "29b65d29-1624-4fc4-bc94-16700e6c84cb",
       "name": "Normalize Gemini Image Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [720, 640]
+      "position": [
+        2576,
+        1568
+      ]
     },
     {
       "parameters": {
         "jsCode": "return [{\n  json: {\n    ...$json,\n    status: 'failed',\n    statusMessage: `Unsupported source type: ${$json.sourceType}`,\n    parserProvider: 'unsupported-source-type'\n  }\n}];"
       },
-      "id": "unsupported-source-type",
+      "id": "66320642-34c5-493a-91b0-641d412da9e1",
       "name": "Unsupported Source Type",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-180, 760]
+      "position": [
+        1664,
+        1680
+      ]
     },
     {
       "parameters": {
         "jsCode": "const item = $json;\nconst text = String(item.extractedText || item.value || '').replace(/\\s+/g, ' ').trim();\nconst summary = item.summary || (text.length > 360 ? text.slice(0, 360) + '...' : text);\n\nreturn [{\n  json: {\n    sourceType: item.sourceType || 'text',\n    title: item.title || 'Untitled Source',\n    value: item.value || '',\n    originalUrl: item.originalUrl || '',\n    extractedText: item.extractedText || '',\n    summary,\n    status: item.status || 'failed',\n    statusMessage: item.statusMessage || 'Source reader finished.',\n    parserProvider: item.parserProvider || 'unknown'\n  }\n}];"
       },
-      "id": "final-response-shape",
+      "id": "b9807193-abfd-4353-850f-5bcb54a64bd0",
       "name": "Final Response Shape",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1700, 120]
+      "position": [
+        3552,
+        1040
+      ]
     }
   ],
+  "pinData": {},
   "connections": {
     "Source Reader Webhook": {
       "main": [
@@ -1047,11 +1144,16 @@
       ]
     }
   },
+  "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   },
-  "pinData": {},
-  "versionId": "study-aura-source-reader-v1",
-  "triggerCount": 0,
+  "versionId": "ef64bd59-92e6-4209-9219-2ac8efdf5ea0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f764945c1c84e3150fef3e723867048d510331bfb76c2fd5193ecd91ac2a5a2e"
+  },
+  "id": "JOXROsX9HF5qWqoW",
   "tags": []
 }
