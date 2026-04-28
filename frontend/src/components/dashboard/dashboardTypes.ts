@@ -26,6 +26,8 @@ export type SourceUploadPayload = {
   title: string;
   value: string;
 
+  file?: File;
+
   summary?: string;
   extractedText?: string;
   originalUrl?: string;

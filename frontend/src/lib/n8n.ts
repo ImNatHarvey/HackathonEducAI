@@ -37,6 +37,7 @@ export type N8nSourceReaderPayload = {
   sourceType: "text" | "youtube" | "website" | "pdf" | "image";
   title: string;
   value: string;
+  originalUrl?: string;
   moduleId?: string;
   userId?: string;
 };

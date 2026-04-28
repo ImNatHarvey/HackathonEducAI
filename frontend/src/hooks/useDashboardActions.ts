@@ -4,6 +4,7 @@ import {
   createChatMessage,
   fetchChatMessages,
 } from "../services/chatMessageService";
+import { uploadSourceFileToSupabase } from "../services/sourceStorageService";
 import type {
   SourceUploadPayload,
   StudyModule,
@@ -86,6 +87,14 @@ const isUrlSource = (payload: SourceUploadPayload) => {
   );
 };
 
+const cleanSummary = (value?: string) => {
+  const cleanValue = (value || "").replace(/\s+/g, " ").trim();
+
+  if (!cleanValue) return undefined;
+
+  return cleanValue.length > 220 ? `${cleanValue.slice(0, 220)}...` : cleanValue;
+};
+
 const buildSourceFromUpload = (
   payload: SourceUploadPayload,
   summary?: string,
@@ -97,7 +106,7 @@ const buildSourceFromUpload = (
     title: payload.title,
     type: payload.sourceType,
     value: payload.value,
-    summary: summary ?? payload.summary,
+    summary: cleanSummary(summary ?? payload.summary ?? payload.extractedText),
     extractedText: payload.extractedText,
     originalUrl: payload.originalUrl,
     status: payload.status ?? "ready",
@@ -118,11 +127,13 @@ const buildFailedSourceFromUpload = (
   const message =
     error instanceof Error
       ? error.message
-      : "Source reader failed. The source was saved, but extraction did not finish.";
+      : payload.statusMessage ||
+        "Source reader failed. The source was saved, but extraction did not finish.";
 
   return buildSourceFromUpload({
     ...payload,
-    originalUrl: payload.originalUrl ?? (isUrlSource(payload) ? payload.value : undefined),
+    originalUrl:
+      payload.originalUrl ?? (isUrlSource(payload) ? payload.value : undefined),
     status: "failed",
     statusMessage: message,
     parserProvider: payload.parserProvider ?? "source-reader-error",
@@ -233,46 +244,113 @@ export const useDashboardActions = ({
     };
   };
 
+  const readUrlSourceWithReader = async (
+    payload: SourceUploadPayload,
+  ): Promise<StudySource> => {
+    const sourceUrl = payload.originalUrl || payload.value;
+
+    console.log("[Study Aura] Calling Source Reader n8n workflow:", {
+      sourceType: payload.sourceType,
+      title: payload.title,
+      value: sourceUrl,
+      originalUrl: sourceUrl,
+      fileName: payload.fileName,
+    });
+
+    const response = await readSourceWithN8n({
+      sourceType: payload.sourceType,
+      title: payload.title,
+      value: sourceUrl,
+      originalUrl: sourceUrl,
+      moduleId: activeModule?.id,
+      userId,
+    });
+
+    console.log("[Study Aura] Source Reader n8n response:", response);
+
+    return buildSourceFromUpload({
+      sourceType: response.sourceType,
+      title: response.title || payload.title,
+      value: response.value || sourceUrl,
+      summary: response.summary,
+      extractedText: response.extractedText,
+      originalUrl: response.originalUrl ?? sourceUrl,
+      status: response.status,
+      statusMessage: response.statusMessage,
+      parserProvider: response.parserProvider,
+      fileName: payload.fileName,
+      fileType: payload.fileType,
+      fileSize: payload.fileSize,
+    });
+  };
+
+  const readUploadedFileBeforeSaving = async (
+    payload: SourceUploadPayload,
+  ): Promise<StudySource> => {
+    if (!payload.file) {
+      throw new Error("Missing uploaded file.");
+    }
+
+    console.log("[Study Aura] Uploading source file to Supabase:", {
+      name: payload.file.name,
+      type: payload.file.type,
+      size: payload.file.size,
+      sourceType: payload.sourceType,
+    });
+
+    const uploadedFile = await uploadSourceFileToSupabase({
+      file: payload.file,
+      userId,
+      moduleId: activeModule?.id,
+    });
+
+    console.log("[Study Aura] Uploaded source file to Supabase:", uploadedFile);
+
+    if (!uploadedFile.publicUrl) {
+      throw new Error("Supabase did not return a public file URL.");
+    }
+
+    const uploadedFilePayload: SourceUploadPayload = {
+      ...payload,
+      file: undefined,
+      value: uploadedFile.publicUrl,
+      originalUrl: uploadedFile.publicUrl,
+      status: "reading",
+      statusMessage: "File uploaded. Reading content with n8n...",
+      parserProvider: "supabase-storage",
+    };
+
+    return readUrlSourceWithReader(uploadedFilePayload);
+  };
+
   const readSourceBeforeSaving = async (
     payload: SourceUploadPayload,
   ): Promise<StudySource> => {
-    if (payload.sourceType === "text") {
-      return buildSourceFromUpload({
-        ...payload,
-        extractedText: payload.extractedText ?? payload.value,
-        summary: payload.summary ?? payload.value.slice(0, 180),
-        status: payload.status ?? "ready",
-        statusMessage:
-          payload.statusMessage ?? "Copied text is ready to use as context.",
-        parserProvider: payload.parserProvider ?? "manual-input",
-      });
-    }
-
-    if (!isUrlSource(payload)) {
-      return buildSourceFromUpload(payload);
-    }
-
     try {
-      const response = await readSourceWithN8n({
-        sourceType: payload.sourceType,
-        title: payload.title,
-        value: payload.value,
-        moduleId: activeModule?.id,
-        userId,
-      });
+      if (payload.file) {
+        return await readUploadedFileBeforeSaving(payload);
+      }
 
-      return buildSourceFromUpload({
-        sourceType: response.sourceType,
-        title: response.title || payload.title,
-        value: response.value || payload.value,
-        summary: response.summary,
-        extractedText: response.extractedText,
-        originalUrl: response.originalUrl ?? payload.originalUrl ?? payload.value,
-        status: response.status,
-        statusMessage: response.statusMessage,
-        parserProvider: response.parserProvider,
-      });
+      if (payload.sourceType === "text") {
+        return buildSourceFromUpload({
+          ...payload,
+          extractedText: payload.extractedText ?? payload.value,
+          summary: payload.summary ?? payload.value.slice(0, 180),
+          status: payload.status ?? "ready",
+          statusMessage:
+            payload.statusMessage ?? "Copied text is ready to use as context.",
+          parserProvider: payload.parserProvider ?? "manual-input",
+        });
+      }
+
+      if (!isUrlSource(payload)) {
+        return buildSourceFromUpload(payload);
+      }
+
+      return await readUrlSourceWithReader(payload);
     } catch (error) {
+      console.error("[Study Aura] Source ingestion failed:", error);
+
       return buildFailedSourceFromUpload(payload, error);
     }
   };
@@ -405,7 +483,9 @@ export const useDashboardActions = ({
 
       if (failedSources.length > 0) {
         setUploadError(
-          `${failedSources.length} source${failedSources.length === 1 ? "" : "s"} saved, but extraction failed. You can retry the reader pipeline later.`,
+          `${failedSources.length} source${
+            failedSources.length === 1 ? "" : "s"
+          } saved, but extraction failed. You can retry the reader pipeline later.`,
         );
       }
 

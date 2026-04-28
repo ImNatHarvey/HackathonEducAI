@@ -284,9 +284,10 @@ const AddSourceModal = ({
       const payloads: SourceUploadPayload[] = files.map((file) => ({
         sourceType: getFileSourceType(file),
         title: file.name.replace(/\.[^.]+$/, ""),
-        value: `Uploaded file reference: ${file.name} (${file.type || "unknown type"}, ${file.size} bytes)`,
+        value: file.name,
+        file,
         status: "pending",
-        statusMessage: "Parser pipeline not connected yet.",
+        statusMessage: "Uploading file to storage...",
         fileName: file.name,
         fileType: file.type || "unknown",
         fileSize: file.size,
@@ -315,7 +316,8 @@ const AddSourceModal = ({
       title: generatedTitle,
       value: value.trim(),
       originalUrl: isUrlSource ? value.trim() : undefined,
-      extractedText: selectedOption.sourceType === "text" ? value.trim() : undefined,
+      extractedText:
+        selectedOption.sourceType === "text" ? value.trim() : undefined,
       summary:
         selectedOption.sourceType === "text"
           ? value.trim().slice(0, 180)
