@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import EmptyState from "../states/EmptyState";
 import ErrorState from "../states/ErrorState";
 import LoadingState from "../states/LoadingState";
@@ -73,10 +73,15 @@ const SourcesPanel = ({
   onDeleteSource,
 }: SourcesPanelProps) => {
   const [webSearchValue, setWebSearchValue] = useState("");
-  const [previewSource, setPreviewSource] = useState<StudySource | null>(null);
+  const [previewSourceId, setPreviewSourceId] = useState<string | null>(null);
 
   const hasSources = sources.length > 0;
   const allSourcesSelected = hasSources && selectedSourceCount === sources.length;
+
+  const previewSource = useMemo(() => {
+    if (!previewSourceId) return null;
+    return sources.find((source) => source.id === previewSourceId) ?? null;
+  }, [previewSourceId, sources]);
 
   const handleWebSearchSubmit = () => {
     const query = webSearchValue.trim();
@@ -220,7 +225,16 @@ const SourcesPanel = ({
                 return (
                   <div
                     key={source.id}
-                    className={`group rounded-xl border px-3 py-2.5 transition ${
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setPreviewSourceId(source.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setPreviewSourceId(source.id);
+                      }
+                    }}
+                    className={`group cursor-pointer rounded-xl border px-3 py-2.5 transition hover:-translate-y-0.5 ${
                       source.selected
                         ? "border-aura-cyan/55 bg-aura-cyan/10 shadow-[0_0_20px_rgba(34,211,238,0.07)]"
                         : "border-aura-border bg-aura-bg-soft/80 hover:border-aura-cyan/35"
@@ -229,7 +243,10 @@ const SourcesPanel = ({
                     <div className="flex items-start gap-2.5">
                       <button
                         type="button"
-                        onClick={() => onToggleSource(source.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onToggleSource(source.id);
+                        }}
                         className={`mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[9px] font-black transition ${
                           source.selected
                             ? "border-aura-cyan bg-aura-cyan text-aura-bg"
@@ -250,19 +267,16 @@ const SourcesPanel = ({
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setPreviewSource(source)}
-                            className="min-w-0 flex-1 text-left"
-                          >
-                            <p className="line-clamp-2 text-[13px] font-black leading-5 text-aura-text transition hover:text-aura-cyan">
-                              {source.title}
-                            </p>
-                          </button>
+                          <p className="line-clamp-2 min-w-0 flex-1 text-[13px] font-black leading-5 text-aura-text transition group-hover:text-aura-cyan">
+                            {source.title}
+                          </p>
 
                           <button
                             type="button"
-                            onClick={() => onDeleteSource(source.id)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onDeleteSource(source.id);
+                            }}
                             className="shrink-0 rounded-lg px-1.5 py-0.5 text-xs text-aura-dim opacity-0 transition hover:bg-red-500/10 hover:text-red-200 group-hover:opacity-100"
                             aria-label={`Delete ${source.title}`}
                             title="Delete source"
@@ -300,18 +314,6 @@ const SourcesPanel = ({
                             {source.statusMessage}
                           </p>
                         )}
-
-                        <button
-                          type="button"
-                          onClick={() => setPreviewSource(source)}
-                          className="mt-1 truncate text-left text-[10px] font-semibold text-aura-dim transition hover:text-aura-cyan"
-                        >
-                          {source.parserProvider
-                            ? `Parsed by ${source.parserProvider}`
-                            : source.type === "text"
-                              ? "Text content"
-                              : source.originalUrl || source.value}
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -324,11 +326,11 @@ const SourcesPanel = ({
 
       <SourcePreviewModal
         source={previewSource}
-        onClose={() => setPreviewSource(null)}
+        onClose={() => setPreviewSourceId(null)}
         onToggleSource={onToggleSource}
         onDeleteSource={(sourceId) => {
           onDeleteSource(sourceId);
-          setPreviewSource(null);
+          setPreviewSourceId(null);
         }}
       />
     </>
