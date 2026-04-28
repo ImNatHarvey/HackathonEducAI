@@ -1,7 +1,7 @@
 export type N8nSelectedSource = {
   id: string;
   title: string;
-  type: "text" | "youtube" | "website" | "pdf" | "image";
+  type: "text" | "youtube" | "website" | "pdf" | "image" | string;
   value: string;
   summary?: string;
   extractedText?: string;
@@ -249,8 +249,6 @@ export type N8nSlidesResponse = N8nBaseResponse & {
   };
 };
 
-export type AudioOverviewStyle = "calm" | "energetic" | "podcast";
-
 export type AudioOverviewLength = "short" | "standard" | "deep";
 
 export type AudioSegment = {
@@ -262,7 +260,6 @@ export type N8nAudioPayload = {
   topic: string;
   moduleId?: string;
   selectedSources?: N8nSelectedSource[];
-  style: AudioOverviewStyle;
   length: AudioOverviewLength;
   userId?: string;
 };
@@ -470,6 +467,12 @@ const pickFirstString = (
   }
 
   return "";
+};
+
+const cleanAudioLabel = (value: string) => {
+  return value
+    .replace(/^\s*(Narrator|Host A|Host B|Audio|Speaker)\s*:\s*/i, "")
+    .trim();
 };
 
 const normalizeSourceType = (
@@ -695,30 +698,32 @@ const normalizeAudioResponse = (response: unknown): N8nAudioResponse => {
   const segments: AudioSegment[] = rawSegments
     .filter(isRecord)
     .map((segment) => ({
-      speaker:
-        pickFirstString(segment, ["speaker", "role", "name"]) || "Narrator",
-      text:
+      speaker: "Audio",
+      text: cleanAudioLabel(
         pickFirstString(segment, ["text", "content", "script", "line"]) ||
-        "Review this section carefully.",
+          "Review this section carefully.",
+      ),
     }))
     .filter((segment) => segment.text.trim());
 
-  const fallbackScript = pickFirstString(rawOverview, [
-    "script",
-    "fullScript",
-    "full_script",
-    "narration",
-    "text",
-  ]);
+  const fallbackScript = cleanAudioLabel(
+    pickFirstString(rawOverview, [
+      "script",
+      "fullScript",
+      "full_script",
+      "narration",
+      "text",
+    ]),
+  );
 
   const normalizedSegments =
     segments.length > 0
       ? segments
       : fallbackScript
-        ? [{ speaker: "Narrator", text: fallbackScript }]
+        ? [{ speaker: "Audio", text: fallbackScript }]
         : [
             {
-              speaker: "Narrator",
+              speaker: "Audio",
               text: "Welcome to this Study Aura audio overview. Review the selected source, focus on the main idea, and practice recalling the key details.",
             },
           ];
@@ -732,15 +737,13 @@ const normalizeAudioResponse = (response: unknown): N8nAudioResponse => {
         : [];
 
   const recap = rawRecap
-    .map((item) => String(item))
+    .map((item) => cleanAudioLabel(String(item)))
     .filter(Boolean)
     .slice(0, 5);
 
   const script =
     fallbackScript ||
-    normalizedSegments
-      .map((segment) => `${segment.speaker}: ${segment.text}`)
-      .join("\n\n");
+    normalizedSegments.map((segment) => segment.text).join("\n\n");
 
   return {
     provider: pickFirstString(unwrapped, ["provider"]) || undefined,
@@ -752,7 +755,7 @@ const normalizeAudioResponse = (response: unknown): N8nAudioResponse => {
         "Study Aura Audio Overview",
       description:
         pickFirstString(rawOverview, ["description", "summary", "subtitle"]) ||
-        "Generated audio overview script.",
+        "Generated audio overview.",
       estimatedDuration:
         pickFirstString(rawOverview, [
           "estimatedDuration",

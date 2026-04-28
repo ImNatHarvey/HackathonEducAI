@@ -7,7 +7,6 @@ import {
   generateSlidesWithN8n,
   generateTablesWithN8n,
   type AudioOverviewLength,
-  type AudioOverviewStyle,
   type FlashcardDifficulty,
   type MindMapDifficulty,
   type QuizDifficulty,
@@ -31,7 +30,6 @@ type UseAIToolActionsParams = {
 export type AIToolGenerationOptions = {
   difficulty: QuizDifficulty;
   tableType: StudyTableType;
-  audioStyle: AudioOverviewStyle;
   audioLength: AudioOverviewLength;
 };
 
@@ -63,7 +61,18 @@ const generationDefaults = {
     medium: 8,
     hard: 10,
   },
+  audio: {
+    short: "3–5 segments",
+    standard: "5–7 segments",
+    deep: "7–10 segments",
+  },
 } as const;
+
+const stopBrowserSpeech = () => {
+  if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+  }
+};
 
 const getOutputTitle = ({
   toolName,
@@ -140,6 +149,7 @@ export const useAIToolActions = ({
       id: source.id,
       title: source.title,
       type: source.type,
+      sourceType: source.type,
       value: source.value,
       summary: source.summary,
     }));
@@ -149,6 +159,8 @@ export const useAIToolActions = ({
     toolName: AIToolName,
     options: AIToolGenerationOptions,
   ) => {
+    stopBrowserSpeech();
+
     setStatus("loading");
     setError("");
     setResult(null);
@@ -219,7 +231,6 @@ export const useAIToolActions = ({
           topic,
           moduleId,
           selectedSources: selectedSourcePayload,
-          style: options.audioStyle,
           length: options.audioLength,
           userId,
         });
@@ -256,12 +267,15 @@ export const useAIToolActions = ({
         setSaveNotice("Generated output is shown here, but was not saved.");
       }
     } catch (toolError) {
+      stopBrowserSpeech();
       setStatus("error");
       setError(getFriendlyToolError(toolError));
     }
   };
 
   const resetTool = () => {
+    stopBrowserSpeech();
+
     setStatus("idle");
     setError("");
     setResult(null);
@@ -272,6 +286,7 @@ export const useAIToolActions = ({
   const getLockedCountLabel = (
     toolName: AIToolName,
     difficulty: QuizDifficulty,
+    audioLength: AudioOverviewLength = "standard",
   ) => {
     if (toolName === "Quiz") {
       return `${generationDefaults.quiz[difficulty]} questions`;
@@ -293,7 +308,11 @@ export const useAIToolActions = ({
       return `${generationDefaults.slides[difficulty]} slides`;
     }
 
-    return "Based on audio length";
+    if (toolName === "Audio") {
+      return generationDefaults.audio[audioLength];
+    }
+
+    return "Based on selected sources";
   };
 
   return {

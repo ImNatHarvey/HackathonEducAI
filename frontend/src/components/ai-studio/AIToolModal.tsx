@@ -9,7 +9,6 @@ import { GeneratingState } from "../states/LoadingState";
 import type { AIToolName, StudySource } from "../dashboard/dashboardTypes";
 import type {
   AudioOverviewLength,
-  AudioOverviewStyle,
   QuizDifficulty,
   StudyTableType,
 } from "../../lib/n8n";
@@ -37,7 +36,6 @@ const toolTitles: Record<AIToolName, string> = {
 const defaultOptions: AIToolGenerationOptions = {
   difficulty: "medium",
   tableType: "concept_comparison",
-  audioStyle: "podcast",
   audioLength: "standard",
 };
 
@@ -73,22 +71,26 @@ const tableTypeOptions: {
   { value: "cause_effect", label: "Cause and Effect" },
 ];
 
-const audioStyleOptions: {
-  value: AudioOverviewStyle;
-  label: string;
-}[] = [
-  { value: "calm", label: "Calm" },
-  { value: "energetic", label: "Energetic" },
-  { value: "podcast", label: "Podcast" },
-];
-
 const audioLengthOptions: {
   value: AudioOverviewLength;
   label: string;
+  description: string;
 }[] = [
-  { value: "short", label: "Short" },
-  { value: "standard", label: "Standard" },
-  { value: "deep", label: "Deep" },
+  {
+    value: "short",
+    label: "Short",
+    description: "Fast review with fewer study cards.",
+  },
+  {
+    value: "standard",
+    label: "Standard",
+    description: "Balanced overview for normal review.",
+  },
+  {
+    value: "deep",
+    label: "Deep",
+    description: "More detailed explanation with more cards.",
+  },
 ];
 
 const AIToolModal = ({
@@ -125,6 +127,7 @@ const AIToolModal = ({
   const selectedSourceCount = selectedSources.length;
   const isLoading = status === "loading";
   const hasResult = status === "success" || isViewingSavedOutput;
+  const isAudioResult = activeTool === "Audio" && hasResult;
 
   const updateOptions = (updates: Partial<AIToolGenerationOptions>) => {
     setOptions((currentOptions) => ({
@@ -183,7 +186,13 @@ const AIToolModal = ({
           </button>
         </div>
 
-        <div className="aura-scrollbar min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        <div
+          className={
+            isAudioResult
+              ? "min-h-0 flex-1 overflow-hidden px-6 py-5"
+              : "aura-scrollbar min-h-0 flex-1 overflow-y-auto px-6 py-5"
+          }
+        >
           {selectedSourceCount === 0 && !isViewingSavedOutput && (
             <div className="mb-4 rounded-2xl border border-yellow-400/30 bg-yellow-500/10 px-4 py-3 text-sm font-semibold leading-6 text-yellow-100">
               No sources are selected. Aura will generate from the module topic
@@ -266,30 +275,53 @@ const AIToolModal = ({
               )}
 
               {activeTool === "Audio" && (
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
-                  <SelectControl
-                    label="Audio Style"
-                    value={options.audioStyle}
-                    disabled={isLoading}
-                    options={audioStyleOptions}
-                    onChange={(value) =>
-                      updateOptions({
-                        audioStyle: value as AudioOverviewStyle,
-                      })
-                    }
-                  />
+                <div className="mt-5">
+                  <p className="text-sm font-black text-aura-text">
+                    Audio Length
+                  </p>
 
-                  <SelectControl
-                    label="Audio Length"
-                    value={options.audioLength}
-                    disabled={isLoading}
-                    options={audioLengthOptions}
-                    onChange={(value) =>
-                      updateOptions({
-                        audioLength: value as AudioOverviewLength,
-                      })
-                    }
-                  />
+                  <div className="mt-3 grid gap-3 md:grid-cols-3">
+                    {audioLengthOptions.map((audioLength) => {
+                      const isActive =
+                        options.audioLength === audioLength.value;
+
+                      return (
+                        <button
+                          key={audioLength.value}
+                          type="button"
+                          disabled={isLoading}
+                          onClick={() =>
+                            updateOptions({
+                              audioLength: audioLength.value,
+                            })
+                          }
+                          className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
+                            isActive
+                              ? "border-aura-cyan/70 bg-aura-cyan/10"
+                              : "border-aura-border bg-aura-panel hover:border-aura-cyan/50"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="text-sm font-black text-aura-text">
+                              {audioLength.label}
+                            </p>
+
+                            <span className="shrink-0 rounded-full border border-aura-gold/40 bg-aura-gold/15 px-3 py-1 text-[11px] font-black normal-case tracking-normal text-aura-gold shadow-[0_0_18px_rgba(245,158,11,0.08)]">
+                              {getLockedCountLabel(
+                                activeTool,
+                                options.difficulty,
+                                audioLength.value,
+                              )}
+                            </span>
+                          </div>
+
+                          <p className="mt-3 text-xs leading-5 text-aura-muted">
+                            {audioLength.description}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -326,8 +358,8 @@ const AIToolModal = ({
           )}
 
           {hasResult && (
-            <div className="space-y-4">
-              {!isViewingSavedOutput && saveNotice && (
+            <div className={isAudioResult ? "h-full" : "space-y-4"}>
+              {!isViewingSavedOutput && saveNotice && !isAudioResult && (
                 <div className="rounded-2xl border border-aura-gold/30 bg-aura-gold/10 px-4 py-3 text-xs font-black uppercase tracking-[0.18em] text-aura-gold">
                   {saveNotice}
                 </div>
@@ -338,7 +370,7 @@ const AIToolModal = ({
                 result={isViewingSavedOutput ? savedResult : result}
               />
 
-              {!isViewingSavedOutput && (
+              {!isViewingSavedOutput && !isAudioResult && (
                 <div className="flex justify-end">
                   <button
                     type="button"

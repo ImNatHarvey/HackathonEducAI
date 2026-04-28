@@ -3,37 +3,11 @@ import ErrorState from "../states/ErrorState";
 import LoadingState from "../states/LoadingState";
 import { currentUser } from "../user/userMock";
 import { generateAudioOverviewWithN8n } from "../../lib/n8n";
-import type {
-  AudioOverviewLength,
-  AudioOverviewStyle,
-  AudioSegment,
-} from "../../lib/n8n";
+import type { AudioOverviewLength, AudioSegment } from "../../lib/n8n";
 
 type Props = {
   topic: string;
 };
-
-const styleOptions: {
-  label: string;
-  value: AudioOverviewStyle;
-  description: string;
-}[] = [
-  {
-    label: "Calm Tutor",
-    value: "calm",
-    description: "Slow, clear, and relaxing explanation",
-  },
-  {
-    label: "Energetic Coach",
-    value: "energetic",
-    description: "Motivating and lively study narration",
-  },
-  {
-    label: "Podcast Duo",
-    value: "podcast",
-    description: "Conversational host-style overview",
-  },
-];
 
 const lengthOptions: {
   label: string;
@@ -43,22 +17,27 @@ const lengthOptions: {
   {
     label: "Short",
     value: "short",
-    description: "Quick 1-minute recap",
+    description: "Quick review with fewer study cards.",
   },
   {
     label: "Standard",
     value: "standard",
-    description: "Balanced 2–3 minute overview",
+    description: "Balanced overview for normal review.",
   },
   {
     label: "Deep",
     value: "deep",
-    description: "Longer guided explanation",
+    description: "More detailed explanation with more cards.",
   },
 ];
 
+const cleanAudioText = (text: string) => {
+  return text
+    .replace(/^\s*(Narrator|Host A|Host B|Audio|Speaker)\s*:\s*/i, "")
+    .trim();
+};
+
 const AudioModal = ({ topic }: Props) => {
-  const [style, setStyle] = useState<AudioOverviewStyle>("podcast");
   const [length, setLength] = useState<AudioOverviewLength>("standard");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -69,16 +48,10 @@ const AudioModal = ({ topic }: Props) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
 
-  const selectedStyle = useMemo(() => {
-    return (
-      styleOptions.find((option) => option.value === style) ?? styleOptions[0]
-    );
-  }, [style]);
-
   const selectedLength = useMemo(() => {
     return (
       lengthOptions.find((option) => option.value === length) ??
-      lengthOptions[0]
+      lengthOptions[1]
     );
   }, [length]);
 
@@ -92,7 +65,6 @@ const AudioModal = ({ topic }: Props) => {
     try {
       const response = await generateAudioOverviewWithN8n({
         topic,
-        style,
         length,
         userId: currentUser.id,
       });
@@ -115,6 +87,10 @@ const AudioModal = ({ topic }: Props) => {
   };
 
   const handleNewAudio = () => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+
     setTitle("");
     setDescription("");
     setEstimatedDuration("");
@@ -131,8 +107,7 @@ const AudioModal = ({ topic }: Props) => {
           Generate Audio Overview
         </h3>
         <p className="mt-1 text-sm text-aura-muted">
-          Create a podcast-style narration script for your current topic. This
-          can be connected to ElevenLabs later for real audio output.
+          Create a focused audio-style study overview for your current topic.
         </p>
       </div>
 
@@ -140,16 +115,17 @@ const AudioModal = ({ topic }: Props) => {
         <>
           <div>
             <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
-              Narration Style
+              Audio Length
             </p>
+
             <div className="grid gap-4 md:grid-cols-3">
-              {styleOptions.map((option) => (
+              {lengthOptions.map((option) => (
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => setStyle(option.value)}
+                  onClick={() => setLength(option.value)}
                   className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 ${
-                    style === option.value
+                    length === option.value
                       ? "border-aura-cyan/70 bg-aura-cyan/10 text-aura-cyan shadow-[0_0_24px_rgba(34,211,238,0.12)]"
                       : "border-aura-border bg-aura-panel text-aura-muted hover:border-aura-cyan/50"
                   }`}
@@ -163,37 +139,12 @@ const AudioModal = ({ topic }: Props) => {
             </div>
           </div>
 
-          <div>
-            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
-              Overview Length
-            </p>
-            <div className="grid gap-4 md:grid-cols-3">
-              {lengthOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setLength(option.value)}
-                  className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 ${
-                    length === option.value
-                      ? "border-aura-gold/70 bg-aura-gold/10 text-aura-gold shadow-[0_0_24px_rgba(250,204,21,0.1)]"
-                      : "border-aura-border bg-aura-panel text-aura-muted hover:border-aura-gold/50"
-                  }`}
-                >
-                  <p className="font-black">{option.label}</p>
-                  <p className="mt-1 text-sm text-aura-muted">
-                    {option.description}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div className="rounded-2xl border border-aura-border bg-aura-bg-soft p-4">
             <p className="text-sm font-black text-aura-text">
-              Selected: {selectedStyle.label} • {selectedLength.label}
+              Selected: {selectedLength.label}
             </p>
             <p className="mt-1 text-sm text-aura-muted">
-              Study Aura will generate an audio overview script for {topic}.
+              Study Aura will generate an audio overview for {topic}.
             </p>
           </div>
 
@@ -205,13 +156,13 @@ const AudioModal = ({ topic }: Props) => {
           >
             {isGenerating
               ? "Generating Audio Overview..."
-              : "Generate Audio Script"}
+              : "Generate Audio Overview"}
           </button>
 
           {isGenerating && (
             <LoadingState
               title="Generating audio overview..."
-              description="Study Aura is writing a narration script through n8n."
+              description="Study Aura is writing an audio overview through n8n."
             />
           )}
 
@@ -228,8 +179,8 @@ const AudioModal = ({ topic }: Props) => {
 
       {fallback && hasAudioScript && (
         <div className="rounded-2xl border border-aura-gold/30 bg-aura-gold/10 p-4 text-sm leading-6 text-aura-gold">
-          Demo fallback mode is active. Study Aura returned a safe audio overview
-          script.
+          Demo fallback mode is active. Study Aura returned a safe audio
+          overview.
         </div>
       )}
 
@@ -238,7 +189,7 @@ const AudioModal = ({ topic }: Props) => {
           <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
-                Audio Overview Script
+                Audio Overview
               </p>
               <h4 className="mt-1 text-xl font-black text-aura-text">
                 {title}
@@ -256,7 +207,7 @@ const AudioModal = ({ topic }: Props) => {
               onClick={handleNewAudio}
               className="rounded-2xl border border-aura-pink/40 bg-aura-pink/10 px-4 py-2 text-sm font-black text-aura-pink transition hover:-translate-y-0.5"
             >
-              New Audio Script
+              New Audio Overview
             </button>
           </div>
 
@@ -268,15 +219,12 @@ const AudioModal = ({ topic }: Props) => {
               >
                 <div className="mb-2 flex items-center gap-2">
                   <span className="rounded-full border border-aura-cyan/30 bg-aura-cyan/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-aura-cyan">
-                    {segment.speaker}
-                  </span>
-                  <span className="text-xs font-bold text-aura-dim">
                     Segment {index + 1}
                   </span>
                 </div>
 
                 <p className="text-sm leading-7 text-aura-muted">
-                  {segment.text}
+                  {cleanAudioText(segment.text)}
                 </p>
               </div>
             ))}
@@ -294,7 +242,7 @@ const AudioModal = ({ topic }: Props) => {
                     key={item}
                     className="rounded-xl border border-aura-border bg-aura-bg-soft px-3 py-2 text-sm leading-6 text-aura-muted"
                   >
-                    {item}
+                    {cleanAudioText(item)}
                   </li>
                 ))}
               </ul>
