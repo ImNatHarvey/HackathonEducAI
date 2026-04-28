@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, DragEvent, FormEvent } from "react";
 import type { SourceType, SourceUploadPayload } from "./dashboardTypes";
+import { useToast } from "../toast/ToastProvider";
 import { InlineErrorState } from "../states/ErrorState";
 import { LoadingOverlay } from "../states/LoadingState";
 
@@ -148,6 +149,8 @@ const AddSourceModal = ({
   onSubmit,
   onSubmitMany,
 }: AddSourceModalProps) => {
+  const { showToast } = useToast();
+
   const [inputMode, setInputMode] = useState<InputMode>("auto");
   const [value, setValue] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -165,6 +168,17 @@ const AddSourceModal = ({
       resetForm();
     }
   }, [isOpen, isUploading]);
+
+  useEffect(() => {
+    if (!uploadError || isUploading || !isOpen) return;
+
+    showToast({
+      type: "error",
+      title: "Source upload warning",
+      message: uploadError,
+      duration: 6500,
+    });
+  }, [isOpen, isUploading, showToast, uploadError]);
 
   const inferredSourceType = useMemo(() => {
     return inferSourceType(value, inputMode);
@@ -208,6 +222,9 @@ const AddSourceModal = ({
   const addFiles = (nextFiles: File[]) => {
     if (isUploading || nextFiles.length === 0) return;
 
+    let addedCount = 0;
+    let duplicateCount = 0;
+
     setFiles((currentFiles) => {
       const existingKeys = new Set(
         currentFiles.map(
@@ -215,15 +232,40 @@ const AddSourceModal = ({
         ),
       );
 
-      const uniqueNewFiles = nextFiles.filter(
-        (file) =>
-          !existingKeys.has(`${file.name}-${file.size}-${file.lastModified}`),
-      );
+      const uniqueNewFiles = nextFiles.filter((file) => {
+        const key = `${file.name}-${file.size}-${file.lastModified}`;
+        const isDuplicate = existingKeys.has(key);
+
+        if (isDuplicate) duplicateCount += 1;
+        return !isDuplicate;
+      });
+
+      addedCount = uniqueNewFiles.length;
 
       return [...currentFiles, ...uniqueNewFiles];
     });
 
     setValue("");
+
+    if (addedCount > 0) {
+      showToast({
+        type: "success",
+        title: "Files selected",
+        message: `${addedCount} file${addedCount === 1 ? "" : "s"} ready to add.`,
+        duration: 2800,
+      });
+    }
+
+    if (duplicateCount > 0) {
+      showToast({
+        type: "warning",
+        title: "Duplicate files skipped",
+        message: `${duplicateCount} duplicate file${
+          duplicateCount === 1 ? "" : "s"
+        } already selected.`,
+        duration: 4200,
+      });
+    }
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -244,11 +286,26 @@ const AddSourceModal = ({
           ),
       ),
     );
+
+    showToast({
+      type: "info",
+      title: "File removed",
+      message: `${fileToRemove.name} was removed from the upload list.`,
+      duration: 2800,
+    });
   };
 
   const handleClearFiles = () => {
     if (isUploading) return;
+
     setFiles([]);
+
+    showToast({
+      type: "info",
+      title: "Files cleared",
+      message: "All selected files were removed.",
+      duration: 2800,
+    });
   };
 
   const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
@@ -276,6 +333,13 @@ const AddSourceModal = ({
 
     setInputMode("text");
     setFiles([]);
+
+    showToast({
+      type: "info",
+      title: "Copied text mode",
+      message: "Paste notes, reviewers, or definitions as a text source.",
+      duration: 2400,
+    });
   };
 
   const handleUseLinks = () => {
@@ -283,12 +347,28 @@ const AddSourceModal = ({
 
     setInputMode("auto");
     setFiles([]);
+
+    showToast({
+      type: "info",
+      title: "Link mode",
+      message: "Paste a website, YouTube, PDF, or image link.",
+      duration: 2400,
+    });
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (validationMessage || isUploading) return;
+    if (isUploading) return;
+
+    if (validationMessage) {
+      showToast({
+        type: "warning",
+        title: "Source required",
+        message: validationMessage,
+      });
+      return;
+    }
 
     if (files.length > 0) {
       const payloads: SourceUploadPayload[] = files.map((file) => ({
@@ -303,6 +383,15 @@ const AddSourceModal = ({
         fileSize: file.size,
       }));
 
+      showToast({
+        type: "info",
+        title: "Adding files",
+        message: `${payloads.length} file${
+          payloads.length === 1 ? "" : "s"
+        } sent to Study Aura.`,
+        duration: 2600,
+      });
+
       onSubmitMany(payloads);
       return;
     }
@@ -311,6 +400,15 @@ const AddSourceModal = ({
     const sourceType = inferredSourceType;
     const isTextSource = sourceType === "text";
     const isUrlSource = sourceType !== "text";
+
+    showToast({
+      type: "info",
+      title: isTextSource ? "Adding text source" : "Reading source link",
+      message: isTextSource
+        ? "Your copied text is being added as context."
+        : "Study Aura is preparing this link as a source.",
+      duration: 2600,
+    });
 
     onSubmit({
       sourceType,
@@ -398,7 +496,7 @@ const AddSourceModal = ({
 
                   <button
                     type="submit"
-                    disabled={Boolean(validationMessage) || isUploading}
+                    disabled={isUploading}
                     className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-aura-bg-soft text-lg font-black text-aura-text transition hover:-translate-y-0.5 hover:border-aura-cyan/60 hover:text-aura-cyan disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Add source"
                   >
@@ -583,7 +681,7 @@ const AddSourceModal = ({
 
               <button
                 type="submit"
-                disabled={Boolean(validationMessage) || isUploading}
+                disabled={isUploading}
                 className="rounded-2xl bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold px-5 py-3 text-sm font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(34,211,238,0.22)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isUploading ? "Adding source..." : "Add to Sources"}

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useWebSearchSources } from "../../hooks/useWebSearchSources";
+import { useToast } from "../toast/ToastProvider";
 import { InlineErrorState } from "../states/ErrorState";
 import { LoadingOverlay } from "../states/LoadingState";
 import type { SourceUploadPayload } from "./dashboardTypes";
@@ -22,6 +23,19 @@ const WebSearchSourceModal = ({
   onImportSources,
 }: WebSearchSourceModalProps) => {
   const lastAutoSearchRef = useRef("");
+  const lastSearchStateRef = useRef<{
+    isSearching: boolean;
+    resultCount: number;
+    error: string;
+    query: string;
+  }>({
+    isSearching: false,
+    resultCount: 0,
+    error: "",
+    query: "",
+  });
+
+  const { showToast } = useToast();
 
   const {
     query,
@@ -55,24 +69,154 @@ const WebSearchSourceModal = ({
     if (lastAutoSearchRef.current === cleanQuery) return;
 
     lastAutoSearchRef.current = cleanQuery;
+
+    showToast({
+      type: "info",
+      title: "Searching web sources",
+      message: `Finding useful links for ${cleanQuery}.`,
+      duration: 2600,
+    });
+
     searchWithQuery(cleanQuery);
-  }, [isOpen, initialQuery]);
+  }, [isOpen, initialQuery, searchWithQuery, setQuery, showToast]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousState = lastSearchStateRef.current;
+    const currentState = {
+      isSearching,
+      resultCount: results.length,
+      error: searchError,
+      query,
+    };
+
+    if (isSearching && !previousState.isSearching) {
+      showToast({
+        type: "info",
+        title: "Web Source Finder is searching",
+        message: query.trim()
+          ? `Looking for sources about ${query.trim()}.`
+          : "Looking for useful educational links.",
+        duration: 2200,
+      });
+    }
+
+    if (!isSearching && previousState.isSearching) {
+      if (searchError) {
+        showToast({
+          type: "error",
+          title: "Web source search failed",
+          message: searchError,
+          duration: 6500,
+        });
+      } else if (results.length > 0) {
+        showToast({
+          type: "success",
+          title: "Web sources found",
+          message: `${results.length} suggested link${
+            results.length === 1 ? "" : "s"
+          } ready to review.`,
+        });
+      } else {
+        showToast({
+          type: "warning",
+          title: "No web sources found",
+          message: "Try a more specific topic or keyword.",
+        });
+      }
+    }
+
+    lastSearchStateRef.current = currentState;
+  }, [isOpen, isSearching, query, results.length, searchError, showToast]);
 
   const handleClose = () => {
     if (isSearching || isImporting) return;
 
     lastAutoSearchRef.current = "";
+    lastSearchStateRef.current = {
+      isSearching: false,
+      resultCount: 0,
+      error: "",
+      query: "",
+    };
     resetSearch();
     onClose();
   };
 
   const handleRetry = () => {
-    if (!query.trim()) return;
+    if (!query.trim()) {
+      showToast({
+        type: "warning",
+        title: "Search query required",
+        message: "Enter a topic or keyword before searching.",
+      });
+      return;
+    }
+
+    showToast({
+      type: "info",
+      title: "Retrying search",
+      message: `Searching again for ${query.trim()}.`,
+      duration: 2200,
+    });
+
     searchWithQuery(query);
   };
 
+  const handleManualSearch = () => {
+    if (!query.trim()) {
+      showToast({
+        type: "warning",
+        title: "Search query required",
+        message: "Enter a topic or keyword before searching.",
+      });
+      return;
+    }
+
+    showToast({
+      type: "info",
+      title: "Searching web sources",
+      message: `Finding useful links for ${query.trim()}.`,
+      duration: 2200,
+    });
+
+    handleSearch();
+  };
+
+  const handleSelectAllResults = () => {
+    selectAllResults();
+
+    showToast({
+      type: "info",
+      title: "All links selected",
+      message: `${results.length} suggested link${
+        results.length === 1 ? "" : "s"
+      } selected for import.`,
+      duration: 2500,
+    });
+  };
+
+  const handleClearSelectedResults = () => {
+    clearSelectedResults();
+
+    showToast({
+      type: "info",
+      title: "Selection cleared",
+      message: "No web links are currently selected.",
+      duration: 2500,
+    });
+  };
+
   const handleImportSelected = () => {
-    if (selectedResults.length === 0 || isImporting) return;
+    if (selectedResults.length === 0 || isImporting) {
+      showToast({
+        type: "warning",
+        title: "No links selected",
+        message: "Select at least one suggested link before importing.",
+      });
+      return;
+    }
 
     const payloads = selectedResults.map<SourceUploadPayload>((result) => ({
       sourceType: "website",
@@ -85,8 +229,23 @@ const WebSearchSourceModal = ({
       parserProvider: "web-search-ai-agent",
     }));
 
+    showToast({
+      type: "info",
+      title: "Importing web sources",
+      message: `${payloads.length} source${
+        payloads.length === 1 ? "" : "s"
+      } selected for your workspace.`,
+      duration: 2600,
+    });
+
     onImportSources(payloads);
     lastAutoSearchRef.current = "";
+    lastSearchStateRef.current = {
+      isSearching: false,
+      resultCount: 0,
+      error: "",
+      query: "",
+    };
     resetSearch();
     onClose();
   };
@@ -147,7 +306,7 @@ const WebSearchSourceModal = ({
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
                     event.preventDefault();
-                    handleSearch();
+                    handleManualSearch();
                   }
                 }}
                 disabled={isSearching || isImporting}
@@ -157,7 +316,7 @@ const WebSearchSourceModal = ({
 
               <button
                 type="button"
-                onClick={handleSearch}
+                onClick={handleManualSearch}
                 disabled={!query.trim() || isSearching || isImporting}
                 className="rounded-2xl bg-aura-cyan px-5 py-3 text-sm font-black text-aura-bg transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -204,7 +363,7 @@ const WebSearchSourceModal = ({
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={selectAllResults}
+                    onClick={handleSelectAllResults}
                     disabled={allSelected || isSearching || isImporting}
                     className="rounded-xl border border-aura-border bg-aura-panel px-3 py-2 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-cyan disabled:cursor-not-allowed disabled:opacity-40"
                   >
@@ -213,8 +372,10 @@ const WebSearchSourceModal = ({
 
                   <button
                     type="button"
-                    onClick={clearSelectedResults}
-                    disabled={selectedUrls.length === 0 || isSearching || isImporting}
+                    onClick={handleClearSelectedResults}
+                    disabled={
+                      selectedUrls.length === 0 || isSearching || isImporting
+                    }
                     className="rounded-xl border border-aura-border bg-aura-panel px-3 py-2 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-cyan disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Clear

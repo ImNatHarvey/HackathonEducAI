@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   useAIToolActions,
   type AIToolGenerationOptions,
@@ -6,6 +6,7 @@ import {
 import AIToolResultRenderer from "./AIToolResultRenderer";
 import ErrorState from "../states/ErrorState";
 import { GeneratingState } from "../states/LoadingState";
+import { useToast } from "../toast/ToastProvider";
 import type { AIToolName, StudySource } from "../dashboard/dashboardTypes";
 import type {
   AudioOverviewLength,
@@ -105,6 +106,11 @@ const AIToolModal = ({
   const [options, setOptions] =
     useState<AIToolGenerationOptions>(defaultOptions);
 
+  const { showToast } = useToast();
+
+  const lastStatusRef = useRef<string>("idle");
+  const viewedSavedOutputRef = useRef<string | null>(null);
+
   const {
     status,
     error,
@@ -120,14 +126,67 @@ const AIToolModal = ({
     selectedSources,
   });
 
-  if (!activeTool) return null;
-
   const savedResult = savedOutput?.payload?.result;
   const isViewingSavedOutput = Boolean(savedOutput && savedResult);
   const selectedSourceCount = selectedSources.length;
   const isLoading = status === "loading";
   const hasResult = status === "success" || isViewingSavedOutput;
   const isAudioResult = activeTool === "Audio" && hasResult;
+
+  useEffect(() => {
+    if (!activeTool) return;
+
+    if (isViewingSavedOutput && savedOutput?.id) {
+      if (viewedSavedOutputRef.current !== savedOutput.id) {
+        viewedSavedOutputRef.current = savedOutput.id;
+
+        showToast({
+          type: "info",
+          title: "Saved output opened",
+          message: `${toolTitles[activeTool]} is ready to view.`,
+        });
+      }
+    }
+  }, [activeTool, isViewingSavedOutput, savedOutput?.id, showToast]);
+
+  useEffect(() => {
+    if (!activeTool) return;
+
+    const previousStatus = lastStatusRef.current;
+
+    if (status === "loading" && previousStatus !== "loading") {
+      showToast({
+        type: "info",
+        title: `Generating ${toolTitles[activeTool]}`,
+        message: "Study Aura is preparing your AI Studio output.",
+        duration: 2600,
+      });
+    }
+
+    if (status === "success" && previousStatus === "loading") {
+      showToast({
+        type: activeTool === "Audio" ? "xp" : "success",
+        title: `${toolTitles[activeTool]} ready`,
+        message:
+          activeTool === "Audio"
+            ? "Your audio study cards are ready to play."
+            : saveNotice || "Your generated output is ready.",
+      });
+    }
+
+    if (status === "error" && previousStatus === "loading") {
+      showToast({
+        type: "error",
+        title: `${toolTitles[activeTool]} failed`,
+        message: error || "Study Aura could not generate this output.",
+        duration: 6500,
+      });
+    }
+
+    lastStatusRef.current = status;
+  }, [activeTool, error, saveNotice, showToast, status]);
+
+  if (!activeTool) return null;
 
   const updateOptions = (updates: Partial<AIToolGenerationOptions>) => {
     setOptions((currentOptions) => ({
@@ -137,11 +196,20 @@ const AIToolModal = ({
   };
 
   const handleGenerate = () => {
+    if (selectedSourceCount === 0) {
+      showToast({
+        type: "warning",
+        title: "No sources selected",
+        message: "Aura will use the module topic only. Select sources for better results.",
+      });
+    }
+
     runTool(activeTool, options);
   };
 
   const handleClose = () => {
     resetTool();
+    lastStatusRef.current = "idle";
     onClose();
   };
 

@@ -6,6 +6,7 @@ import SourcesPanel from "../components/dashboard/SourcesPanel";
 import ChatPanel from "../components/dashboard/ChatPanel";
 import AIStudioPanel from "../components/dashboard/AIStudioPanel";
 import AddSourceModal from "../components/dashboard/AddSourceModal";
+import { useToast } from "../components/toast/ToastProvider";
 import { useDashboardActions } from "../hooks/useDashboardActions";
 import {
   deleteGeneratedOutput,
@@ -69,6 +70,8 @@ const Dashboard = ({
   onOpenCreateModule,
   onLogout,
 }: DashboardProps) => {
+  const { showToast } = useToast();
+
   const [inputValue, setInputValue] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsInitialPanel, setSettingsInitialPanel] =
@@ -115,11 +118,19 @@ const Dashboard = ({
 
       setRecentOutputs(outputs);
     } catch (error) {
-      setOutputError(
+      const message =
         error instanceof Error
           ? error.message
-          : "Failed to load generated outputs.",
-      );
+          : "Failed to load generated outputs.";
+
+      setOutputError(message);
+
+      showToast({
+        type: "error",
+        title: "Could not load saved outputs",
+        message,
+        duration: 6500,
+      });
     } finally {
       setIsLoadingOutputs(false);
     }
@@ -150,49 +161,115 @@ const Dashboard = ({
   const handleSourceAdded = async (source: StudySource) => {
     if (!currentModule) return;
 
-    const savedSource = await onAddSourceToModule({
-      moduleId: currentModule.id,
-      source,
-    });
+    try {
+      const savedSource = await onAddSourceToModule({
+        moduleId: currentModule.id,
+        source,
+      });
 
-    updateCurrentModule((module) => ({
-      ...module,
-      progress: Math.max(module.progress, 10),
-      updatedAt: new Date().toISOString(),
-      sources: [
-        savedSource,
-        ...module.sources.filter(
-          (currentSource) => currentSource.id !== savedSource.id,
-        ),
-      ],
-    }));
+      updateCurrentModule((module) => ({
+        ...module,
+        progress: Math.max(module.progress, 10),
+        updatedAt: new Date().toISOString(),
+        sources: [
+          savedSource,
+          ...module.sources.filter(
+            (currentSource) => currentSource.id !== savedSource.id,
+          ),
+        ],
+      }));
 
-    setIsAddSourceOpen(false);
+      setIsAddSourceOpen(false);
+
+      showToast({
+        type: savedSource.status === "failed" ? "warning" : "success",
+        title:
+          savedSource.status === "failed"
+            ? "Source added with warning"
+            : "Source added",
+        message:
+          savedSource.status === "failed"
+            ? savedSource.statusMessage ||
+              `${savedSource.title} was added, but Study Aura could not fully read it.`
+            : `${savedSource.title} is ready in your workspace.`,
+      });
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: "Could not add source",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Study Aura could not add this source.",
+        duration: 6500,
+      });
+
+      throw error;
+    }
   };
 
   const handleSourcesAdded = async (sources: StudySource[]) => {
     if (!currentModule) return;
 
-    const savedSources = await onAddSourcesToModule({
-      moduleId: currentModule.id,
-      sources,
-    });
+    try {
+      const savedSources = await onAddSourcesToModule({
+        moduleId: currentModule.id,
+        sources,
+      });
 
-    updateCurrentModule((module) => {
-      const incomingIds = new Set(savedSources.map((source) => source.id));
+      updateCurrentModule((module) => {
+        const incomingIds = new Set(savedSources.map((source) => source.id));
 
-      return {
-        ...module,
-        progress: Math.max(module.progress, 10),
-        updatedAt: new Date().toISOString(),
-        sources: [
-          ...savedSources,
-          ...module.sources.filter((source) => !incomingIds.has(source.id)),
-        ],
-      };
-    });
+        return {
+          ...module,
+          progress: Math.max(module.progress, 10),
+          updatedAt: new Date().toISOString(),
+          sources: [
+            ...savedSources,
+            ...module.sources.filter((source) => !incomingIds.has(source.id)),
+          ],
+        };
+      });
 
-    setIsAddSourceOpen(false);
+      setIsAddSourceOpen(false);
+
+      const failedCount = savedSources.filter(
+        (source) => source.status === "failed",
+      ).length;
+
+      if (failedCount > 0) {
+        showToast({
+          type: "warning",
+          title: "Sources added with warnings",
+          message: `${savedSources.length} source${
+            savedSources.length === 1 ? "" : "s"
+          } added, but ${failedCount} could not be fully read.`,
+          duration: 6500,
+        });
+
+        return;
+      }
+
+      showToast({
+        type: "success",
+        title: "Sources added",
+        message: `${savedSources.length} source${
+          savedSources.length === 1 ? "" : "s"
+        } added to your workspace.`,
+      });
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: "Could not add sources",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Study Aura could not add these sources.",
+        duration: 6500,
+      });
+
+      throw error;
+    }
   };
 
   const handleToggleSource = async (sourceId: string) => {
@@ -219,15 +296,51 @@ const Dashboard = ({
       ),
     }));
 
-    await onUpdateSourceSelected({
-      moduleId: currentModule.id,
-      sourceId,
-      selected: nextSelected,
-    });
+    try {
+      await onUpdateSourceSelected({
+        moduleId: currentModule.id,
+        sourceId,
+        selected: nextSelected,
+      });
+
+      showToast({
+        type: "info",
+        title: nextSelected ? "Source selected" : "Source deselected",
+        message: nextSelected
+          ? `${source.title} will be used as AI context.`
+          : `${source.title} was removed from selected context.`,
+        duration: 2600,
+      });
+    } catch (error) {
+      updateCurrentModule((module) => ({
+        ...module,
+        updatedAt: new Date().toISOString(),
+        sources: module.sources.map((currentSource) =>
+          currentSource.id === sourceId
+            ? {
+                ...currentSource,
+                selected: source.selected,
+              }
+            : currentSource,
+        ),
+      }));
+
+      showToast({
+        type: "error",
+        title: "Selection update failed",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Study Aura could not update this source selection.",
+        duration: 6500,
+      });
+    }
   };
 
   const handleSelectAllSources = async () => {
     if (!currentModule) return;
+
+    const previousSources = currentModule.sources;
 
     updateCurrentModule((module) => ({
       ...module,
@@ -238,14 +351,43 @@ const Dashboard = ({
       })),
     }));
 
-    await onUpdateAllSourcesSelected({
-      moduleId: currentModule.id,
-      selected: true,
-    });
+    try {
+      await onUpdateAllSourcesSelected({
+        moduleId: currentModule.id,
+        selected: true,
+      });
+
+      showToast({
+        type: "success",
+        title: "All sources selected",
+        message: `${currentModule.sources.length} source${
+          currentModule.sources.length === 1 ? "" : "s"
+        } will be used as AI context.`,
+        duration: 3000,
+      });
+    } catch (error) {
+      updateCurrentModule((module) => ({
+        ...module,
+        updatedAt: new Date().toISOString(),
+        sources: previousSources,
+      }));
+
+      showToast({
+        type: "error",
+        title: "Could not select all sources",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Study Aura could not update your source selections.",
+        duration: 6500,
+      });
+    }
   };
 
   const handleClearSelectedSources = async () => {
     if (!currentModule) return;
+
+    const previousSources = currentModule.sources;
 
     updateCurrentModule((module) => ({
       ...module,
@@ -256,14 +398,45 @@ const Dashboard = ({
       })),
     }));
 
-    await onUpdateAllSourcesSelected({
-      moduleId: currentModule.id,
-      selected: false,
-    });
+    try {
+      await onUpdateAllSourcesSelected({
+        moduleId: currentModule.id,
+        selected: false,
+      });
+
+      showToast({
+        type: "info",
+        title: "Sources cleared",
+        message: "No sources are currently selected for AI context.",
+        duration: 3000,
+      });
+    } catch (error) {
+      updateCurrentModule((module) => ({
+        ...module,
+        updatedAt: new Date().toISOString(),
+        sources: previousSources,
+      }));
+
+      showToast({
+        type: "error",
+        title: "Could not clear sources",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Study Aura could not clear your source selections.",
+        duration: 6500,
+      });
+    }
   };
 
   const handleDeleteSource = async (sourceId: string) => {
     if (!currentModule) return;
+
+    const sourceToDelete = currentModule.sources.find(
+      (source) => source.id === sourceId,
+    );
+
+    const previousSources = currentModule.sources;
 
     updateCurrentModule((module) => ({
       ...module,
@@ -271,10 +444,36 @@ const Dashboard = ({
       sources: module.sources.filter((source) => source.id !== sourceId),
     }));
 
-    await onDeleteSource({
-      moduleId: currentModule.id,
-      sourceId,
-    });
+    try {
+      await onDeleteSource({
+        moduleId: currentModule.id,
+        sourceId,
+      });
+
+      showToast({
+        type: "info",
+        title: "Source removed",
+        message: sourceToDelete
+          ? `${sourceToDelete.title} was removed from your workspace.`
+          : "The source was removed from your workspace.",
+      });
+    } catch (error) {
+      updateCurrentModule((module) => ({
+        ...module,
+        updatedAt: new Date().toISOString(),
+        sources: previousSources,
+      }));
+
+      showToast({
+        type: "error",
+        title: "Could not remove source",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Study Aura could not remove this source.",
+        duration: 6500,
+      });
+    }
   };
 
   const {
@@ -298,14 +497,39 @@ const Dashboard = ({
   });
 
   const handleSubmitSource = (payload: SourceUploadPayload) => {
+    showToast({
+      type: "info",
+      title: "Reading source",
+      message: "Study Aura is preparing your source.",
+      duration: 2600,
+    });
+
     handleUploadSource(payload);
   };
 
   const handleSubmitSources = (payloads: SourceUploadPayload[]) => {
+    showToast({
+      type: "info",
+      title: "Reading sources",
+      message: `${payloads.length} source${
+        payloads.length === 1 ? "" : "s"
+      } queued for reading.`,
+      duration: 2600,
+    });
+
     handleUploadSources(payloads);
   };
 
   const handleSubmitWebSources = (payloads: SourceUploadPayload[]) => {
+    showToast({
+      type: "info",
+      title: "Importing web sources",
+      message: `${payloads.length} source${
+        payloads.length === 1 ? "" : "s"
+      } selected from Web Source Finder.`,
+      duration: 2600,
+    });
+
     handleUploadSources(payloads);
   };
 
@@ -321,6 +545,8 @@ const Dashboard = ({
 
   const handleDeleteSavedOutput = async (outputId: string) => {
     if (!userId) return;
+
+    const outputToDelete = recentOutputs.find((output) => output.id === outputId);
 
     setDeletingOutputId(outputId);
     setOutputError("");
@@ -339,12 +565,28 @@ const Dashboard = ({
         setSavedOutputToView(null);
         setActiveTool(null);
       }
+
+      showToast({
+        type: "info",
+        title: "Saved output deleted",
+        message: outputToDelete
+          ? `${outputToDelete.title} was removed from this module.`
+          : "The saved output was removed from this module.",
+      });
     } catch (error) {
-      setOutputError(
+      const message =
         error instanceof Error
           ? error.message
-          : "Failed to delete saved output.",
-      );
+          : "Failed to delete saved output.";
+
+      setOutputError(message);
+
+      showToast({
+        type: "error",
+        title: "Could not delete saved output",
+        message,
+        duration: 6500,
+      });
     } finally {
       setDeletingOutputId(null);
     }
