@@ -6,7 +6,7 @@ type LoadingStateProps = {
   className?: string;
 };
 
-export const LoadingState = ({
+const LoadingState = ({
   title = "Loading...",
   description = "Please wait while Study Aura prepares this section.",
   label = "Working",
@@ -89,3 +89,7 @@ export const InlineLoadingState = ({
     </div>
   );
 };
+
+export { LoadingState };
+export type { LoadingStateProps };
+export default LoadingState;

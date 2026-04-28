@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import type { ChangeEvent, DragEvent, FormEvent } from "react";
 import type { SourceType, SourceUploadPayload } from "./dashboardTypes";
-import { GeneratingState } from "../states/LoadingState";
 import { InlineErrorState } from "../states/ErrorState";
 
 type AddSourceModalProps = {
@@ -15,6 +14,9 @@ type AddSourceModalProps = {
 };
 
 type InputMode = "auto" | "text";
+
+const acceptedFileTypes =
+  ".pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a";
 
 const isLikelyUrl = (value: string) => {
   return /^https?:\/\/\S+\.\S+/i.test(value.trim());
@@ -48,6 +50,12 @@ const cleanTitleText = (value: string) => {
     .replace(/[-_/]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+};
+
+const formatFileSize = (size: number) => {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 };
 
 const inferSourceType = (value: string, inputMode: InputMode): SourceType => {
@@ -123,6 +131,14 @@ const getSourceBadgeLabel = (sourceType: SourceType) => {
   return "Text";
 };
 
+const getSourceIcon = (sourceType: SourceType) => {
+  if (sourceType === "youtube") return "▶️";
+  if (sourceType === "pdf") return "📄";
+  if (sourceType === "image") return "🖼️";
+  if (sourceType === "website") return "🌐";
+  return "📋";
+};
+
 const AddSourceModal = ({
   isOpen,
   isUploading,
@@ -182,21 +198,54 @@ const AddSourceModal = ({
     onClose();
   };
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(event.target.files ?? []);
+  const addFiles = (nextFiles: File[]) => {
+    if (isUploading || nextFiles.length === 0) return;
 
-    setFiles(selectedFiles);
+    setFiles((currentFiles) => {
+      const existingKeys = new Set(
+        currentFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`),
+      );
+
+      const uniqueNewFiles = nextFiles.filter(
+        (file) => !existingKeys.has(`${file.name}-${file.size}-${file.lastModified}`),
+      );
+
+      return [...currentFiles, ...uniqueNewFiles];
+    });
+
     setValue("");
+  };
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    addFiles(Array.from(event.target.files ?? []));
+    event.target.value = "";
+  };
+
+  const handleRemoveFile = (fileToRemove: File) => {
+    if (isUploading) return;
+
+    setFiles((currentFiles) =>
+      currentFiles.filter(
+        (file) =>
+          !(
+            file.name === fileToRemove.name &&
+            file.size === fileToRemove.size &&
+            file.lastModified === fileToRemove.lastModified
+          ),
+      ),
+    );
+  };
+
+  const handleClearFiles = () => {
+    if (isUploading) return;
+    setFiles([]);
   };
 
   const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
     event.preventDefault();
     event.stopPropagation();
 
-    const droppedFiles = Array.from(event.dataTransfer.files ?? []);
-
-    setFiles(droppedFiles);
-    setValue("");
+    addFiles(Array.from(event.dataTransfer.files ?? []));
     setIsDragging(false);
   };
 
@@ -245,7 +294,6 @@ const AddSourceModal = ({
       }));
 
       onSubmitMany(payloads);
-      resetForm();
       return;
     }
 
@@ -267,15 +315,50 @@ const AddSourceModal = ({
         : "Reading source...",
       parserProvider: isTextSource ? "manual-input" : undefined,
     });
-
-    resetForm();
   };
 
   if (!isOpen) return null;
 
+  const hasFiles = files.length > 0;
+  const currentSourceIcon = hasFiles ? "⬆️" : getSourceIcon(inferredSourceType);
+  const currentSourceLabel = hasFiles
+    ? `${files.length} file${files.length > 1 ? "s" : ""}`
+    : getSourceBadgeLabel(inferredSourceType);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-aura-bg/80 px-3 py-3 backdrop-blur-xl">
-      <div className="flex max-h-[94vh] w-full max-w-[1500px] flex-col overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
+      <div className="relative flex max-h-[94vh] w-full max-w-[1500px] flex-col overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
+        {isUploading && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-aura-bg/75 px-6 backdrop-blur-md">
+            <div className="w-full max-w-xl rounded-[2rem] border border-aura-cyan/25 bg-aura-panel/95 p-8 text-center shadow-[0_30px_100px_rgba(34,211,238,0.16)]">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl border border-aura-cyan/30 bg-aura-cyan/10">
+                <span className="h-7 w-7 animate-spin rounded-full border-2 border-aura-cyan/30 border-t-aura-cyan" />
+              </div>
+
+              <p className="mt-5 text-[10px] font-black uppercase tracking-[0.28em] text-aura-cyan">
+                Reading source
+              </p>
+
+              <h3 className="mt-3 text-2xl font-black text-aura-text">
+                Adding source...
+              </h3>
+
+              <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-aura-muted">
+                Study Aura is uploading and preparing your source as module
+                context. This may take a moment for PDFs, images, or videos.
+              </p>
+
+              <div className="mx-auto mt-6 h-2 max-w-sm overflow-hidden rounded-full bg-aura-border">
+                <div className="h-full w-1/2 animate-pulse rounded-full bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold" />
+              </div>
+
+              <p className="mt-4 text-xs font-bold text-aura-dim">
+                Please keep this modal open while the source is being processed.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-start justify-between gap-4 border-b border-aura-border px-6 py-4">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.28em] text-aura-cyan">
@@ -342,7 +425,7 @@ const AddSourceModal = ({
                     onClick={handleUseLinks}
                     disabled={isUploading}
                     className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-black transition ${
-                      inputMode === "auto"
+                      inputMode === "auto" && !hasFiles
                         ? "border-aura-cyan/60 bg-aura-cyan/10 text-aura-cyan"
                         : "border-aura-border bg-aura-bg-soft text-aura-muted hover:border-aura-cyan/45 hover:text-aura-text"
                     } disabled:opacity-60`}
@@ -355,7 +438,7 @@ const AddSourceModal = ({
                     onClick={handleUseCopiedText}
                     disabled={isUploading}
                     className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-black transition ${
-                      inputMode === "text"
+                      inputMode === "text" && !hasFiles
                         ? "border-aura-cyan/60 bg-aura-cyan/10 text-aura-cyan"
                         : "border-aura-border bg-aura-bg-soft text-aura-muted hover:border-aura-cyan/45 hover:text-aura-text"
                     } disabled:opacity-60`}
@@ -364,7 +447,7 @@ const AddSourceModal = ({
                   </button>
 
                   <span className="inline-flex items-center gap-2 rounded-full border border-aura-border bg-aura-bg-soft px-3 py-2 text-xs font-black text-aura-muted">
-                    Detected: {getSourceBadgeLabel(inferredSourceType)}
+                    {currentSourceIcon} Detected: {currentSourceLabel}
                   </span>
 
                   <span className="min-w-0 flex-1 truncate text-right text-xs font-bold text-aura-dim">
@@ -386,19 +469,23 @@ const AddSourceModal = ({
                 <input
                   type="file"
                   multiple
-                  accept=".pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a"
+                  accept={acceptedFileTypes}
                   onChange={handleFileChange}
                   disabled={isUploading}
                   className="hidden"
                 />
 
-                <div className="flex min-h-[210px] flex-col items-center justify-center text-center">
+                <div
+                  className={`flex flex-col items-center justify-center text-center ${
+                    hasFiles ? "min-h-[140px]" : "min-h-[210px]"
+                  }`}
+                >
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-aura-cyan/10 text-3xl">
                     ⬆️
                   </div>
 
                   <h3 className="mt-4 text-xl font-black text-aura-text">
-                    Drop your files here
+                    {hasFiles ? "Files ready to add" : "Drop your files here"}
                   </h3>
 
                   <p className="mt-2 max-w-xl text-sm leading-6 text-aura-muted">
@@ -406,48 +493,89 @@ const AddSourceModal = ({
                     choose files.
                   </p>
 
-                  <div className="mt-5 flex flex-wrap justify-center gap-2">
-                    <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-2 text-xs font-black text-aura-muted">
-                      ⬆️ Upload files
-                    </span>
-                    <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-2 text-xs font-black text-aura-muted">
-                      🌐 Websites
-                    </span>
-                    <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-2 text-xs font-black text-aura-muted">
-                      ▶️ YouTube
-                    </span>
-                    <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-2 text-xs font-black text-aura-muted">
-                      🖼️ Images
-                    </span>
-                    <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-2 text-xs font-black text-aura-muted">
-                      📄 PDFs
-                    </span>
-                  </div>
-
-                  {files.length > 0 && (
-                    <div className="mt-4 flex max-w-2xl flex-wrap justify-center gap-2">
-                      {files.map((file) => (
-                        <span
-                          key={`${file.name}-${file.size}`}
-                          className="rounded-full border border-aura-cyan/30 bg-aura-cyan/10 px-3 py-1 text-xs font-bold text-aura-cyan"
-                        >
-                          {file.name}
-                        </span>
-                      ))}
+                  {!hasFiles && (
+                    <div className="mt-5 flex flex-wrap justify-center gap-2">
+                      <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-2 text-xs font-black text-aura-muted">
+                        ⬆️ Upload files
+                      </span>
+                      <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-2 text-xs font-black text-aura-muted">
+                        🌐 Websites
+                      </span>
+                      <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-2 text-xs font-black text-aura-muted">
+                        ▶️ YouTube
+                      </span>
+                      <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-2 text-xs font-black text-aura-muted">
+                        🖼️ Images
+                      </span>
+                      <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-2 text-xs font-black text-aura-muted">
+                        📄 PDFs
+                      </span>
                     </div>
                   )}
                 </div>
               </label>
-            </div>
 
-            {isUploading && (
-              <GeneratingState
-                title="Adding source..."
-                description="Study Aura is saving your source and preparing it for module context."
-                label="Reading source"
-                compact
-              />
-            )}
+              {hasFiles && (
+                <div className="mt-4 rounded-[1.4rem] border border-aura-border bg-aura-panel p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-black text-aura-text">
+                        Selected sources
+                      </h3>
+                      <p className="mt-1 text-xs font-semibold text-aura-muted">
+                        Review your files before adding them to this module.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleClearFiles}
+                      disabled={isUploading}
+                      className="rounded-full border border-aura-border bg-aura-bg-soft px-3 py-2 text-xs font-black text-aura-muted transition hover:border-red-300/50 hover:text-red-200 disabled:opacity-50"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+
+                  <div className="grid max-h-[150px] gap-2 overflow-y-auto pr-1 aura-scrollbar md:grid-cols-2">
+                    {files.map((file) => {
+                      const sourceType = getFileSourceType(file);
+
+                      return (
+                        <div
+                          key={`${file.name}-${file.size}-${file.lastModified}`}
+                          className="flex items-center gap-3 rounded-2xl border border-aura-border bg-aura-bg-soft px-3 py-3"
+                        >
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-aura-cyan/10 text-lg">
+                            {getSourceIcon(sourceType)}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-black text-aura-text">
+                              {file.name}
+                            </p>
+                            <p className="mt-0.5 text-xs font-semibold text-aura-muted">
+                              {getSourceBadgeLabel(sourceType)} •{" "}
+                              {formatFileSize(file.size)}
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFile(file)}
+                            disabled={isUploading}
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-aura-border bg-aura-panel text-xs font-black text-aura-muted transition hover:border-red-300/50 hover:text-red-200 disabled:opacity-50"
+                            aria-label={`Remove ${file.name}`}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {(validationMessage || uploadError) && !isUploading && (
               <InlineErrorState
