@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import type { ChangeEvent, DragEvent, FormEvent } from "react";
 import type { SourceType, SourceUploadPayload } from "./dashboardTypes";
+import { GeneratingState } from "../states/LoadingState";
+import { InlineErrorState } from "../states/ErrorState";
 
 type AddSourceModalProps = {
   isOpen: boolean;
@@ -12,77 +14,7 @@ type AddSourceModalProps = {
   onSubmitMany: (payloads: SourceUploadPayload[]) => void;
 };
 
-type SourceMode = "text" | "website" | "youtube" | "pdf" | "image" | "file";
-
-type SourceOption = {
-  mode: SourceMode;
-  sourceType: SourceType;
-  label: string;
-  shortLabel: string;
-  icon: string;
-  description: string;
-  placeholder: string;
-  accept?: string;
-};
-
-const sourceOptions: SourceOption[] = [
-  {
-    mode: "file",
-    sourceType: "pdf",
-    label: "Upload files",
-    shortLabel: "Files",
-    icon: "⬆️",
-    description: "Upload PDFs, images, documents, or audio references.",
-    placeholder: "Drop files here or choose files from your device.",
-    accept: ".pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a",
-  },
-  {
-    mode: "website",
-    sourceType: "website",
-    label: "Websites",
-    shortLabel: "Web",
-    icon: "🌐",
-    description: "Paste a webpage, article, or documentation link.",
-    placeholder: "Paste a website URL, article link, or documentation link...",
-  },
-  {
-    mode: "youtube",
-    sourceType: "youtube",
-    label: "YouTube",
-    shortLabel: "Video",
-    icon: "▶️",
-    description: "Paste a YouTube lesson, lecture, or explainer video.",
-    placeholder: "Paste a YouTube URL...",
-  },
-  {
-    mode: "text",
-    sourceType: "text",
-    label: "Copied text",
-    shortLabel: "Text",
-    icon: "📋",
-    description: "Paste copied notes, reviewers, definitions, or raw text.",
-    placeholder:
-      "Paste your copied text, notes, reviewer, definitions, or study material here...",
-  },
-  {
-    mode: "pdf",
-    sourceType: "pdf",
-    label: "PDF link",
-    shortLabel: "PDF",
-    icon: "📄",
-    description: "Paste a PDF link or reference a PDF source.",
-    placeholder: "Paste a PDF URL or reference...",
-  },
-  {
-    mode: "image",
-    sourceType: "image",
-    label: "Image link",
-    shortLabel: "Image",
-    icon: "🖼️",
-    description: "Paste an image link or describe a diagram/screenshot.",
-    placeholder: "Paste an image URL or describe the diagram/screenshot...",
-  },
-];
+type InputMode = "auto" | "text";
 
 const isLikelyUrl = (value: string) => {
   return /^https?:\/\/\S+\.\S+/i.test(value.trim());
@@ -90,6 +22,14 @@ const isLikelyUrl = (value: string) => {
 
 const isLikelyYouTubeUrl = (value: string) => {
   return /(youtube\.com|youtu\.be)/i.test(value.trim());
+};
+
+const isLikelyPdfUrl = (value: string) => {
+  return /\.pdf($|[?#])/i.test(value.trim());
+};
+
+const isLikelyImageUrl = (value: string) => {
+  return /\.(png|jpe?g|webp|gif|bmp|svg)($|[?#])/i.test(value.trim());
 };
 
 const getHostFromUrl = (value: string) => {
@@ -110,14 +50,28 @@ const cleanTitleText = (value: string) => {
     .trim();
 };
 
+const inferSourceType = (value: string, inputMode: InputMode): SourceType => {
+  const trimmedValue = value.trim();
+
+  if (inputMode === "text" || !isLikelyUrl(trimmedValue)) {
+    return "text";
+  }
+
+  if (isLikelyYouTubeUrl(trimmedValue)) return "youtube";
+  if (isLikelyPdfUrl(trimmedValue)) return "pdf";
+  if (isLikelyImageUrl(trimmedValue)) return "image";
+
+  return "website";
+};
+
 const inferTitle = ({
-  mode,
   value,
   files,
+  inputMode,
 }: {
-  mode: SourceMode;
   value: string;
   files: File[];
+  inputMode: InputMode;
 }) => {
   if (files.length > 0) {
     if (files.length === 1) {
@@ -130,19 +84,16 @@ const inferTitle = ({
   const trimmedValue = value.trim();
 
   if (!trimmedValue) {
-    if (mode === "youtube") return "YouTube source";
-    if (mode === "website") return "Website source";
-    if (mode === "pdf") return "PDF source";
-    if (mode === "image") return "Image source";
-    return "Copied text source";
+    return inputMode === "text" ? "Copied text source" : "New source";
   }
 
   if (isLikelyUrl(trimmedValue)) {
     const host = getHostFromUrl(trimmedValue);
     const cleaned = cleanTitleText(trimmedValue);
 
-    if (mode === "youtube") return "YouTube video";
+    if (isLikelyYouTubeUrl(trimmedValue)) return "YouTube video";
     if (host) return host;
+
     return cleaned.slice(0, 70) || "Web source";
   }
 
@@ -164,6 +115,14 @@ const getFileSourceType = (file: File): SourceType => {
   return "text";
 };
 
+const getSourceBadgeLabel = (sourceType: SourceType) => {
+  if (sourceType === "youtube") return "YouTube";
+  if (sourceType === "pdf") return "PDF";
+  if (sourceType === "image") return "Image";
+  if (sourceType === "website") return "Web";
+  return "Text";
+};
+
 const AddSourceModal = ({
   isOpen,
   isUploading,
@@ -172,60 +131,45 @@ const AddSourceModal = ({
   onSubmit,
   onSubmitMany,
 }: AddSourceModalProps) => {
-  const [activeMode, setActiveMode] = useState<SourceMode>("text");
+  const [inputMode, setInputMode] = useState<InputMode>("auto");
   const [value, setValue] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
-  const selectedOption = useMemo(() => {
-    return (
-      sourceOptions.find((option) => option.mode === activeMode) ??
-      sourceOptions[0]
-    );
-  }, [activeMode]);
+  const inferredSourceType = useMemo(() => {
+    return inferSourceType(value, inputMode);
+  }, [value, inputMode]);
 
   const generatedTitle = useMemo(() => {
     return inferTitle({
-      mode: activeMode,
       value,
       files,
+      inputMode,
     });
-  }, [activeMode, value, files]);
+  }, [value, files, inputMode]);
 
   const validationMessage = useMemo(() => {
     const trimmedValue = value.trim();
 
-    if (activeMode === "file") {
-      if (files.length === 0) {
-        return "Please choose at least one file or switch to another source type.";
-      }
-
-      return "";
-    }
+    if (files.length > 0) return "";
 
     if (!trimmedValue) {
-      return "Please paste a link or text source.";
+      return "Add a file, paste a link, or paste copied text.";
     }
 
     if (
-      (activeMode === "website" ||
-        activeMode === "youtube" ||
-        activeMode === "pdf" ||
-        activeMode === "image") &&
+      inputMode === "auto" &&
+      trimmedValue.includes("http") &&
       !isLikelyUrl(trimmedValue)
     ) {
-      return "Please paste a valid URL that starts with http:// or https://.";
-    }
-
-    if (activeMode === "youtube" && !isLikelyYouTubeUrl(trimmedValue)) {
-      return "Please paste a valid YouTube link.";
+      return "Please use a valid link that starts with http:// or https://.";
     }
 
     return "";
-  }, [activeMode, value, files.length]);
+  }, [value, files.length, inputMode]);
 
   const resetForm = () => {
-    setActiveMode("text");
+    setInputMode("auto");
     setValue("");
     setFiles([]);
     setIsDragging(false);
@@ -238,19 +182,11 @@ const AddSourceModal = ({
     onClose();
   };
 
-  const handleModeChange = (mode: SourceMode) => {
-    if (isUploading) return;
-
-    setActiveMode(mode);
-    setValue("");
-    setFiles([]);
-    setIsDragging(false);
-  };
-
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files ?? []);
+
     setFiles(selectedFiles);
-    setActiveMode("file");
+    setValue("");
   };
 
   const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
@@ -258,8 +194,9 @@ const AddSourceModal = ({
     event.stopPropagation();
 
     const droppedFiles = Array.from(event.dataTransfer.files ?? []);
+
     setFiles(droppedFiles);
-    setActiveMode("file");
+    setValue("");
     setIsDragging(false);
   };
 
@@ -275,19 +212,33 @@ const AddSourceModal = ({
     setIsDragging(false);
   };
 
+  const handleUseCopiedText = () => {
+    if (isUploading) return;
+
+    setInputMode("text");
+    setFiles([]);
+  };
+
+  const handleUseLinks = () => {
+    if (isUploading) return;
+
+    setInputMode("auto");
+    setFiles([]);
+  };
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (validationMessage || isUploading) return;
 
-    if (activeMode === "file") {
+    if (files.length > 0) {
       const payloads: SourceUploadPayload[] = files.map((file) => ({
         sourceType: getFileSourceType(file),
         title: file.name.replace(/\.[^.]+$/, ""),
         value: file.name,
         file,
         status: "pending",
-        statusMessage: "Uploading file to storage...",
+        statusMessage: "Uploading file...",
         fileName: file.name,
         fileType: file.type || "unknown",
         fileSize: file.size,
@@ -298,34 +249,23 @@ const AddSourceModal = ({
       return;
     }
 
-    const status = selectedOption.sourceType === "text" ? "ready" : "pending";
-
-    const statusMessage =
-      selectedOption.sourceType === "text"
-        ? "Copied text is ready to use as context."
-        : "Source reader pipeline will extract this source next.";
-
-    const isUrlSource =
-      selectedOption.sourceType === "website" ||
-      selectedOption.sourceType === "youtube" ||
-      selectedOption.sourceType === "pdf" ||
-      selectedOption.sourceType === "image";
+    const trimmedValue = value.trim();
+    const sourceType = inferredSourceType;
+    const isTextSource = sourceType === "text";
+    const isUrlSource = sourceType !== "text";
 
     onSubmit({
-      sourceType: selectedOption.sourceType,
+      sourceType,
       title: generatedTitle,
-      value: value.trim(),
-      originalUrl: isUrlSource ? value.trim() : undefined,
-      extractedText:
-        selectedOption.sourceType === "text" ? value.trim() : undefined,
-      summary:
-        selectedOption.sourceType === "text"
-          ? value.trim().slice(0, 180)
-          : undefined,
-      status,
-      statusMessage,
-      parserProvider:
-        selectedOption.sourceType === "text" ? "manual-input" : undefined,
+      value: trimmedValue,
+      originalUrl: isUrlSource ? trimmedValue : undefined,
+      extractedText: isTextSource ? trimmedValue : undefined,
+      summary: isTextSource ? trimmedValue.slice(0, 180) : undefined,
+      status: isTextSource ? "ready" : "pending",
+      statusMessage: isTextSource
+        ? "Copied text is ready to use as context."
+        : "Reading source...",
+      parserProvider: isTextSource ? "manual-input" : undefined,
     });
 
     resetForm();
@@ -347,8 +287,8 @@ const AddSourceModal = ({
             </h2>
 
             <p className="mt-2 max-w-3xl text-sm leading-6 text-aura-muted">
-              Drop files, paste copied text, or add links. Study Aura will save
-              them as module context for chat and study tools.
+              Upload files, paste links, or add copied text. Study Aura will use
+              them as context for chat and study tools.
             </p>
           </div>
 
@@ -363,129 +303,158 @@ const AddSourceModal = ({
           </button>
         </div>
 
-        <div className="aura-scrollbar min-h-0 flex-1 overflow-y-auto px-6 py-5">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-4">
-              <div className="flex flex-wrap gap-2">
-                {sourceOptions.map((option) => {
-                  const isActive = option.mode === activeMode;
+        <div className="min-h-0 flex-1 px-6 py-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="rounded-[1.7rem] border border-aura-border bg-aura-bg-soft p-4">
+              <div className="rounded-[1.5rem] border border-aura-cyan/45 bg-aura-panel px-4 py-4 shadow-[0_0_40px_rgba(34,211,238,0.06)]">
+                <div className="flex items-start gap-3">
+                  <span className="mt-3 text-lg text-aura-muted">⌕</span>
 
-                  return (
-                    <button
-                      key={option.mode}
-                      type="button"
-                      onClick={() => handleModeChange(option.mode)}
-                      disabled={isUploading}
-                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-black transition hover:-translate-y-0.5 ${
-                        isActive
-                          ? "border-aura-cyan/70 bg-aura-cyan/10 text-aura-cyan shadow-[0_0_24px_rgba(34,211,238,0.1)]"
-                          : "border-aura-border bg-aura-panel text-aura-muted hover:border-aura-cyan/45 hover:text-aura-text"
-                      } disabled:opacity-60`}
-                    >
-                      <span>{option.icon}</span>
-                      <span>{option.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+                  <textarea
+                    value={value}
+                    onChange={(event) => {
+                      setValue(event.target.value);
+                      setFiles([]);
+                    }}
+                    disabled={isUploading}
+                    placeholder={
+                      inputMode === "text"
+                        ? "Paste copied notes, reviewers, definitions, or raw study material..."
+                        : "Paste a website, YouTube, PDF, or image link..."
+                    }
+                    rows={inputMode === "text" ? 4 : 2}
+                    className="aura-scrollbar min-h-[58px] flex-1 resize-none bg-transparent py-2 text-sm font-semibold leading-6 text-aura-text outline-none placeholder:text-aura-dim disabled:opacity-60"
+                  />
 
-            <label
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              className={`block cursor-pointer rounded-[1.6rem] border border-dashed p-6 transition ${
-                isDragging
-                  ? "border-aura-cyan bg-aura-cyan/10"
-                  : "border-aura-border bg-aura-bg-soft/75 hover:border-aura-cyan/55"
-              }`}
-            >
-              <input
-                type="file"
-                multiple
-                accept={sourceOptions[0].accept}
-                onChange={handleFileChange}
-                disabled={isUploading}
-                className="hidden"
-              />
-
-              <div className="flex min-h-[210px] flex-col items-center justify-center text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-aura-cyan/10 text-3xl">
-                  {activeMode === "file" ? "⬆️" : selectedOption.icon}
+                  <button
+                    type="submit"
+                    disabled={Boolean(validationMessage) || isUploading}
+                    className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-aura-bg-soft text-lg font-black text-aura-text transition hover:-translate-y-0.5 hover:border-aura-cyan/60 hover:text-aura-cyan disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Add source"
+                  >
+                    →
+                  </button>
                 </div>
 
-                <h3 className="mt-4 text-xl font-black text-aura-text">
-                  Drop your files here
-                </h3>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleUseLinks}
+                    disabled={isUploading}
+                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-black transition ${
+                      inputMode === "auto"
+                        ? "border-aura-cyan/60 bg-aura-cyan/10 text-aura-cyan"
+                        : "border-aura-border bg-aura-bg-soft text-aura-muted hover:border-aura-cyan/45 hover:text-aura-text"
+                    } disabled:opacity-60`}
+                  >
+                    🌐 Links
+                  </button>
 
-                <p className="mt-2 max-w-xl text-sm leading-6 text-aura-muted">
-                  Upload PDFs, images, docs, audio, or click this area to choose
-                  files. For links and copied text, use the input box below.
-                </p>
+                  <button
+                    type="button"
+                    onClick={handleUseCopiedText}
+                    disabled={isUploading}
+                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-black transition ${
+                      inputMode === "text"
+                        ? "border-aura-cyan/60 bg-aura-cyan/10 text-aura-cyan"
+                        : "border-aura-border bg-aura-bg-soft text-aura-muted hover:border-aura-cyan/45 hover:text-aura-text"
+                    } disabled:opacity-60`}
+                  >
+                    📋 Copied text
+                  </button>
 
-                {files.length > 0 && (
-                  <div className="mt-4 flex max-w-2xl flex-wrap justify-center gap-2">
-                    {files.map((file) => (
-                      <span
-                        key={`${file.name}-${file.size}`}
-                        className="rounded-full border border-aura-cyan/30 bg-aura-cyan/10 px-3 py-1 text-xs font-bold text-aura-cyan"
-                      >
-                        {file.name}
-                      </span>
-                    ))}
+                  <span className="inline-flex items-center gap-2 rounded-full border border-aura-border bg-aura-bg-soft px-3 py-2 text-xs font-black text-aura-muted">
+                    Detected: {getSourceBadgeLabel(inferredSourceType)}
+                  </span>
+
+                  <span className="min-w-0 flex-1 truncate text-right text-xs font-bold text-aura-dim">
+                    {generatedTitle}
+                  </span>
+                </div>
+              </div>
+
+              <label
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                className={`mt-4 block cursor-pointer rounded-[1.6rem] border border-dashed p-5 transition ${
+                  isDragging
+                    ? "border-aura-cyan bg-aura-cyan/10"
+                    : "border-aura-border bg-aura-bg-soft/75 hover:border-aura-cyan/55"
+                }`}
+              >
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a"
+                  onChange={handleFileChange}
+                  disabled={isUploading}
+                  className="hidden"
+                />
+
+                <div className="flex min-h-[210px] flex-col items-center justify-center text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-aura-cyan/10 text-3xl">
+                    ⬆️
                   </div>
-                )}
-              </div>
-            </label>
 
-            <div className="rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-5">
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-aura-cyan/10 text-2xl">
-                  {selectedOption.icon}
-                </div>
-
-                <div>
-                  <h3 className="text-base font-black text-aura-text">
-                    {selectedOption.label}
+                  <h3 className="mt-4 text-xl font-black text-aura-text">
+                    Drop your files here
                   </h3>
 
-                  <p className="mt-1 text-sm leading-6 text-aura-muted">
-                    {selectedOption.description}
+                  <p className="mt-2 max-w-xl text-sm leading-6 text-aura-muted">
+                    Upload PDFs, images, documents, audio, or click this area to
+                    choose files.
                   </p>
+
+                  <div className="mt-5 flex flex-wrap justify-center gap-2">
+                    <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-2 text-xs font-black text-aura-muted">
+                      ⬆️ Upload files
+                    </span>
+                    <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-2 text-xs font-black text-aura-muted">
+                      🌐 Websites
+                    </span>
+                    <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-2 text-xs font-black text-aura-muted">
+                      ▶️ YouTube
+                    </span>
+                    <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-2 text-xs font-black text-aura-muted">
+                      🖼️ Images
+                    </span>
+                    <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-2 text-xs font-black text-aura-muted">
+                      📄 PDFs
+                    </span>
+                  </div>
+
+                  {files.length > 0 && (
+                    <div className="mt-4 flex max-w-2xl flex-wrap justify-center gap-2">
+                      {files.map((file) => (
+                        <span
+                          key={`${file.name}-${file.size}`}
+                          className="rounded-full border border-aura-cyan/30 bg-aura-cyan/10 px-3 py-1 text-xs font-bold text-aura-cyan"
+                        >
+                          {file.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-
-              <textarea
-                value={value}
-                onChange={(event) => setValue(event.target.value)}
-                disabled={isUploading || activeMode === "file"}
-                placeholder={selectedOption.placeholder}
-                rows={activeMode === "text" ? 8 : 4}
-                className="aura-scrollbar mt-4 w-full resize-none rounded-2xl border border-aura-border bg-aura-panel px-4 py-3 text-sm font-medium leading-6 text-aura-text outline-none transition placeholder:text-aura-dim focus:border-aura-cyan/70 disabled:opacity-60"
-              />
-
-              <div className="mt-3 rounded-2xl border border-aura-border bg-aura-panel px-4 py-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-aura-dim">
-                  Auto-generated source title
-                </p>
-
-                <p className="mt-1 line-clamp-1 text-sm font-black text-aura-text">
-                  {generatedTitle}
-                </p>
-              </div>
-
-              {(validationMessage || uploadError) && (
-                <div className="mt-4 rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-200">
-                  {uploadError || validationMessage}
-                </div>
-              )}
-
-              <div className="mt-4 rounded-2xl border border-aura-gold/25 bg-aura-gold/10 px-4 py-3 text-xs font-semibold leading-5 text-aura-gold">
-                Parser pipeline coming next: Web links, YouTube transcripts,
-                PDFs, and image sources will be processed through n8n fallback
-                readers before being saved as clean context.
-              </div>
+              </label>
             </div>
+
+            {isUploading && (
+              <GeneratingState
+                title="Adding source..."
+                description="Study Aura is saving your source and preparing it for module context."
+                label="Reading source"
+                compact
+              />
+            )}
+
+            {(validationMessage || uploadError) && !isUploading && (
+              <InlineErrorState
+                title={uploadError ? "Upload failed" : "Missing source"}
+                description={uploadError || validationMessage}
+              />
+            )}
 
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button

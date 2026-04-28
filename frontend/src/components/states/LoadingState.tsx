@@ -1,29 +1,91 @@
 type LoadingStateProps = {
   title?: string;
   description?: string;
+  label?: string;
+  compact?: boolean;
+  className?: string;
 };
 
-const LoadingState = ({
-  title = "Study Aura is thinking...",
-  description = "Please wait while your learning assistant prepares a response.",
+export const LoadingState = ({
+  title = "Loading...",
+  description = "Please wait while Study Aura prepares this section.",
+  label = "Working",
+  compact = false,
+  className = "",
 }: LoadingStateProps) => {
   return (
-    <div className="rounded-[1.75rem] border border-aura-border bg-aura-panel/80 p-6 shadow-aura-soft">
-      <div className="flex items-center gap-4">
-        <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-aura-cyan/10">
-          <div className="absolute h-12 w-12 animate-ping rounded-2xl bg-aura-cyan/20" />
-          <div className="relative text-2xl">✨</div>
-        </div>
+    <div
+      className={`rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-5 text-center ${className}`}
+    >
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-aura-cyan/30 bg-aura-cyan/10">
+        <span className="h-5 w-5 animate-spin rounded-full border-2 border-aura-cyan/30 border-t-aura-cyan" />
+      </div>
 
-        <div>
-          <h3 className="font-black text-aura-text">{title}</h3>
-          <p className="mt-1 text-sm leading-6 text-aura-muted">
-            {description}
-          </p>
-        </div>
+      <p className="mt-4 text-[10px] font-black uppercase tracking-[0.22em] text-aura-cyan">
+        {label}
+      </p>
+
+      <h3 className="mt-2 text-base font-black text-aura-text">{title}</h3>
+
+      {!compact && (
+        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-aura-muted">
+          {description}
+        </p>
+      )}
+    </div>
+  );
+};
+
+export const GeneratingState = ({
+  title = "Generating...",
+  description = "Study Aura is creating your learning content.",
+  label = "Generating",
+  compact = false,
+  className = "",
+}: LoadingStateProps) => {
+  return (
+    <div
+      className={`relative overflow-hidden rounded-[1.5rem] border border-aura-cyan/25 bg-aura-bg-soft p-5 text-center shadow-[0_0_45px_rgba(34,211,238,0.08)] ${className}`}
+    >
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-aura-cyan to-transparent" />
+
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-aura-cyan/30 bg-aura-cyan/10">
+        <span className="h-5 w-5 animate-spin rounded-full border-2 border-aura-cyan/30 border-t-aura-cyan" />
+      </div>
+
+      <p className="mt-4 text-[10px] font-black uppercase tracking-[0.22em] text-aura-cyan">
+        {label}
+      </p>
+
+      <h3 className="mt-2 text-base font-black text-aura-text">{title}</h3>
+
+      {!compact && (
+        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-aura-muted">
+          {description}
+        </p>
+      )}
+
+      <div className="mx-auto mt-4 h-1.5 max-w-xs overflow-hidden rounded-full bg-aura-border">
+        <div className="h-full w-1/2 animate-pulse rounded-full bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold" />
       </div>
     </div>
   );
 };
 
-export default LoadingState;
+export const InlineLoadingState = ({
+  title = "Working...",
+  description = "Please wait.",
+  className = "",
+}: LoadingStateProps) => {
+  return (
+    <div
+      className={`inline-flex items-center gap-3 rounded-2xl border border-aura-border bg-aura-bg-soft px-4 py-3 text-sm font-bold text-aura-muted ${className}`}
+    >
+      <span className="h-4 w-4 animate-spin rounded-full border-2 border-aura-cyan/30 border-t-aura-cyan" />
+      <span>
+        <span className="text-aura-text">{title}</span>{" "}
+        <span className="text-aura-dim">{description}</span>
+      </span>
+    </div>
+  );
+};
