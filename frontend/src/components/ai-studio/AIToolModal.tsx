@@ -4,6 +4,8 @@ import {
   type AIToolGenerationOptions,
 } from "../../hooks/useAIToolActions";
 import AIToolResultRenderer from "./AIToolResultRenderer";
+import ErrorState from "../states/ErrorState";
+import { GeneratingState } from "../states/LoadingState";
 import type { AIToolName, StudySource } from "../dashboard/dashboardTypes";
 import type {
   AudioOverviewLength,
@@ -173,7 +175,8 @@ const AIToolModal = ({
           <button
             type="button"
             onClick={handleClose}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-aura-border bg-aura-bg-soft text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text"
+            disabled={isLoading}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-aura-border bg-aura-bg-soft text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Close AI tool modal"
           >
             ✕
@@ -215,10 +218,11 @@ const AIToolModal = ({
                         <button
                           key={difficulty.value}
                           type="button"
+                          disabled={isLoading}
                           onClick={() =>
                             updateOptions({ difficulty: difficulty.value })
                           }
-                          className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 ${
+                          className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
                             isActive
                               ? "border-aura-cyan/70 bg-aura-cyan/10"
                               : "border-aura-border bg-aura-panel hover:border-aura-cyan/50"
@@ -252,6 +256,7 @@ const AIToolModal = ({
                   <SelectControl
                     label="Table Type"
                     value={options.tableType}
+                    disabled={isLoading}
                     options={tableTypeOptions}
                     onChange={(value) =>
                       updateOptions({ tableType: value as StudyTableType })
@@ -265,6 +270,7 @@ const AIToolModal = ({
                   <SelectControl
                     label="Audio Style"
                     value={options.audioStyle}
+                    disabled={isLoading}
                     options={audioStyleOptions}
                     onChange={(value) =>
                       updateOptions({
@@ -276,6 +282,7 @@ const AIToolModal = ({
                   <SelectControl
                     label="Audio Length"
                     value={options.audioLength}
+                    disabled={isLoading}
                     options={audioLengthOptions}
                     onChange={(value) =>
                       updateOptions({
@@ -301,39 +308,21 @@ const AIToolModal = ({
             </div>
           )}
 
-          {status === "loading" && (
-            <div className="rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-6 text-center">
-              <div className="mx-auto flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl bg-aura-cyan/10 text-2xl">
-                ✦
-              </div>
-
-              <h3 className="mt-4 text-lg font-black text-aura-text">
-                Generating {toolTitles[activeTool]}...
-              </h3>
-
-              <p className="mt-2 text-sm leading-6 text-aura-muted">
-                Study Aura is sending the selected preset and source context to
-                n8n.
-              </p>
-            </div>
+          {isLoading && (
+            <GeneratingState
+              label="Generating"
+              title={`Generating ${toolTitles[activeTool]}...`}
+              description="Study Aura is sending the selected preset and source context to n8n."
+            />
           )}
 
           {status === "error" && (
-            <div className="rounded-[1.5rem] border border-red-400/30 bg-red-500/10 p-6">
-              <h3 className="text-lg font-black text-red-100">
-                Generation failed
-              </h3>
-
-              <p className="mt-2 text-sm leading-6 text-red-200">{error}</p>
-
-              <button
-                type="button"
-                onClick={handleGenerate}
-                className="mt-5 rounded-2xl bg-red-200 px-4 py-2 text-xs font-black text-red-950 transition hover:-translate-y-0.5"
-              >
-                Try Again
-              </button>
-            </div>
+            <ErrorState
+              title="Generation failed"
+              description={error || "Study Aura could not generate this output."}
+              actionLabel="Retry"
+              onRetry={handleGenerate}
+            />
           )}
 
           {hasResult && (
@@ -372,6 +361,7 @@ const AIToolModal = ({
 type SelectControlProps = {
   label: string;
   value: string;
+  disabled?: boolean;
   options: {
     value: string;
     label: string;
@@ -382,6 +372,7 @@ type SelectControlProps = {
 const SelectControl = ({
   label,
   value,
+  disabled = false,
   options,
   onChange,
 }: SelectControlProps) => {
@@ -393,8 +384,9 @@ const SelectControl = ({
 
       <select
         value={value}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-2xl border border-aura-border bg-aura-panel px-4 py-3 text-sm font-semibold text-aura-text outline-none transition focus:border-aura-cyan/70"
+        className="mt-2 w-full rounded-2xl border border-aura-border bg-aura-panel px-4 py-3 text-sm font-semibold text-aura-text outline-none transition focus:border-aura-cyan/70 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {options.map((option) => (
           <option

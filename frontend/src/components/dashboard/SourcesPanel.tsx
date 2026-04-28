@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import EmptyState from "../states/EmptyState";
 import ErrorState from "../states/ErrorState";
-import LoadingState from "../states/LoadingState";
 import SourcePreviewModal from "./SourcePreviewModal";
 import WebSearchSourceModal from "./WebSearchSourceModal";
 import type {
@@ -155,15 +154,6 @@ const SourcesPanel = ({
               </span>
             </div>
           </div>
-
-          {isUploadingSource && (
-            <div className="mt-4">
-              <LoadingState
-                title="Adding source..."
-                description="Preparing your source as module context."
-              />
-            </div>
-          )}
 
           {uploadError && (
             <div className="mt-4">

@@ -1,5 +1,5 @@
 import ErrorState from "../states/ErrorState";
-import LoadingState from "../states/LoadingState";
+import { GeneratingState } from "../states/LoadingState";
 import type { AuthProfile } from "../../services/authService";
 
 type ChatMessage = {
@@ -181,17 +181,18 @@ const ChatPanel = ({
           )}
 
           {isChatLoading && (
-            <LoadingState
-              title="Study Aura is reading your context..."
+            <GeneratingState
+              label="Thinking"
+              title="Aura is reading your context..."
               description="Your message and selected sources are being sent to the n8n AI Agent."
             />
           )}
 
           {chatError && (
             <ErrorState
-              title="n8n request failed"
+              title="Chat request failed"
               description={chatError}
-              actionLabel="Retry message"
+              actionLabel="Retry"
               onRetry={onSend}
             />
           )}

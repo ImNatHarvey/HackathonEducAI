@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useWebSearchSources } from "../../hooks/useWebSearchSources";
+import { InlineErrorState } from "../states/ErrorState";
+import { LoadingOverlay } from "../states/LoadingState";
 import type { SourceUploadPayload } from "./dashboardTypes";
 
 type WebSearchSourceModalProps = {
@@ -64,6 +66,11 @@ const WebSearchSourceModal = ({
     onClose();
   };
 
+  const handleRetry = () => {
+    if (!query.trim()) return;
+    searchWithQuery(query);
+  };
+
   const handleImportSelected = () => {
     if (selectedResults.length === 0 || isImporting) return;
 
@@ -93,25 +100,15 @@ const WebSearchSourceModal = ({
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-aura-bg/80 px-3 py-3 backdrop-blur-xl">
       <div className="relative flex max-h-[94vh] w-full max-w-[1500px] flex-col overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
         {(isSearching || isImporting) && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-aura-bg/70 px-6 backdrop-blur-md">
-            <div className="w-full max-w-xl rounded-[2rem] border border-aura-cyan/25 bg-aura-panel/95 p-8 text-center shadow-[0_30px_100px_rgba(34,211,238,0.16)]">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl border border-aura-cyan/30 bg-aura-cyan/10">
-                <span className="h-7 w-7 animate-spin rounded-full border-2 border-aura-cyan/30 border-t-aura-cyan" />
-              </div>
-
-              <p className="mt-5 text-[10px] font-black uppercase tracking-[0.28em] text-aura-cyan">
-                Web Source Finder
-              </p>
-
-              <h3 className="mt-3 text-2xl font-black text-aura-text">
-                {isImporting ? "Importing sources..." : "Searching sources..."}
-              </h3>
-
-              <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-aura-muted">
-                Aura is looking for 5 useful educational links for this module.
-              </p>
-            </div>
-          </div>
+          <LoadingOverlay
+            label={isImporting ? "Importing" : "Searching"}
+            title={isImporting ? "Importing sources..." : "Searching sources..."}
+            description={
+              isImporting
+                ? "Study Aura is adding the selected links as context sources."
+                : "Study Aura is looking for 5 useful educational links for this module."
+            }
+          />
         )}
 
         <div className="flex items-start justify-between gap-4 border-b border-aura-border px-6 py-4">
@@ -169,9 +166,13 @@ const WebSearchSourceModal = ({
             </div>
 
             {searchError && (
-              <div className="mt-4 rounded-2xl border border-yellow-400/30 bg-yellow-500/10 px-4 py-3 text-sm font-semibold leading-6 text-yellow-100">
-                {searchError}
-              </div>
+              <InlineErrorState
+                title="Web search failed"
+                description={searchError}
+                actionLabel="Retry"
+                onRetry={handleRetry}
+                className="mt-4"
+              />
             )}
 
             {lastResponse?.message && !searchError && (

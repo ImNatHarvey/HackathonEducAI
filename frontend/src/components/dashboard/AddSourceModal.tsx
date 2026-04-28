@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, DragEvent, FormEvent } from "react";
 import type { SourceType, SourceUploadPayload } from "./dashboardTypes";
 import { InlineErrorState } from "../states/ErrorState";
+import { LoadingOverlay } from "../states/LoadingState";
 
 type AddSourceModalProps = {
   isOpen: boolean;
@@ -338,34 +339,11 @@ const AddSourceModal = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-aura-bg/80 px-3 py-3 backdrop-blur-xl">
       <div className="relative flex max-h-[94vh] w-full max-w-[1500px] flex-col overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
         {isUploading && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-aura-bg/75 px-6 backdrop-blur-md">
-            <div className="w-full max-w-xl rounded-[2rem] border border-aura-cyan/25 bg-aura-panel/95 p-8 text-center shadow-[0_30px_100px_rgba(34,211,238,0.16)]">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl border border-aura-cyan/30 bg-aura-cyan/10">
-                <span className="h-7 w-7 animate-spin rounded-full border-2 border-aura-cyan/30 border-t-aura-cyan" />
-              </div>
-
-              <p className="mt-5 text-[10px] font-black uppercase tracking-[0.28em] text-aura-cyan">
-                Reading source
-              </p>
-
-              <h3 className="mt-3 text-2xl font-black text-aura-text">
-                Adding source...
-              </h3>
-
-              <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-aura-muted">
-                Study Aura is uploading and preparing your source as module
-                context. This may take a moment for PDFs, images, or videos.
-              </p>
-
-              <div className="mx-auto mt-6 h-2 max-w-sm overflow-hidden rounded-full bg-aura-border">
-                <div className="h-full w-1/2 animate-pulse rounded-full bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold" />
-              </div>
-
-              <p className="mt-4 text-xs font-bold text-aura-dim">
-                Please keep this modal open while the source is being processed.
-              </p>
-            </div>
-          </div>
+          <LoadingOverlay
+            label="Reading source"
+            title="Adding source..."
+            description="Study Aura is uploading and preparing your source as module context. This may take a moment for PDFs, images, or videos."
+          />
         )}
 
         <div className="flex items-start justify-between gap-4 border-b border-aura-border px-6 py-4">
