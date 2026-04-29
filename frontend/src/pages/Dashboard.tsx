@@ -16,7 +16,7 @@ import {
 } from "../services/generatedOutputService";
 import type { SettingsPanel } from "../components/settings/settingsTypes";
 import type { AuthProfile } from "../services/authService";
-import type { AwardXpResult } from "../lib/xp";
+import type { AwardXpResult, SpendEnergyResult } from "../lib/xp";
 import type {
   AIToolName,
   SourceUploadPayload,
@@ -78,10 +78,11 @@ const Dashboard = ({
 }: DashboardProps) => {
   const { showToast } = useToast();
 
-  const { stats, accountProgress, toolProgress, awardXp } = useAuraProgress({
-    userId,
-    username: getProfileName(profile),
-  });
+  const { stats, accountProgress, toolProgress, awardXp, spendEnergy } =
+    useAuraProgress({
+      userId,
+      username: getProfileName(profile),
+    });
 
   const [inputValue, setInputValue] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -141,6 +142,38 @@ const Dashboard = ({
         message: title,
         duration: 6500,
       });
+    });
+  };
+
+  const showEnergyToast = (energyResult: SpendEnergyResult) => {
+    if (energyResult.requestedEnergy <= 0) return;
+
+    if (energyResult.wasDepleted) {
+      showToast({
+        type: "warning",
+        title: "Energy depleted",
+        message:
+          "This action continued for demo mode, but your Aura Energy is now empty.",
+        duration: 5200,
+      });
+      return;
+    }
+
+    if (energyResult.wasLowEnergy) {
+      showToast({
+        type: "warning",
+        title: "Low energy",
+        message: `${energyResult.message}. You have ${energyResult.remainingEnergy} energy left.`,
+        duration: 4200,
+      });
+      return;
+    }
+
+    showToast({
+      type: "info",
+      title: "Energy spent",
+      message: energyResult.message,
+      duration: 2400,
     });
   };
 
@@ -237,6 +270,12 @@ const Dashboard = ({
             : `${savedSource.title} is ready in your workspace.`,
       });
 
+      const energyResult = spendEnergy({
+        event: "source_added",
+        sourceType: savedSource.type,
+      });
+      showEnergyToast(energyResult);
+
       const xpResult = awardXp({
         event: "source_added",
         sourceType: savedSource.type,
@@ -307,6 +346,12 @@ const Dashboard = ({
       }
 
       savedSources.forEach((savedSource) => {
+        const energyResult = spendEnergy({
+          event: "source_added",
+          sourceType: savedSource.type,
+        });
+        showEnergyToast(energyResult);
+
         const xpResult = awardXp({
           event: "source_added",
           sourceType: savedSource.type,
@@ -587,6 +632,11 @@ const Dashboard = ({
       duration: 2600,
     });
 
+    const energyResult = spendEnergy({
+      event: "web_sources_imported",
+    });
+    showEnergyToast(energyResult);
+
     const xpResult = awardXp({
       event: "web_sources_imported",
     });
@@ -602,6 +652,11 @@ const Dashboard = ({
     handleSendMessage();
 
     if (!message) return;
+
+    const energyResult = spendEnergy({
+      event: "chat_send",
+    });
+    showEnergyToast(energyResult);
 
     const xpResult = awardXp({
       event: "chat_send",
@@ -753,6 +808,15 @@ const Dashboard = ({
         savedOutput={savedOutputToView}
         onClose={handleCloseToolModal}
         onToolGenerated={({ toolName, options }) => {
+          const energyResult = spendEnergy({
+            event: "ai_tool_generated",
+            toolName,
+            difficulty: options.difficulty,
+            audioLength: options.audioLength,
+            tableType: options.tableType,
+          });
+          showEnergyToast(energyResult);
+
           const xpResult = awardXp({
             event: "ai_tool_generated",
             toolName,

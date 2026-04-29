@@ -5,9 +5,12 @@ import {
   getToolXpNeededForLevel,
   getXpNeededForLevel,
   resetDailyCapsIfNeeded,
+  spendAuraEnergy,
   type AuraStats,
   type AwardXpInput,
   type AwardXpResult,
+  type SpendEnergyInput,
+  type SpendEnergyResult,
 } from "../lib/xp";
 
 const STORAGE_KEY_PREFIX = "study-aura-progress";
@@ -48,7 +51,11 @@ export const useAuraProgress = ({
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const nextStats = safelyParseStats(localStorage.getItem(storageKey), displayName);
+    const nextStats = safelyParseStats(
+      localStorage.getItem(storageKey),
+      displayName,
+    );
+
     setStats({
       ...nextStats,
       username: displayName,
@@ -71,6 +78,20 @@ export const useAuraProgress = ({
 
     return result as unknown as AwardXpResult;
   }, []);
+
+  const spendEnergy = useCallback(
+    (input: SpendEnergyInput): SpendEnergyResult => {
+      let result: SpendEnergyResult | null = null;
+
+      setStats((currentStats) => {
+        result = spendAuraEnergy(currentStats, input);
+        return result.nextStats;
+      });
+
+      return result as unknown as SpendEnergyResult;
+    },
+    [],
+  );
 
   const resetProgress = useCallback(() => {
     setStats(createDefaultAuraStats(displayName));
@@ -111,6 +132,7 @@ export const useAuraProgress = ({
     accountProgress,
     toolProgress,
     awardXp,
+    spendEnergy,
     resetProgress,
   };
 };

@@ -816,3 +816,33 @@ button:disabled {
     transform: scaleX(0);
   }
 }
+
+@keyframes aura-energy-spend {
+  0% {
+    transform: translateX(0) scale(1);
+  }
+
+  18% {
+    transform: translateX(-2px) scale(1.02);
+  }
+
+  36% {
+    transform: translateX(2px) scale(1.02);
+  }
+
+  54% {
+    transform: translateX(-1px) scale(1.01);
+  }
+
+  72% {
+    transform: translateX(1px) scale(1.01);
+  }
+
+  100% {
+    transform: translateX(0) scale(1);
+  }
+}
+
+.animate-aura-energy-spend {
+  animation: aura-energy-spend 0.65s ease-in-out;
+}

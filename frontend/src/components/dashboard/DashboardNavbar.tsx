@@ -33,7 +33,10 @@ const DashboardNavbar = ({
   onLogout,
 }: DashboardNavbarProps) => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isEnergyAnimating, setIsEnergyAnimating] = useState(false);
+
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const previousEnergyRef = useRef<number | null>(null);
 
   const displayName =
     auraStats?.username || profile?.displayName || "Study Aura User";
@@ -47,9 +50,8 @@ const DashboardNavbar = ({
   const energy = auraStats?.energy ?? 100;
   const maxEnergy = auraStats?.maxEnergy ?? 100;
 
-  const xpPercent = neededXp > 0 ? Math.min(100, (currentXp / neededXp) * 100) : 0;
-  const energyPercent =
-    maxEnergy > 0 ? Math.min(100, (energy / maxEnergy) * 100) : 0;
+  const xpPercent =
+    neededXp > 0 ? Math.min(100, (currentXp / neededXp) * 100) : 0;
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -66,6 +68,23 @@ const DashboardNavbar = ({
       document.removeEventListener("mousedown", handlePointerDown);
     };
   }, []);
+
+  useEffect(() => {
+    if (previousEnergyRef.current === null) {
+      previousEnergyRef.current = energy;
+      return;
+    }
+
+    if (energy < previousEnergyRef.current) {
+      setIsEnergyAnimating(true);
+
+      window.setTimeout(() => {
+        setIsEnergyAnimating(false);
+      }, 750);
+    }
+
+    previousEnergyRef.current = energy;
+  }, [energy]);
 
   const openProfileSettings = () => {
     setIsProfileMenuOpen(false);
@@ -134,6 +153,32 @@ const DashboardNavbar = ({
             Library
           </button>
 
+          <button
+            type="button"
+            onClick={() => onOpenSettings("profile")}
+            className={`hidden h-11 items-center gap-2 rounded-2xl border bg-aura-bg-soft px-3 text-left transition hover:bg-aura-gold/5 sm:flex ${
+              isEnergyAnimating
+                ? "animate-aura-energy-spend border-aura-gold/80 shadow-[0_0_24px_rgba(250,204,21,0.26)]"
+                : "border-aura-border hover:border-aura-gold/60"
+            }`}
+            aria-label="Open energy status"
+            title={`Energy ${energy}/${maxEnergy}`}
+          >
+            <span
+              className={`grid h-7 w-7 place-items-center rounded-xl border text-sm transition ${
+                isEnergyAnimating
+                  ? "border-aura-gold/70 bg-aura-gold/20"
+                  : "border-aura-gold/35 bg-aura-gold/10"
+              }`}
+            >
+              ⚡
+            </span>
+
+            <span className="text-xs font-black text-aura-text">
+              {energy}/{maxEnergy}
+            </span>
+          </button>
+
           <div ref={profileMenuRef} className="relative">
             <button
               type="button"
@@ -153,7 +198,7 @@ const DashboardNavbar = ({
                 </p>
               </div>
 
-              <span className="shrink-0 text-xs font-black text-aura-muted transition group-hover:text-aura-cyan">
+              <span className="shrink-0 text-xs font-black text-aura-muted">
                 {isProfileMenuOpen ? "▲" : "▼"}
               </span>
             </button>
@@ -214,25 +259,6 @@ const DashboardNavbar = ({
                       <div
                         className="h-full rounded-full bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold transition-all"
                         style={{ width: `${xpPercent}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-aura-border bg-aura-bg-soft p-3">
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-aura-dim">
-                        Energy
-                      </p>
-
-                      <p className="text-xs font-black text-aura-cyan">
-                        ⚡ {energy}/{maxEnergy}
-                      </p>
-                    </div>
-
-                    <div className="h-2 overflow-hidden rounded-full bg-aura-panel">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-aura-cyan to-aura-gold transition-all"
-                        style={{ width: `${energyPercent}%` }}
                       />
                     </div>
                   </div>

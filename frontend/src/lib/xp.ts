@@ -1,4 +1,7 @@
-import type { AIToolName, SourceType } from "../components/dashboard/dashboardTypes";
+import type {
+  AIToolName,
+  SourceType,
+} from "../components/dashboard/dashboardTypes";
 import type {
   AudioOverviewLength,
   QuizDifficulty,
@@ -53,6 +56,26 @@ export type AwardXpInput = {
   amountOverride?: number;
 };
 
+export type SpendEnergyInput = {
+  event: AuraXpEvent;
+  sourceType?: SourceType;
+  toolName?: AIToolName;
+  difficulty?: QuizDifficulty;
+  audioLength?: AudioOverviewLength;
+  tableType?: StudyTableType;
+  amountOverride?: number;
+};
+
+export type SpendEnergyResult = {
+  nextStats: AuraStats;
+  requestedEnergy: number;
+  energySpent: number;
+  remainingEnergy: number;
+  wasLowEnergy: boolean;
+  wasDepleted: boolean;
+  message: string;
+};
+
 export type AwardXpResult = {
   nextStats: AuraStats;
   accountXpGained: number;
@@ -67,6 +90,7 @@ export const AURA_DAILY_XP_CAP = 500;
 export const TOOL_DAILY_XP_CAP = 250;
 export const MAX_AURA_LEVEL = 50;
 export const MAX_TOOL_LEVEL = 20;
+export const LOW_ENERGY_THRESHOLD = 20;
 
 export const AURA_LEVEL_TITLES: Record<number, string> = {
   1: "New Learner",
@@ -88,6 +112,14 @@ export const toolLabels: Record<AuraToolKey, string> = {
   tables: "Tables",
   mindMap: "Mind Map",
 };
+
+const createDefaultToolStats = (label: string) => ({
+  label,
+  level: 1,
+  xp: 0,
+  totalXp: 0,
+  dailyXp: 0,
+});
 
 export const createDefaultAuraStats = (username = "Student"): AuraStats => {
   const today = new Date().toISOString().slice(0, 10);
@@ -113,14 +145,6 @@ export const createDefaultAuraStats = (username = "Student"): AuraStats => {
     },
   };
 };
-
-const createDefaultToolStats = (label: string) => ({
-  label,
-  level: 1,
-  xp: 0,
-  totalXp: 0,
-  dailyXp: 0,
-});
 
 export const getXpNeededForLevel = (level: number) => {
   return Math.round(100 + (level - 1) * 75 + Math.pow(level - 1, 1.35) * 35);
@@ -217,6 +241,50 @@ export const getToolXpForEvent = (input: AwardXpInput) => {
   return easyMediumHard[difficulty];
 };
 
+export const getEnergyCostForEvent = (input: SpendEnergyInput) => {
+  if (typeof input.amountOverride === "number") return input.amountOverride;
+
+  if (input.event === "chat_send") return 1;
+  if (input.event === "web_search_completed") return 3;
+  if (input.event === "web_sources_imported") return 4;
+
+  if (input.event === "source_added") {
+    if (input.sourceType === "youtube") return 6;
+    if (input.sourceType === "pdf") return 8;
+    if (input.sourceType === "image") return 8;
+    if (input.sourceType === "website") return 4;
+    return 2;
+  }
+
+  if (input.event === "ai_tool_generated") {
+    const toolKey = getToolKeyFromName(input.toolName);
+
+    if (toolKey === "slides") {
+      if (input.difficulty === "easy") return 12;
+      if (input.difficulty === "hard") return 25;
+      return 18;
+    }
+
+    if (toolKey === "flashcards" || toolKey === "tables") {
+      if (input.difficulty === "easy") return 6;
+      if (input.difficulty === "hard") return 15;
+      return 10;
+    }
+
+    if (toolKey === "audio") {
+      if (input.audioLength === "short") return 8;
+      if (input.audioLength === "deep") return 18;
+      return 12;
+    }
+
+    if (input.difficulty === "easy") return 8;
+    if (input.difficulty === "hard") return 18;
+    return 12;
+  }
+
+  return 0;
+};
+
 export const resetDailyCapsIfNeeded = (stats: AuraStats): AuraStats => {
   const today = new Date().toISOString().slice(0, 10);
 
@@ -269,6 +337,37 @@ const applyLeveling = ({
     level: nextLevel,
     xp: nextXp,
     leveledUp,
+  };
+};
+
+export const spendAuraEnergy = (
+  currentStats: AuraStats,
+  input: SpendEnergyInput,
+): SpendEnergyResult => {
+  const stats = resetDailyCapsIfNeeded(currentStats);
+  const requestedEnergy = Math.max(0, getEnergyCostForEvent(input));
+  const energySpent = Math.min(stats.energy, requestedEnergy);
+  const remainingEnergy = Math.max(0, stats.energy - requestedEnergy);
+
+  const nextStats: AuraStats = {
+    ...stats,
+    energy: remainingEnergy,
+  };
+
+  const wasDepleted = remainingEnergy <= 0;
+  const wasLowEnergy = remainingEnergy > 0 && remainingEnergy <= LOW_ENERGY_THRESHOLD;
+
+  return {
+    nextStats,
+    requestedEnergy,
+    energySpent,
+    remainingEnergy,
+    wasLowEnergy,
+    wasDepleted,
+    message:
+      requestedEnergy === 0
+        ? "No energy spent"
+        : `-${energySpent} Energy${energySpent < requestedEnergy ? ` (${requestedEnergy} requested)` : ""}`,
   };
 };
 
