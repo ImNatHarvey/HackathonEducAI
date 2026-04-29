@@ -7,15 +7,6 @@ type CreateModuleModalProps = {
   onCreateModule: (title: string, subtitle: string) => void;
 };
 
-const suggestedModules = [
-  "Machine Learning Basics",
-  "Research Methods",
-  "Cell Biology",
-  "Data Structures",
-  "Philippine History",
-  "Business Analytics",
-];
-
 const CreateModuleModal = ({
   isOpen,
   onClose,
@@ -111,25 +102,6 @@ const CreateModuleModal = ({
               className="mt-2 w-full resize-none rounded-2xl border border-aura-border bg-aura-bg-soft px-4 py-3 text-sm font-medium leading-6 text-aura-text outline-none transition placeholder:text-aura-dim focus:border-aura-cyan/70"
             />
           </label>
-
-          <div className="mt-5">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-aura-dim">
-              Quick Ideas
-            </p>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              {suggestedModules.map((suggestion) => (
-                <button
-                  key={suggestion}
-                  type="button"
-                  onClick={() => handleSuggestionClick(suggestion)}
-                  className="rounded-full border border-aura-border bg-aura-bg-soft px-3 py-2 text-xs font-bold text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text"
-                >
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-          </div>
 
           <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button
