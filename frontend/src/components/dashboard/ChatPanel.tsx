@@ -27,13 +27,113 @@ const promptSuggestions = [
   "What are the most important concepts?",
 ];
 
-const cleanMarkdown = (value: string) => {
-  return value
+const normalizeChatText = (value: string) =>
+  value
+    .replace(/\\n/g, "\n")
     .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
     .replace(/\*(.*?)\*/g, "$1")
-    .replace(/^[-*]\s+/gm, "• ")
     .replace(/`/g, "")
+    .replace(/^\s*[-*]\s+/gm, "• ")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
+
+const isHeadingLine = (line: string) => {
+  const text = line.trim();
+
+  if (!text || text.length > 72) return false;
+
+  return (
+    /^(pros|cons|summary|overview|key points|answer|explanation|examples|conclusion|advantages|disadvantages|benefits|limitations|steps|notes)\s*:?$/i.test(
+      text,
+    ) ||
+    (text.endsWith(":") && !text.startsWith("•"))
+  );
+};
+
+const cleanHeading = (line: string) => line.replace(/:$/, "").trim();
+
+const FormattedChatMessage = ({ content }: { content: string }) => {
+  const blocks = normalizeChatText(content)
+    .split(/\n\s*\n/)
+    .filter(Boolean);
+
+  return (
+    <div className="space-y-4">
+      {blocks.map((block, blockIndex) => {
+        const lines = block
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean);
+
+        if (lines.length === 1 && isHeadingLine(lines[0])) {
+          return (
+            <h3
+              key={blockIndex}
+              className="text-[12px] font-black uppercase tracking-[0.18em] text-aura-cyan"
+            >
+              {cleanHeading(lines[0])}
+            </h3>
+          );
+        }
+
+        const bulletLines = lines.filter((line) =>
+          /^([•]|\d+[.)])\s+/.test(line),
+        );
+
+        if (bulletLines.length === lines.length) {
+          return (
+            <ul key={blockIndex} className="space-y-2">
+              {lines.map((line, index) => (
+                <li
+                  key={index}
+                  className="flex gap-3 rounded-2xl border border-aura-border/70 bg-aura-bg-soft/70 px-4 py-3"
+                >
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-aura-cyan" />
+                  <span>{line.replace(/^([•]|\d+[.)])\s+/, "")}</span>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        return (
+          <div key={blockIndex} className="space-y-3">
+            {lines.map((line, index) => {
+              if (isHeadingLine(line)) {
+                return (
+                  <h3
+                    key={index}
+                    className="pt-2 text-[12px] font-black uppercase tracking-[0.18em] text-aura-cyan"
+                  >
+                    {cleanHeading(line)}
+                  </h3>
+                );
+              }
+
+              if (/^([•]|\d+[.)])\s+/.test(line)) {
+                return (
+                  <div
+                    key={index}
+                    className="flex gap-3 rounded-2xl border border-aura-border/70 bg-aura-bg-soft/70 px-4 py-3"
+                  >
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-aura-cyan" />
+                    <span>{line.replace(/^([•]|\d+[.)])\s+/, "")}</span>
+                  </div>
+                );
+              }
+
+              return (
+                <p key={index} className="leading-7 text-aura-text">
+                  {line}
+                </p>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
 };
 
 const ChatPanel = ({
@@ -171,9 +271,13 @@ const ChatPanel = ({
                         : "border-aura-border bg-aura-panel text-aura-text"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap">
-                      {cleanMarkdown(message.content)}
-                    </p>
+                    {message.role === "assistant" ? (
+                      <FormattedChatMessage content={message.content} />
+                    ) : (
+                      <p className="whitespace-pre-wrap">
+                        {normalizeChatText(message.content)}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}

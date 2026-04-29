@@ -480,11 +480,24 @@ const DashboardNavbar = ({
           <button
             type="button"
             onClick={onLogout}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-aura-border bg-aura-bg-soft text-lg text-aura-muted transition hover:border-red-400/50 hover:bg-red-500/10 hover:text-red-200"
+            className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 text-red-300 transition hover:-translate-y-0.5 hover:border-red-400/70 hover:bg-red-500/20 hover:text-red-100 hover:shadow-[0_16px_36px_rgba(239,68,68,0.18)]"
             aria-label="Logout"
             title="Logout"
           >
-            ↪
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              className="h-5 w-5 transition group-hover:translate-x-0.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M10 6H7.5A2.5 2.5 0 0 0 5 8.5v7A2.5 2.5 0 0 0 7.5 18H10" />
+              <path d="M14 8l4 4-4 4" />
+              <path d="M18 12H9" />
+            </svg>
           </button>
         </div>
       </div>
