@@ -1,7 +1,7 @@
 const mindMapDefaults = [
-  ["Easy", "4 branches", "Simple overview map"],
-  ["Medium", "6 branches", "Balanced concept map"],
-  ["Hard", "8 branches", "Detailed mastery map"],
+  ["Simple Map", "4 branches", "Focused overview map"],
+  ["Balanced Map", "6 branches", "Standard concept map"],
+  ["Deep Map", "8 branches", "Expanded mastery map"],
 ];
 
 const MindMapDefaults = () => {
@@ -9,8 +9,8 @@ const MindMapDefaults = () => {
     <div className="rounded-2xl border border-aura-border bg-aura-panel p-5">
       <p className="font-black text-aura-text">Mind Map</p>
       <p className="mt-2 text-sm leading-6 text-aura-muted">
-        Generate visual concept maps with a core topic, branches, summaries, and
-        keywords.
+        Generate visual concept maps with a core topic, connected branches,
+        summaries, and keywords.
       </p>
 
       <div className="mt-4 grid gap-3">

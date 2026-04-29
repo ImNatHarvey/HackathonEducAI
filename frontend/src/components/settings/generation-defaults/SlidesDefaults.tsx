@@ -1,7 +1,7 @@
 const slideDefaults = [
-  ["Easy", "5 slides", "Simple review deck"],
-  ["Medium", "8 slides", "Balanced lesson deck"],
-  ["Hard", "12 slides", "Detailed presentation deck"],
+  ["Short Deck", "5 slides", "Small review deck"],
+  ["Standard Deck", "8 slides", "Balanced lesson deck"],
+  ["Full Deck", "12 slides", "Expanded presentation deck"],
 ];
 
 const SlidesDefaults = () => {
@@ -9,7 +9,8 @@ const SlidesDefaults = () => {
     <div className="rounded-2xl border border-aura-border bg-aura-panel p-5">
       <p className="font-black text-aura-text">Slides</p>
       <p className="mt-2 text-sm leading-6 text-aura-muted">
-        Generate slide outlines with bullets, speaker notes, and visual ideas.
+        Generate focused presentation decks with slide titles, subtitles, and
+        clean bullet points.
       </p>
 
       <div className="mt-4 grid gap-3">

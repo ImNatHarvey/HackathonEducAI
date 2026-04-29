@@ -1,7 +1,7 @@
 const tableDefaults = [
-  ["Easy", "5 rows", "Quick beginner-friendly table"],
-  ["Medium", "8 rows", "Balanced explanation table"],
-  ["Hard", "12 rows", "Detailed mastery table"],
+  ["Quick Table", "5 rows", "Compact beginner-friendly table"],
+  ["Balanced Table", "8 rows", "Standard explanation table"],
+  ["Deep Table", "12 rows", "Expanded mastery table"],
 ];
 
 const tableModes = [

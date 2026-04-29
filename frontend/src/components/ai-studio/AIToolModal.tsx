@@ -44,27 +44,115 @@ const defaultOptions: AIToolGenerationOptions = {
   audioLength: "standard",
 };
 
-const difficultyOptions: {
+type GenerationPresetOption = {
   value: QuizDifficulty;
   label: string;
   description: string;
-}[] = [
+};
+
+const answerableDifficultyOptions: GenerationPresetOption[] = [
   {
     value: "easy",
     label: "Easy",
-    description: "Lower token use and faster generation.",
+    description: "Gentler questions for quick recall and beginner review.",
   },
   {
     value: "medium",
     label: "Medium",
-    description: "Balanced output for normal review sessions.",
+    description: "Balanced challenge for normal review sessions.",
   },
   {
     value: "hard",
     label: "Hard",
-    description: "Longer and deeper output for mastery review.",
+    description: "Higher-challenge prompts for mastery practice.",
   },
 ];
+
+const tableDetailOptions: GenerationPresetOption[] = [
+  {
+    value: "easy",
+    label: "Quick Table",
+    description: "Compact table with the most important rows only.",
+  },
+  {
+    value: "medium",
+    label: "Balanced Table",
+    description: "Standard table depth for clear study comparison.",
+  },
+  {
+    value: "hard",
+    label: "Deep Table",
+    description: "Expanded table with more rows and richer explanations.",
+  },
+];
+
+const slideDeckSizeOptions: GenerationPresetOption[] = [
+  {
+    value: "easy",
+    label: "Short Deck",
+    description: "Small slide deck for quick presentation-style review.",
+  },
+  {
+    value: "medium",
+    label: "Standard Deck",
+    description: "Balanced deck length for normal lesson coverage.",
+  },
+  {
+    value: "hard",
+    label: "Full Deck",
+    description: "Longer deck with deeper coverage and more slide topics.",
+  },
+];
+
+const mindMapDepthOptions: GenerationPresetOption[] = [
+  {
+    value: "easy",
+    label: "Simple Map",
+    description: "Focused concept map with fewer main branches.",
+  },
+  {
+    value: "medium",
+    label: "Balanced Map",
+    description: "Standard concept map with broader branch coverage.",
+  },
+  {
+    value: "hard",
+    label: "Deep Map",
+    description: "Expanded concept map with more branches and keywords.",
+  },
+];
+
+const getGenerationPresetConfig = (toolName: AIToolName) => {
+  if (toolName === "Tables") {
+    return {
+      title: "Table Detail",
+      helper: "Choose how detailed the generated table should be.",
+      options: tableDetailOptions,
+    };
+  }
+
+  if (toolName === "Slides") {
+    return {
+      title: "Deck Size",
+      helper: "Choose how many slide topics the generated deck should include.",
+      options: slideDeckSizeOptions,
+    };
+  }
+
+  if (toolName === "Mind Map") {
+    return {
+      title: "Map Depth",
+      helper: "Choose how many branches and keyword nodes the map should include.",
+      options: mindMapDepthOptions,
+    };
+  }
+
+  return {
+    title: "Difficulty",
+    helper: "Choose the challenge level for answerable study practice.",
+    options: answerableDifficultyOptions,
+  };
+};
 
 const tableTypeOptions: {
   value: StudyTableType;
@@ -213,6 +301,8 @@ const AIToolModal = ({
 
   if (!activeTool) return null;
 
+  const generationPreset = getGenerationPresetConfig(activeTool);
+
   const updateOptions = (updates: Partial<AIToolGenerationOptions>) => {
     setOptions((currentOptions) => ({
       ...currentOptions,
@@ -310,11 +400,15 @@ const AIToolModal = ({
               {activeTool !== "Audio" && (
                 <div className="mt-5">
                   <p className="text-sm font-black text-aura-text">
-                    Difficulty
+                    {generationPreset.title}
+                  </p>
+
+                  <p className="mt-1 text-xs font-semibold leading-5 text-aura-muted">
+                    {generationPreset.helper}
                   </p>
 
                   <div className="mt-3 grid gap-3 md:grid-cols-3">
-                    {difficultyOptions.map((difficulty) => {
+                    {generationPreset.options.map((difficulty) => {
                       const isActive = options.difficulty === difficulty.value;
 
                       return (
@@ -445,9 +539,7 @@ const AIToolModal = ({
           {status === "error" && (
             <ErrorState
               title="Generation failed"
-              description={
-                error || "Study Aura could not generate this output."
-              }
+              description={error || "Study Aura could not generate this output."}
               actionLabel="Retry"
               onRetry={handleGenerate}
             />
@@ -455,35 +547,10 @@ const AIToolModal = ({
 
           {hasResult && (
             <div className={isAudioResult ? "h-full" : "space-y-4"}>
-              {!isViewingSavedOutput && !isAudioResult && (
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={handleGenerate}
-                    disabled={isLoading}
-                    className="rounded-2xl border border-aura-border bg-aura-panel px-4 py-2 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text disabled:opacity-50"
-                  >
-                    Regenerate
-                  </button>
-                </div>
-              )}
               <AIToolResultRenderer
                 toolName={activeTool}
                 result={isViewingSavedOutput ? savedResult : result}
               />
-
-              {!isViewingSavedOutput && !isAudioResult && (
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={handleGenerate}
-                    disabled={isLoading}
-                    className="rounded-2xl border border-aura-border bg-aura-panel px-4 py-2 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text disabled:opacity-50"
-                  >
-                    Regenerate
-                  </button>
-                </div>
-              )}
             </div>
           )}
         </div>
