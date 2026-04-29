@@ -247,9 +247,11 @@ const AIStudioPanel = ({
                 !outputError &&
                 recentOutputs.length === 0 && (
                   <div className="rounded-[1.5rem] border border-dashed border-aura-border bg-aura-bg-soft/70 p-8 text-center">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-aura-gold/10 text-2xl">
-                      ✦
-                    </div>
+                    <img
+                      src="/assets/study-aura-logo.png"
+                      alt="Study Aura"
+                      className="h-8 w-8 object-contain"
+                    />
 
                     <h3 className="mt-4 text-xl font-black text-aura-text">
                       No saved outputs yet

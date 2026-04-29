@@ -42,11 +42,6 @@ const SavedQuizResult = ({ result }: { result: N8nQuizResponse }) => {
     ? Math.round((score / questions.length) * 100)
     : 0;
 
-  const isCorrect =
-    selectedAnswer &&
-    currentQuestion &&
-    normalizeAnswer(selectedAnswer) === normalizeAnswer(currentQuestion.answer);
-
   const progressPercentage = questions.length
     ? Math.round(((currentQuestionIndex + 1) / questions.length) * 100)
     : 0;

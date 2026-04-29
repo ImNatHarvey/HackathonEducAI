@@ -187,9 +187,11 @@ const ChatPanel = ({
                   <div className="pointer-events-none absolute bottom-0 left-0 h-40 w-40 rounded-full bg-aura-primary/10 blur-3xl" />
 
                   <div className="relative z-10 flex items-start gap-5">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.5rem] bg-gradient-to-br from-aura-primary via-aura-cyan to-aura-gold text-3xl shadow-[0_0_40px_rgba(34,211,238,0.22)]">
-                      ✦
-                    </div>
+                    <img
+                      src="/assets/study-aura-logo.png"
+                      alt="Study Aura"
+                      className="h-8 w-8 object-contain"
+                    />
 
                     <div className="min-w-0">
                       <h2 className="text-2xl font-black tracking-tight text-aura-text">

@@ -94,9 +94,11 @@ const Login = ({
             className="group flex items-center gap-3 rounded-2xl text-left transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
             aria-label="Go back to landing page"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-aura-primary via-aura-cyan to-aura-gold text-lg font-black text-aura-bg shadow-[0_14px_35px_rgba(34,211,238,0.18)] transition group-hover:shadow-[0_18px_45px_rgba(34,211,238,0.28)]">
-              ✦
-            </div>
+            <img
+              src="/assets/study-aura-logo.png"
+              alt="Study Aura"
+              className="h-8 w-8 object-contain"
+            />
 
             <div>
               <p className="text-sm font-black leading-tight text-aura-text">

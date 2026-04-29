@@ -77,9 +77,11 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
 
         <nav className="relative z-10 flex items-center justify-between border-b border-aura-border/70 pb-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-aura-primary via-aura-cyan to-aura-gold text-lg font-black text-aura-bg shadow-[0_14px_35px_rgba(34,211,238,0.18)]">
-              ✦
-            </div>
+            <img
+              src="/assets/study-aura-logo.png"
+              alt="Study Aura"
+              className="h-8 w-8 object-contain"
+            />
 
             <div>
               <p className="text-sm font-black leading-tight text-aura-text">
@@ -104,8 +106,8 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-aura-muted md:text-lg">
               Turn notes, PDFs, images, websites, and YouTube videos into
-              focused summaries, quizzes, flashcards, slides, mind maps,
-              tables, and audio overviews while earning Aura XP as you learn.
+              focused summaries, quizzes, flashcards, slides, mind maps, tables,
+              and audio overviews while earning Aura XP as you learn.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">

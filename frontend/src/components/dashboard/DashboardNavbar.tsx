@@ -88,7 +88,11 @@ const getEnergyActionLabel = (item: ActivityLogItem) => {
     if (text.includes("youtube")) return "Add Source: YouTube";
     if (text.includes("pdf")) return "Add Source: PDF";
     if (text.includes("image")) return "Add Source: Image";
-    if (text.includes("website") || text.includes("url") || text.includes("link")) {
+    if (
+      text.includes("website") ||
+      text.includes("url") ||
+      text.includes("link")
+    ) {
       return "Add Source: Website";
     }
 
@@ -207,9 +211,11 @@ const DashboardNavbar = ({
             className="flex h-12 w-[260px] min-w-[260px] items-center gap-3 rounded-2xl px-2 text-left transition hover:bg-aura-bg-soft max-sm:w-auto max-sm:min-w-0"
             aria-label={libraryButtonLabel}
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-aura-primary via-aura-cyan to-aura-gold text-lg font-black text-aura-bg shadow-[0_0_30px_rgba(34,211,238,0.22)]">
-              ✦
-            </div>
+            <img
+              src="/assets/study-aura-logo.png"
+              alt="Study Aura"
+              className="h-8 w-8 object-contain"
+            />
 
             <div className="hidden min-w-0 sm:block">
               <p className="truncate text-sm font-black leading-4 text-aura-text">
@@ -327,25 +333,27 @@ const DashboardNavbar = ({
 
                   <div className="space-y-2">
                     {recentEnergyActivities.length > 0 ? (
-                      recentEnergyActivities.map(({ item, energy: spent, label }) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center justify-between gap-3 rounded-2xl border border-aura-border bg-aura-bg-soft px-3 py-2"
-                        >
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-black text-aura-text">
-                              {label}
-                            </p>
-                            <p className="mt-0.5 text-[10px] font-semibold text-aura-dim">
-                              {formatRelativeActivityTime(item.createdAt)}
+                      recentEnergyActivities.map(
+                        ({ item, energy: spent, label }) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between gap-3 rounded-2xl border border-aura-border bg-aura-bg-soft px-3 py-2"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-black text-aura-text">
+                                {label}
+                              </p>
+                              <p className="mt-0.5 text-[10px] font-semibold text-aura-dim">
+                                {formatRelativeActivityTime(item.createdAt)}
+                              </p>
+                            </div>
+
+                            <p className="shrink-0 text-sm font-black text-aura-gold">
+                              -{spent}
                             </p>
                           </div>
-
-                          <p className="shrink-0 text-sm font-black text-aura-gold">
-                            -{spent}
-                          </p>
-                        </div>
-                      ))
+                        ),
+                      )
                     ) : (
                       <div className="rounded-2xl border border-dashed border-aura-border bg-aura-bg-soft px-3 py-4 text-sm leading-6 text-aura-muted">
                         No energy activity yet. Generate tools, add sources, or

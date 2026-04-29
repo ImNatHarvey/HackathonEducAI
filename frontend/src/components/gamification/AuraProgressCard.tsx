@@ -30,9 +30,11 @@ const AuraProgressCard = ({
           </p>
         </div>
 
-        <div className="grid h-14 w-14 place-items-center rounded-2xl border border-aura-gold/40 bg-aura-gold/10 text-xl font-black text-aura-gold">
-          ✦
-        </div>
+        <img
+          src="/assets/study-aura-logo.png"
+          alt="Study Aura"
+          className="h-8 w-8 object-contain"
+        />
       </div>
 
       <div className="mt-4">
