@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { currentUser } from "../components/user/userMock";
 import {
   searchWebSourcesWithN8n,
   type N8nWebSearchResponse,
@@ -8,11 +7,13 @@ import {
 
 type UseWebSearchSourcesParams = {
   moduleId?: string;
+  userId?: string;
   maxResults?: number;
 };
 
 export const useWebSearchSources = ({
   moduleId,
+  userId,
   maxResults = 5,
 }: UseWebSearchSourcesParams) => {
   const [query, setQuery] = useState("");
@@ -41,6 +42,11 @@ export const useWebSearchSources = ({
 
     if (!trimmedQuery || isSearching) return;
 
+    if (!userId) {
+      setSearchError("Please sign in before using Web Source Finder.");
+      return;
+    }
+
     setQuery(trimmedQuery);
     setIsSearching(true);
     setSearchError("");
@@ -53,7 +59,7 @@ export const useWebSearchSources = ({
         query: trimmedQuery,
         moduleId,
         maxResults,
-        userId: currentUser.id,
+        userId,
       });
 
       setLastResponse(response);

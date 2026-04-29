@@ -750,6 +750,7 @@ const Dashboard = ({
           <SourcesPanel
             moduleTitle={currentModule?.title ?? topic}
             moduleId={currentModule?.id}
+            userId={userId}
             sources={currentSources}
             selectedSourceCount={selectedSourceCount}
             isUploadingSource={isUploadingSource}

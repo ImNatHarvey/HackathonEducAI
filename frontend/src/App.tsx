@@ -8,6 +8,7 @@ import LoadingState from "./components/states/LoadingState";
 import ErrorState from "./components/states/ErrorState";
 import { useAuth } from "./hooks/useAuth";
 import { useSupabaseModules } from "./hooks/useSupabaseModules";
+import { isSupabaseConfigured, supabaseConfigError } from "./lib/supabase";
 
 type AppView = "landing" | "login" | "dashboard" | "library";
 
@@ -152,6 +153,41 @@ function App() {
     localStorage.removeItem("study-aura-selected-topic");
     setView("landing");
   };
+
+  if (!isSupabaseConfigured) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-aura-bg px-6 text-aura-text">
+        <section className="w-full max-w-2xl rounded-[2rem] border border-aura-border/80 bg-aura-card/95 p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl border border-amber-400/30 bg-amber-400/10 text-4xl">
+            ⚠️
+          </div>
+
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.28em] text-amber-300">
+            Setup Required
+          </p>
+
+          <h1 className="mb-3 text-2xl font-bold text-aura-text md:text-3xl">
+            Supabase environment is missing
+          </h1>
+
+          <p className="mx-auto mb-6 max-w-xl text-sm leading-6 text-aura-muted">
+            {supabaseConfigError}
+          </p>
+
+          <div className="rounded-2xl border border-aura-border bg-black/30 p-4 text-left font-mono text-xs text-aura-text md:text-sm">
+            <p>VITE_SUPABASE_URL=your_supabase_url</p>
+            <p>VITE_SUPABASE_ANON_KEY=your_supabase_anon_key</p>
+          </div>
+
+          <p className="mt-5 text-xs leading-5 text-aura-muted">
+            Add these inside your frontend{" "}
+            <span className="font-mono text-aura-text">.env</span> file, then
+            restart the dev server.
+          </p>
+        </section>
+      </main>
+    );
+  }
 
   if (isLoadingAuth) {
     return (

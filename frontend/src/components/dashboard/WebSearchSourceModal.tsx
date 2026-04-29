@@ -9,6 +9,7 @@ type WebSearchSourceModalProps = {
   isOpen: boolean;
   initialQuery: string;
   moduleId?: string;
+  userId?: string;
   isImporting: boolean;
   onClose: () => void;
   onImportSources: (payloads: SourceUploadPayload[]) => void;
@@ -18,17 +19,13 @@ const WebSearchSourceModal = ({
   isOpen,
   initialQuery,
   moduleId,
+  userId,
   isImporting,
   onClose,
   onImportSources,
 }: WebSearchSourceModalProps) => {
   const lastAutoSearchRef = useRef("");
-  const lastSearchStateRef = useRef<{
-    isSearching: boolean;
-    resultCount: number;
-    error: string;
-    query: string;
-  }>({
+  const lastSearchStateRef = useRef({
     isSearching: false,
     resultCount: 0,
     error: "",
@@ -55,6 +52,7 @@ const WebSearchSourceModal = ({
     resetSearch,
   } = useWebSearchSources({
     moduleId,
+    userId,
     maxResults: 5,
   });
 
@@ -140,6 +138,7 @@ const WebSearchSourceModal = ({
       error: "",
       query: "",
     };
+
     resetSearch();
     onClose();
   };
@@ -239,6 +238,7 @@ const WebSearchSourceModal = ({
     });
 
     onImportSources(payloads);
+
     lastAutoSearchRef.current = "";
     lastSearchStateRef.current = {
       isSearching: false,
@@ -246,6 +246,7 @@ const WebSearchSourceModal = ({
       error: "",
       query: "",
     };
+
     resetSearch();
     onClose();
   };

@@ -12,6 +12,7 @@ import type {
 type SourcesPanelProps = {
   moduleTitle: string;
   moduleId?: string;
+  userId?: string;
   sources: StudySource[];
   selectedSourceCount: number;
   isUploadingSource: boolean;
@@ -69,6 +70,7 @@ const sourceStatusClasses: Record<DisplaySourceStatus, string> = {
 const SourcesPanel = ({
   moduleTitle,
   moduleId,
+  userId,
   sources,
   selectedSourceCount,
   isUploadingSource,
@@ -330,6 +332,7 @@ const SourcesPanel = ({
         isOpen={isWebSearchOpen}
         initialQuery={webSearchQuery}
         moduleId={moduleId}
+        userId={userId}
         isImporting={isUploadingSource}
         onClose={() => setIsWebSearchOpen(false)}
         onImportSources={onUploadWebSources}
