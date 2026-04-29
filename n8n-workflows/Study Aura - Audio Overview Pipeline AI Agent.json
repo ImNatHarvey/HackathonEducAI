@@ -1,5 +1,5 @@
 {
-  "name": "Study Aura - Audio Overview Pipeline AI Agent",
+  "name": "Study Aura - Audio Overview Pipeline AI Agent ElevenLabs",
   "nodes": [
     {
       "parameters": {
@@ -8,13 +8,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "audio-agent-webhook",
+      "id": "2170888c-d1c6-47d9-95fa-5f8f10a80f78",
       "name": "Audio Agent Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -3184,
-        912
+        -1984,
+        960
       ],
       "webhookId": "study-aura-audio"
     },
@@ -25,7 +25,7 @@
             {
               "id": "audio-prompt",
               "name": "prompt",
-              "value": "={{\n\"You are Study Aura, an educational Audio Overview generator. Your job is to convert selected study sources into a natural, voice-friendly study overview.\\n\\n\" +\n\"Topic: \" + ($json.body.topic || \"General Study\") + \"\\n\" +\n\"Length: \" + ($json.body.length || \"standard\") + \"\\n\\n\" +\n\"Length guide:\\n\" +\n\"- short: 3 to 5 concise segments.\\n\" +\n\"- standard: 5 to 7 balanced segments.\\n\" +\n\"- deep: 7 to 10 detailed but clear segments.\\n\\n\" +\n\"Selected source context:\\n\" +\n(\n  Array.isArray($json.body.selectedSources) && $json.body.selectedSources.length > 0\n    ? $json.body.selectedSources.map((source, index) => {\n        return (index + 1) + \". \" + (source.title || \"Untitled Source\") + \" [\" + (source.type || source.sourceType || \"source\") + \"]\\n\" +\n          \"Summary or content: \" + (source.summary || source.content || source.value || \"No summary provided.\");\n      }).join(\"\\n\\n\")\n    : \"No selected sources were provided. Use the topic only.\"\n) +\n\"\\n\\nReturn ONLY valid JSON. Do not include markdown, code fences, comments, or explanation outside the JSON.\\n\\n\" +\n\"Required JSON format:\\n\" +\n\"{\\n\" +\n\"  \\\"title\\\": string,\\n\" +\n\"  \\\"description\\\": string,\\n\" +\n\"  \\\"estimatedDuration\\\": string,\\n\" +\n\"  \\\"segments\\\": [\\n\" +\n\"    {\\\"speaker\\\": \\\"Audio\\\", \\\"text\\\": string}\\n\" +\n\"  ],\\n\" +\n\"  \\\"recap\\\": string[]\\n\" +\n\"}\\n\\n\" +\n\"Rules:\\n\" +\n\"- Use only the selected source context when available.\\n\" +\n\"- Do not invent unsupported facts.\\n\" +\n\"- Make the explanation student-friendly, warm, and easy to follow.\\n\" +\n\"- Use 3 to 5 segments for short length.\\n\" +\n\"- Use 5 to 7 segments for standard length.\\n\" +\n\"- Use 7 to 10 segments for deep length.\\n\" +\n\"- Use \\\"Audio\\\" as the speaker value for every segment.\\n\" +\n\"- Do not include speaker names inside the segment text.\\n\" +\n\"- Never write \\\"Narrator:\\\", \\\"Host A:\\\", \\\"Host B:\\\", \\\"Audio:\\\", or any speaker label inside the text.\\n\" +\n\"- Segment text should sound natural when read aloud.\\n\" +\n\"- Start with a short hook.\\n\" +\n\"- Explain the main idea clearly.\\n\" +\n\"- End with a quick recap.\\n\" +\n\"- Recap should contain 3 to 5 short takeaways.\\n\" +\n\"- No markdown. No bullet markdown. No code fences. JSON only.\"\n}}",
+              "value": "={{\n\"You are Study Aura, an educational Audio Overview generator. Your job is to convert selected study sources into a natural, premium narrator study overview.\\n\\n\" +\n\"Topic: \" + ($json.body.topic || \"General Study\") + \"\\n\" +\n\"Length: \" + ($json.body.length || \"standard\") + \"\\n\\n\" +\n\"Length guide:\\n\" +\n\"- short: 3 to 5 concise segments.\\n\" +\n\"- standard: 5 to 7 balanced segments.\\n\" +\n\"- deep: 7 to 10 detailed but clear segments.\\n\\n\" +\n\"Selected source context:\\n\" +\n(\n  Array.isArray($json.body.selectedSources) && $json.body.selectedSources.length > 0\n    ? $json.body.selectedSources.map((source, index) => {\n        return (index + 1) + \". \" + (source.title || \"Untitled Source\") + \" [\" + (source.type || source.sourceType || \"source\") + \"]\\n\" +\n          \"Summary or content: \" + (source.summary || source.content || source.value || \"No summary provided.\");\n      }).join(\"\\n\\n\")\n    : \"No selected sources were provided. Use the topic only.\"\n) +\n\"\\n\\nReturn ONLY valid JSON. Do not include markdown, code fences, comments, or explanation outside the JSON.\\n\\n\" +\n\"Required JSON format:\\n\" +\n\"{\\n\" +\n\"  \\\"title\\\": string,\\n\" +\n\"  \\\"description\\\": string,\\n\" +\n\"  \\\"estimatedDuration\\\": string,\\n\" +\n\"  \\\"segments\\\": [\\n\" +\n\"    {\\\"speaker\\\": \\\"Audio\\\", \\\"text\\\": string}\\n\" +\n\"  ],\\n\" +\n\"  \\\"recap\\\": string[]\\n\" +\n\"}\\n\\n\" +\n\"Rules:\\n\" +\n\"- Use only the selected source context when available.\\n\" +\n\"- Do not invent unsupported facts.\\n\" +\n\"- Make the explanation student-friendly, warm, clear, and natural for a premium narrator voice.\\n\" +\n\"- Use 3 to 5 segments for short length.\\n\" +\n\"- Use 5 to 7 segments for standard length.\\n\" +\n\"- Use 7 to 10 segments for deep length.\\n\" +\n\"- Use \\\"Audio\\\" as the speaker value for every segment.\\n\" +\n\"- Do not include speaker names inside the segment text.\\n\" +\n\"- Never write \\\"Narrator:\\\", \\\"Host A:\\\", \\\"Host B:\\\", \\\"Audio:\\\", or any speaker label inside the text.\\n\" +\n\"- Segment text should sound natural when read aloud.\\n\" +\n\"- Start with a short hook.\\n\" +\n\"- Explain the main idea clearly.\\n\" +\n\"- End with a quick recap.\\n\" +\n\"- Recap should contain 3 to 5 short takeaways.\\n\" +\n\"- No markdown. No bullet markdown. No code fences. JSON only.\"\n}}",
               "type": "string"
             },
             {
@@ -56,13 +56,13 @@
         },
         "options": {}
       },
-      "id": "prepare-audio-agent-prompt",
+      "id": "ce158e6a-8385-4ce6-8201-13077609ebaa",
       "name": "Prepare Audio Agent Prompt",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -2896,
-        912
+        -1760,
+        960
       ]
     },
     {
@@ -73,13 +73,13 @@
           "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
         }
       },
-      "id": "audio-gemini-ai-agent",
+      "id": "c4027516-53b6-4636-8507-6dd025e2dec6",
       "name": "Audio Gemini AI Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        -2576,
-        608
+        -1536,
+        960
       ],
       "continueOnFail": true
     },
@@ -87,22 +87,22 @@
       "parameters": {
         "modelName": "models/gemini-3.1-flash-lite-preview",
         "options": {
-          "temperature": 0.45,
-          "maxOutputTokens": 2200
+          "maxOutputTokens": 2200,
+          "temperature": 0.45
         }
       },
-      "id": "audio-gemini-chat-model",
+      "id": "3dbe8a29-6e67-48de-9fc9-b5a7c7ee6f28",
       "name": "Audio Gemini Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        -2576,
-        832
+        -1464,
+        1184
       ],
       "credentials": {
         "googlePalmApi": {
-          "id": "REPLACE_WITH_GEMINI_CREDENTIAL_ID",
-          "name": "Study Aura Gemini Key"
+          "id": "KENDZxdgQGHYC9Xu",
+          "name": "Google Gemini(PaLM) Api account"
         }
       }
     },
@@ -141,41 +141,147 @@
         },
         "options": {}
       },
-      "id": "audio-gemini-succeeded",
+      "id": "e361e5d9-ed6a-4350-a271-de8f20b4767a",
       "name": "Audio Gemini Succeeded?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -2240,
-        608
+        -1184,
+        960
       ]
     },
     {
       "parameters": {
         "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet audioOverview;\nlet fallback = false;\n\ntry {\n  audioOverview = JSON.parse(cleaned);\n\n  if (!audioOverview.title || !Array.isArray(audioOverview.segments)) {\n    throw new Error(\"Invalid audio overview format\");\n  }\n} catch (error) {\n  fallback = true;\n  audioOverview = {\n    title: \"Study Aura Audio Overview\",\n    description: \"A quick fallback audio review for the selected topic.\",\n    estimatedDuration: \"1 minute\",\n    segments: [\n      {\n        speaker: \"Audio\",\n        text: \"Welcome to this Study Aura audio overview. In this short review, we will focus on the main idea, important details, and a simple way to remember the topic.\"\n      },\n      {\n        speaker: \"Audio\",\n        text: \"Start by identifying the key concept. Then connect it to examples, definitions, and review questions so the idea becomes easier to recall.\"\n      }\n    ],\n    recap: [\"Identify the main idea\", \"Connect details with examples\", \"Review using active recall\"]\n  };\n}\n\nconst cleanSpeakerLabel = (value) => {\n  return String(value || \"\")\n    .replace(/^\\s*(Narrator|Host A|Host B|Audio|Speaker)\\s*:\\s*/i, \"\")\n    .trim();\n};\n\nconst segments = Array.isArray(audioOverview.segments)\n  ? audioOverview.segments.map((segment) => ({\n      speaker: \"Audio\",\n      text: cleanSpeakerLabel(segment.text || \"Review this topic carefully.\")\n    })).filter((segment) => segment.text)\n  : [];\n\nconst recap = Array.isArray(audioOverview.recap)\n  ? audioOverview.recap.map((item) => cleanSpeakerLabel(item)).filter(Boolean).slice(0, 5)\n  : [\"Review the main idea\", \"Practice recall\", \"Connect examples\"];\n\nconst script = segments.map((segment) => segment.text).join(\"\\n\\n\");\n\nreturn [\n  {\n    json: {\n      audioOverview: {\n        title: String(audioOverview.title || \"Study Aura Audio Overview\"),\n        description: String(audioOverview.description || \"Generated audio overview.\"),\n        estimatedDuration: String(audioOverview.estimatedDuration || \"2 minutes\"),\n        segments,\n        recap,\n        script\n      },\n      fallback,\n      provider: \"gemini\"\n    }\n  }\n];"
       },
-      "id": "clean-gemini-audio-json",
+      "id": "6dd42fcd-fafe-46be-9eb0-80975f8c9435",
       "name": "Clean Gemini Audio JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1936,
-        528
+        -896,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xi-api-key",
+              "value": "=YOUR_ELEVENLABS_API_KEY_HERE"
+            },
+            {
+              "name": "Accept",
+              "value": "audio/mpeg"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    \"text\": $json.audioOverview.script,\n    \"model_id\": \"eleven_multilingual_v2\",\n    \"voice_settings\": {\n      \"stability\": 0.58,\n      \"similarity_boost\": 0.82,\n      \"style\": 0.18,\n      \"use_speaker_boost\": true\n    }\n  }\n}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "premiumAudio"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "9ae6a2dd-a1ed-4ae5-8707-a33395fbf13b",
+      "name": "Generate ElevenLabs Premium Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -608,
+        768
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "elevenlabs-binary-exists",
+              "leftValue": "={{$binary.premiumAudio}}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ad7a9e14-9e80-47c1-9281-62e7a45259c2",
+      "name": "ElevenLabs Audio Created?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -384,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const binaryAudio = $binary.premiumAudio;\nconst audioOverview = $json.audioOverview;\n\nreturn [\n  {\n    json: {\n      audioOverview: {\n        ...audioOverview,\n        premiumAudio: {\n          provider: \"elevenlabs\",\n          voice: \"Premium Narrator\",\n          mimeType: binaryAudio.mimeType || \"audio/mpeg\",\n          base64: binaryAudio.data\n        }\n      },\n      provider: \"elevenlabs\",\n      scriptProvider: $json.provider || \"gemini\",\n      fallback: false\n    }\n  }\n];"
+      },
+      "id": "f284f036-07e7-4171-83a2-9417e8a216ab",
+      "name": "Attach ElevenLabs Audio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        672
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{\n  {\n    \"audioOverview\": $json.audioOverview,\n    \"provider\": \"gemini\",\n    \"fallback\": $json.fallback\n  }\n}}",
+        "responseBody": "={{\n  {\n    \"audioOverview\": $json.audioOverview,\n    \"provider\": $json.provider,\n    \"scriptProvider\": $json.scriptProvider,\n    \"fallback\": $json.fallback\n  }\n}}",
         "options": {}
       },
-      "id": "return-gemini-audio-response",
-      "name": "Return Gemini Audio Response",
+      "id": "a3e7599a-00b5-44b2-9d9a-d1b12abf98b2",
+      "name": "Return ElevenLabs Audio Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        -1664,
-        528
+        64,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"audioOverview\": $json.audioOverview,\n    \"provider\": \"gemini\",\n    \"scriptProvider\": \"gemini\",\n    \"fallback\": true,\n    \"voiceFallback\": \"browser\"\n  }\n}}",
+        "options": {}
+      },
+      "id": "2533aaf7-9856-4fd4-9927-ad5017a5b9d8",
+      "name": "Return Gemini Script Browser Voice Fallback",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -160,
+        864
       ]
     },
     {
@@ -186,13 +292,13 @@
           "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
         }
       },
-      "id": "audio-groq-ai-agent",
+      "id": "0daeb1ad-88ad-4c9a-9592-34c92e49b1c2",
       "name": "Audio Groq AI Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        -1936,
-        736
+        -960,
+        1152
       ],
       "continueOnFail": true
     },
@@ -203,18 +309,18 @@
           "temperature": 0.45
         }
       },
-      "id": "audio-groq-chat-model",
+      "id": "062713b2-ba59-460a-baf1-958ae2e0266c",
       "name": "Audio Groq Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
       "position": [
-        -1936,
-        960
+        -888,
+        1376
       ],
       "credentials": {
         "groqApi": {
-          "id": "REPLACE_WITH_GROQ_CREDENTIAL_ID",
-          "name": "Study Aura Groq Key"
+          "id": "WkVbnLQ5QnaDY6HA",
+          "name": "Groq account"
         }
       }
     },
@@ -253,196 +359,71 @@
         },
         "options": {}
       },
-      "id": "audio-groq-succeeded",
+      "id": "08708af4-ab5c-4a12-89ec-856038a00644",
       "name": "Audio Groq Succeeded?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -1600,
-        736
+        -608,
+        1152
       ]
     },
     {
       "parameters": {
         "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet audioOverview;\nlet fallback = false;\n\ntry {\n  audioOverview = JSON.parse(cleaned);\n\n  if (!audioOverview.title || !Array.isArray(audioOverview.segments)) {\n    throw new Error(\"Invalid audio overview format\");\n  }\n} catch (error) {\n  fallback = true;\n  audioOverview = {\n    title: \"Study Aura Audio Overview\",\n    description: \"A quick fallback audio review for the selected topic.\",\n    estimatedDuration: \"1 minute\",\n    segments: [\n      {\n        speaker: \"Audio\",\n        text: \"Welcome to this Study Aura audio overview. In this short review, we will focus on the main idea, important details, and a simple way to remember the topic.\"\n      },\n      {\n        speaker: \"Audio\",\n        text: \"Start by identifying the key concept. Then connect it to examples, definitions, and review questions so the idea becomes easier to recall.\"\n      }\n    ],\n    recap: [\"Identify the main idea\", \"Connect details with examples\", \"Review using active recall\"]\n  };\n}\n\nconst cleanSpeakerLabel = (value) => {\n  return String(value || \"\")\n    .replace(/^\\s*(Narrator|Host A|Host B|Audio|Speaker)\\s*:\\s*/i, \"\")\n    .trim();\n};\n\nconst segments = Array.isArray(audioOverview.segments)\n  ? audioOverview.segments.map((segment) => ({\n      speaker: \"Audio\",\n      text: cleanSpeakerLabel(segment.text || \"Review this topic carefully.\")\n    })).filter((segment) => segment.text)\n  : [];\n\nconst recap = Array.isArray(audioOverview.recap)\n  ? audioOverview.recap.map((item) => cleanSpeakerLabel(item)).filter(Boolean).slice(0, 5)\n  : [\"Review the main idea\", \"Practice recall\", \"Connect examples\"];\n\nconst script = segments.map((segment) => segment.text).join(\"\\n\\n\");\n\nreturn [\n  {\n    json: {\n      audioOverview: {\n        title: String(audioOverview.title || \"Study Aura Audio Overview\"),\n        description: String(audioOverview.description || \"Generated audio overview.\"),\n        estimatedDuration: String(audioOverview.estimatedDuration || \"2 minutes\"),\n        segments,\n        recap,\n        script\n      },\n      fallback,\n      provider: \"groq\"\n    }\n  }\n];"
       },
-      "id": "clean-groq-audio-json",
+      "id": "75818e2a-a669-4c0e-8706-adac2896487d",
       "name": "Clean Groq Audio JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1296,
-        656
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{\n  {\n    \"audioOverview\": $json.audioOverview,\n    \"provider\": \"groq\",\n    \"fallback\": $json.fallback\n  }\n}}",
-        "options": {}
-      },
-      "id": "return-groq-audio-response",
-      "name": "Return Groq Audio Response",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [
-        -1024,
-        656
-      ]
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "={{$node[\"Prepare Audio Agent Prompt\"].json.prompt}}",
-        "options": {
-          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
-        }
-      },
-      "id": "audio-openrouter-ai-agent",
-      "name": "Audio OpenRouter AI Agent",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.7,
-      "position": [
-        -1024,
-        848
-      ],
-      "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "model": "qwen/qwen3-coder:free",
-        "options": {
-          "temperature": 0.45,
-          "maxTokens": 2200
-        }
-      },
-      "id": "audio-openrouter-chat-model",
-      "name": "Audio OpenRouter Chat Model",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
-      "typeVersion": 1,
-      "position": [
-        -1024,
-        1072
-      ],
-      "credentials": {
-        "openRouterApi": {
-          "id": "REPLACE_WITH_OPENROUTER_CREDENTIAL_ID",
-          "name": "Study Aura OpenRouter Key"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 1
-          },
-          "conditions": [
-            {
-              "id": "openrouter-output-exists",
-              "leftValue": "={{$json.output}}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "exists",
-                "singleValue": true
-              }
-            },
-            {
-              "id": "openrouter-output-not-empty",
-              "leftValue": "={{$json.output}}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notEmpty",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "audio-openrouter-succeeded",
-      "name": "Audio OpenRouter Succeeded?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        -688,
-        848
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet audioOverview;\nlet fallback = false;\n\ntry {\n  audioOverview = JSON.parse(cleaned);\n\n  if (!audioOverview.title || !Array.isArray(audioOverview.segments)) {\n    throw new Error(\"Invalid audio overview format\");\n  }\n} catch (error) {\n  fallback = true;\n  audioOverview = {\n    title: \"Study Aura Audio Overview\",\n    description: \"A quick fallback audio review for the selected topic.\",\n    estimatedDuration: \"1 minute\",\n    segments: [\n      {\n        speaker: \"Audio\",\n        text: \"Welcome to this Study Aura audio overview. In this short review, we will focus on the main idea, important details, and a simple way to remember the topic.\"\n      },\n      {\n        speaker: \"Audio\",\n        text: \"Start by identifying the key concept. Then connect it to examples, definitions, and review questions so the idea becomes easier to recall.\"\n      }\n    ],\n    recap: [\"Identify the main idea\", \"Connect details with examples\", \"Review using active recall\"]\n  };\n}\n\nconst cleanSpeakerLabel = (value) => {\n  return String(value || \"\")\n    .replace(/^\\s*(Narrator|Host A|Host B|Audio|Speaker)\\s*:\\s*/i, \"\")\n    .trim();\n};\n\nconst segments = Array.isArray(audioOverview.segments)\n  ? audioOverview.segments.map((segment) => ({\n      speaker: \"Audio\",\n      text: cleanSpeakerLabel(segment.text || \"Review this topic carefully.\")\n    })).filter((segment) => segment.text)\n  : [];\n\nconst recap = Array.isArray(audioOverview.recap)\n  ? audioOverview.recap.map((item) => cleanSpeakerLabel(item)).filter(Boolean).slice(0, 5)\n  : [\"Review the main idea\", \"Practice recall\", \"Connect examples\"];\n\nconst script = segments.map((segment) => segment.text).join(\"\\n\\n\");\n\nreturn [\n  {\n    json: {\n      audioOverview: {\n        title: String(audioOverview.title || \"Study Aura Audio Overview\"),\n        description: String(audioOverview.description || \"Generated audio overview.\"),\n        estimatedDuration: String(audioOverview.estimatedDuration || \"2 minutes\"),\n        segments,\n        recap,\n        script\n      },\n      fallback,\n      provider: \"openrouter\"\n    }\n  }\n];"
-      },
-      "id": "clean-openrouter-audio-json",
-      "name": "Clean OpenRouter Audio JSON",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
         -384,
-        768
+        1056
       ]
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{\n  {\n    \"audioOverview\": $json.audioOverview,\n    \"provider\": \"openrouter\",\n    \"fallback\": $json.fallback\n  }\n}}",
-        "options": {}
-      },
-      "id": "return-openrouter-audio-response",
-      "name": "Return OpenRouter Audio Response",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [
-        -112,
-        768
-      ]
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "={{$node[\"Prepare Audio Agent Prompt\"].json.prompt}}",
+        "method": "POST",
+        "url": "=https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xi-api-key",
+              "value": "=YOUR_ELEVENLABS_API_KEY_HERE"
+            },
+            {
+              "name": "Accept",
+              "value": "audio/mpeg"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    \"text\": $json.audioOverview.script,\n    \"model_id\": \"eleven_multilingual_v2\",\n    \"voice_settings\": {\n      \"stability\": 0.58,\n      \"similarity_boost\": 0.82,\n      \"style\": 0.18,\n      \"use_speaker_boost\": true\n    }\n  }\n}}",
         "options": {
-          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "premiumAudio"
+            }
+          },
+          "timeout": 120000
         }
       },
-      "id": "audio-mistral-ai-agent",
-      "name": "Audio Mistral AI Agent",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.7,
+      "id": "207a5bc5-4b1a-479d-9c09-39376ebda960",
+      "name": "Generate ElevenLabs Premium Audio Groq",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        -112,
-        976
+        -144,
+        1056
       ],
       "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "model": "mistral-small-latest",
-        "options": {
-          "temperature": 0.45,
-          "maxTokens": 2200
-        }
-      },
-      "id": "audio-mistral-chat-model",
-      "name": "Audio Mistral Cloud Chat Model",
-      "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
-      "typeVersion": 1,
-      "position": [
-        -112,
-        1200
-      ],
-      "credentials": {
-        "mistralCloudApi": {
-          "id": "REPLACE_WITH_MISTRAL_CREDENTIAL_ID",
-          "name": "Study Aura Mistral Key"
-        }
-      }
     },
     {
       "parameters": {
@@ -455,22 +436,12 @@
           },
           "conditions": [
             {
-              "id": "mistral-output-exists",
-              "leftValue": "={{$json.output}}",
+              "id": "elevenlabs-groq-binary-exists",
+              "leftValue": "={{$binary.premiumAudio}}",
               "rightValue": "",
               "operator": {
-                "type": "string",
+                "type": "object",
                 "operation": "exists",
-                "singleValue": true
-              }
-            },
-            {
-              "id": "mistral-output-not-empty",
-              "leftValue": "={{$json.output}}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notEmpty",
                 "singleValue": true
               }
             }
@@ -479,172 +450,75 @@
         },
         "options": {}
       },
-      "id": "audio-mistral-succeeded",
-      "name": "Audio Mistral Succeeded?",
+      "id": "4258dcf5-7dc9-4903-ba8d-a7b9fbed90b7",
+      "name": "ElevenLabs Groq Audio Created?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        224,
-        976
+        48,
+        1056
       ]
     },
     {
       "parameters": {
-        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet audioOverview;\nlet fallback = false;\n\ntry {\n  audioOverview = JSON.parse(cleaned);\n\n  if (!audioOverview.title || !Array.isArray(audioOverview.segments)) {\n    throw new Error(\"Invalid audio overview format\");\n  }\n} catch (error) {\n  fallback = true;\n  audioOverview = {\n    title: \"Study Aura Audio Overview\",\n    description: \"A quick fallback audio review for the selected topic.\",\n    estimatedDuration: \"1 minute\",\n    segments: [\n      {\n        speaker: \"Audio\",\n        text: \"Welcome to this Study Aura audio overview. In this short review, we will focus on the main idea, important details, and a simple way to remember the topic.\"\n      },\n      {\n        speaker: \"Audio\",\n        text: \"Start by identifying the key concept. Then connect it to examples, definitions, and review questions so the idea becomes easier to recall.\"\n      }\n    ],\n    recap: [\"Identify the main idea\", \"Connect details with examples\", \"Review using active recall\"]\n  };\n}\n\nconst cleanSpeakerLabel = (value) => {\n  return String(value || \"\")\n    .replace(/^\\s*(Narrator|Host A|Host B|Audio|Speaker)\\s*:\\s*/i, \"\")\n    .trim();\n};\n\nconst segments = Array.isArray(audioOverview.segments)\n  ? audioOverview.segments.map((segment) => ({\n      speaker: \"Audio\",\n      text: cleanSpeakerLabel(segment.text || \"Review this topic carefully.\")\n    })).filter((segment) => segment.text)\n  : [];\n\nconst recap = Array.isArray(audioOverview.recap)\n  ? audioOverview.recap.map((item) => cleanSpeakerLabel(item)).filter(Boolean).slice(0, 5)\n  : [\"Review the main idea\", \"Practice recall\", \"Connect examples\"];\n\nconst script = segments.map((segment) => segment.text).join(\"\\n\\n\");\n\nreturn [\n  {\n    json: {\n      audioOverview: {\n        title: String(audioOverview.title || \"Study Aura Audio Overview\"),\n        description: String(audioOverview.description || \"Generated audio overview.\"),\n        estimatedDuration: String(audioOverview.estimatedDuration || \"2 minutes\"),\n        segments,\n        recap,\n        script\n      },\n      fallback,\n      provider: \"mistral\"\n    }\n  }\n];"
+        "jsCode": "const binaryAudio = $binary.premiumAudio;\nconst audioOverview = $json.audioOverview;\n\nreturn [\n  {\n    json: {\n      audioOverview: {\n        ...audioOverview,\n        premiumAudio: {\n          provider: \"elevenlabs\",\n          voice: \"Premium Narrator\",\n          mimeType: binaryAudio.mimeType || \"audio/mpeg\",\n          base64: binaryAudio.data\n        }\n      },\n      provider: \"elevenlabs\",\n      scriptProvider: $json.provider || \"groq\",\n      fallback: false\n    }\n  }\n];"
       },
-      "id": "clean-mistral-audio-json",
-      "name": "Clean Mistral Audio JSON",
+      "id": "d08ef392-1742-4e50-8246-99a980941a0a",
+      "name": "Attach ElevenLabs Groq Audio",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        528,
-        896
+        256,
+        1056
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{\n  {\n    \"audioOverview\": $json.audioOverview,\n    \"provider\": \"mistral\",\n    \"fallback\": $json.fallback\n  }\n}}",
+        "responseBody": "={{\n  {\n    \"audioOverview\": $json.audioOverview,\n    \"provider\": $json.provider,\n    \"scriptProvider\": $json.scriptProvider,\n    \"fallback\": $json.fallback\n  }\n}}",
         "options": {}
       },
-      "id": "return-mistral-audio-response",
-      "name": "Return Mistral Audio Response",
+      "id": "0a900e20-abc5-4c1d-b737-0deb1966aee6",
+      "name": "Return ElevenLabs Groq Audio Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        800,
-        896
-      ]
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "={{$node[\"Prepare Audio Agent Prompt\"].json.prompt}}",
-        "options": {
-          "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
-        }
-      },
-      "id": "audio-deepseek-ai-agent",
-      "name": "Audio DeepSeek AI Agent",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.7,
-      "position": [
-        800,
-        1088
-      ],
-      "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "model": "deepseek-v4-flash",
-        "options": {
-          "temperature": 0.45,
-          "maxTokens": 2200
-        }
-      },
-      "id": "audio-deepseek-chat-model",
-      "name": "Audio DeepSeek Chat Model",
-      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
-      "typeVersion": 1,
-      "position": [
-        800,
-        1312
-      ],
-      "credentials": {
-        "deepSeekApi": {
-          "id": "REPLACE_WITH_DEEPSEEK_CREDENTIAL_ID",
-          "name": "Study Aura DeepSeek Key"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 1
-          },
-          "conditions": [
-            {
-              "id": "deepseek-output-exists",
-              "leftValue": "={{$json.output}}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "exists",
-                "singleValue": true
-              }
-            },
-            {
-              "id": "deepseek-output-not-empty",
-              "leftValue": "={{$json.output}}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notEmpty",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "audio-deepseek-succeeded",
-      "name": "Audio DeepSeek Succeeded?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        1136,
-        1088
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet audioOverview;\nlet fallback = false;\n\ntry {\n  audioOverview = JSON.parse(cleaned);\n\n  if (!audioOverview.title || !Array.isArray(audioOverview.segments)) {\n    throw new Error(\"Invalid audio overview format\");\n  }\n} catch (error) {\n  fallback = true;\n  audioOverview = {\n    title: \"Study Aura Audio Overview\",\n    description: \"A quick fallback audio review for the selected topic.\",\n    estimatedDuration: \"1 minute\",\n    segments: [\n      {\n        speaker: \"Audio\",\n        text: \"Welcome to this Study Aura audio overview. In this short review, we will focus on the main idea, important details, and a simple way to remember the topic.\"\n      },\n      {\n        speaker: \"Audio\",\n        text: \"Start by identifying the key concept. Then connect it to examples, definitions, and review questions so the idea becomes easier to recall.\"\n      }\n    ],\n    recap: [\"Identify the main idea\", \"Connect details with examples\", \"Review using active recall\"]\n  };\n}\n\nconst cleanSpeakerLabel = (value) => {\n  return String(value || \"\")\n    .replace(/^\\s*(Narrator|Host A|Host B|Audio|Speaker)\\s*:\\s*/i, \"\")\n    .trim();\n};\n\nconst segments = Array.isArray(audioOverview.segments)\n  ? audioOverview.segments.map((segment) => ({\n      speaker: \"Audio\",\n      text: cleanSpeakerLabel(segment.text || \"Review this topic carefully.\")\n    })).filter((segment) => segment.text)\n  : [];\n\nconst recap = Array.isArray(audioOverview.recap)\n  ? audioOverview.recap.map((item) => cleanSpeakerLabel(item)).filter(Boolean).slice(0, 5)\n  : [\"Review the main idea\", \"Practice recall\", \"Connect examples\"];\n\nconst script = segments.map((segment) => segment.text).join(\"\\n\\n\");\n\nreturn [\n  {\n    json: {\n      audioOverview: {\n        title: String(audioOverview.title || \"Study Aura Audio Overview\"),\n        description: String(audioOverview.description || \"Generated audio overview.\"),\n        estimatedDuration: String(audioOverview.estimatedDuration || \"2 minutes\"),\n        segments,\n        recap,\n        script\n      },\n      fallback,\n      provider: \"deepseek\"\n    }\n  }\n];"
-      },
-      "id": "clean-deepseek-audio-json",
-      "name": "Clean DeepSeek Audio JSON",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1440,
-        1008
+        480,
+        1056
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{\n  {\n    \"audioOverview\": $json.audioOverview,\n    \"provider\": \"deepseek\",\n    \"fallback\": $json.fallback\n  }\n}}",
+        "responseBody": "={{\n  {\n    \"audioOverview\": $json.audioOverview,\n    \"provider\": \"groq\",\n    \"scriptProvider\": \"groq\",\n    \"fallback\": true,\n    \"voiceFallback\": \"browser\"\n  }\n}}",
         "options": {}
       },
-      "id": "return-deepseek-audio-response",
-      "name": "Return DeepSeek Audio Response",
+      "id": "35038605-5702-444e-9dba-b99ec7ab894d",
+      "name": "Return Groq Script Browser Voice Fallback",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1712,
-        1008
+        256,
+        1248
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{\n  {\n    \"audioOverview\": {\n      \"title\": \"Study Aura Audio Overview\",\n      \"description\": \"A quick fallback audio review for the selected topic.\",\n      \"estimatedDuration\": \"1 minute\",\n      \"segments\": [\n        {\n          \"speaker\": \"Audio\",\n          \"text\": \"Welcome to this Study Aura audio overview. In this short review, we will focus on the main idea, important details, and a simple way to remember the topic.\"\n        },\n        {\n          \"speaker\": \"Audio\",\n          \"text\": \"Start by identifying the key concept. Then connect it to examples, definitions, and review questions so the idea becomes easier to recall.\"\n        }\n      ],\n      \"recap\": [\"Identify the main idea\", \"Connect details with examples\", \"Review using active recall\"],\n      \"script\": \"Welcome to this Study Aura audio overview. In this short review, we will focus on the main idea, important details, and a simple way to remember the topic.\\n\\nStart by identifying the key concept. Then connect it to examples, definitions, and review questions so the idea becomes easier to recall.\"\n    },\n    \"provider\": \"static-fallback\",\n    \"fallback\": true\n  }\n}}",
+        "responseBody": "={{\n  {\n    \"audioOverview\": {\n      \"title\": \"Study Aura Audio Overview\",\n      \"description\": \"A quick fallback audio review for the selected topic.\",\n      \"estimatedDuration\": \"1 minute\",\n      \"segments\": [\n        {\n          \"speaker\": \"Audio\",\n          \"text\": \"Welcome to this Study Aura audio overview. In this short review, we will focus on the main idea, important details, and a simple way to remember the topic.\"\n        },\n        {\n          \"speaker\": \"Audio\",\n          \"text\": \"Start by identifying the key concept. Then connect it to examples, definitions, and review questions so the idea becomes easier to recall.\"\n        }\n      ],\n      \"recap\": [\"Identify the main idea\", \"Connect details with examples\", \"Review using active recall\"],\n      \"script\": \"Welcome to this Study Aura audio overview. In this short review, we will focus on the main idea, important details, and a simple way to remember the topic.\\n\\nStart by identifying the key concept. Then connect it to examples, definitions, and review questions so the idea becomes easier to recall.\"\n    },\n    \"provider\": \"static-fallback\",\n    \"scriptProvider\": \"static-fallback\",\n    \"fallback\": true,\n    \"voiceFallback\": \"browser\"\n  }\n}}",
         "options": {}
       },
-      "id": "return-static-audio-fallback",
+      "id": "e923f6e4-b8ab-416e-b500-99c6983f2cc0",
       "name": "Return Static Audio Fallback",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1712,
-        1216
+        -384,
+        1248
       ]
     }
   ],
+  "pinData": {},
   "connections": {
     "Audio Agent Webhook": {
       "main": [
@@ -712,7 +586,47 @@
       "main": [
         [
           {
-            "node": "Return Gemini Audio Response",
+            "node": "Generate ElevenLabs Premium Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate ElevenLabs Premium Audio": {
+      "main": [
+        [
+          {
+            "node": "ElevenLabs Audio Created?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ElevenLabs Audio Created?": {
+      "main": [
+        [
+          {
+            "node": "Attach ElevenLabs Audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Gemini Script Browser Voice Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach ElevenLabs Audio": {
+      "main": [
+        [
+          {
+            "node": "Return ElevenLabs Audio Response",
             "type": "main",
             "index": 0
           }
@@ -752,7 +666,7 @@
         ],
         [
           {
-            "node": "Audio OpenRouter AI Agent",
+            "node": "Return Static Audio Fallback",
             "type": "main",
             "index": 0
           }
@@ -763,160 +677,47 @@
       "main": [
         [
           {
-            "node": "Return Groq Audio Response",
+            "node": "Generate ElevenLabs Premium Audio Groq",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Audio OpenRouter Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Audio OpenRouter AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Audio OpenRouter AI Agent": {
+    "Generate ElevenLabs Premium Audio Groq": {
       "main": [
         [
           {
-            "node": "Audio OpenRouter Succeeded?",
+            "node": "ElevenLabs Groq Audio Created?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Audio OpenRouter Succeeded?": {
+    "ElevenLabs Groq Audio Created?": {
       "main": [
         [
           {
-            "node": "Clean OpenRouter Audio JSON",
+            "node": "Attach ElevenLabs Groq Audio",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Audio Mistral AI Agent",
+            "node": "Return Groq Script Browser Voice Fallback",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Clean OpenRouter Audio JSON": {
+    "Attach ElevenLabs Groq Audio": {
       "main": [
         [
           {
-            "node": "Return OpenRouter Audio Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Audio Mistral Cloud Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Audio Mistral AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Audio Mistral AI Agent": {
-      "main": [
-        [
-          {
-            "node": "Audio Mistral Succeeded?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Audio Mistral Succeeded?": {
-      "main": [
-        [
-          {
-            "node": "Clean Mistral Audio JSON",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Audio DeepSeek AI Agent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Clean Mistral Audio JSON": {
-      "main": [
-        [
-          {
-            "node": "Return Mistral Audio Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Audio DeepSeek Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Audio DeepSeek AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Audio DeepSeek AI Agent": {
-      "main": [
-        [
-          {
-            "node": "Audio DeepSeek Succeeded?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Audio DeepSeek Succeeded?": {
-      "main": [
-        [
-          {
-            "node": "Clean DeepSeek Audio JSON",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Return Static Audio Fallback",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Clean DeepSeek Audio JSON": {
-      "main": [
-        [
-          {
-            "node": "Return DeepSeek Audio Response",
+            "node": "Return ElevenLabs Groq Audio Response",
             "type": "main",
             "index": 0
           }
@@ -924,7 +725,15 @@
       ]
     }
   },
+  "active": true,
   "settings": {
-    "executionOrder": "v1"
-  }
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "study-aura-audio-elevenlabs-gemini-groq-v2",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "study-aura-audio-elevenlabs-gemini-groq",
+  "tags": []
 }

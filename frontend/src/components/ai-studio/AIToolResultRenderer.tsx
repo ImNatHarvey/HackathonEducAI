@@ -3,6 +3,7 @@ import type {
   N8nAudioResponse,
   N8nFlashcardsResponse,
   N8nMindMapResponse,
+  N8nPremiumAudio,
   N8nQuizResponse,
   N8nSlidesResponse,
   N8nTablesResponse,
@@ -92,14 +93,29 @@ const getWordIndexFromCharIndex = (text: string, charIndex: number) => {
   return Math.max(0, wordsBeforeBoundary.length - 1);
 };
 
+const getPremiumAudio = (
+  result: N8nAudioResponse,
+): N8nPremiumAudio | undefined => {
+  return result.audioOverview.premiumAudio || result.audioOverview.audio;
+};
+
 const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [highlightedWordIndex, setHighlightedWordIndex] = useState(-1);
+
   const intervalRef = useRef<number | null>(null);
   const fallbackTimeoutRef = useRef<number | null>(null);
+  const premiumAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const audioOverview = result.audioOverview;
+  const premiumAudio = getPremiumAudio(result);
+
+  const premiumAudioSrc = premiumAudio?.base64
+    ? `data:${premiumAudio.mimeType || "audio/mpeg"};base64,${premiumAudio.base64}`
+    : "";
+
+  const hasPremiumAudio = Boolean(premiumAudioSrc);
 
   const segments = useMemo(() => {
     const rawSegments = audioOverview.segments || [];
@@ -113,6 +129,12 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
     segments.length > 0
       ? segments
       : ["Review this topic carefully and focus on the most important ideas."];
+
+  const fullScript = useMemo(() => {
+    return cleanAudioText(
+      audioOverview.script || safeSegments.join("\n\n"),
+    );
+  }, [audioOverview.script, safeSegments]);
 
   const currentText = safeSegments[activeIndex] || safeSegments[0];
   const currentWords = useMemo(() => splitWords(currentText), [currentText]);
@@ -140,6 +162,11 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
 
   const stopSpeech = () => {
     clearHighlightTimer();
+
+    if (premiumAudioRef.current) {
+      premiumAudioRef.current.pause();
+      premiumAudioRef.current.currentTime = 0;
+    }
 
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
@@ -177,7 +204,7 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
     }, stepMs);
   };
 
-  const playCurrentSegment = () => {
+  const playBrowserSegment = () => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
       return;
     }
@@ -232,6 +259,36 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
     };
 
     window.speechSynthesis.speak(utterance);
+  };
+
+  const playPremiumAudio = async () => {
+    if (!premiumAudioRef.current) {
+      playBrowserSegment();
+      return;
+    }
+
+    stopSpeech();
+
+    try {
+      premiumAudioRef.current.currentTime = 0;
+      setIsSpeaking(true);
+      startHighlightFallback(fullScript);
+      await premiumAudioRef.current.play();
+    } catch {
+      clearHighlightTimer();
+      setIsSpeaking(false);
+      setHighlightedWordIndex(-1);
+      playBrowserSegment();
+    }
+  };
+
+  const playAudio = () => {
+    if (hasPremiumAudio) {
+      void playPremiumAudio();
+      return;
+    }
+
+    playBrowserSegment();
   };
 
   const goPrevious = () => {
@@ -289,6 +346,25 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
 
   return (
     <div className="flex h-full min-h-[620px] flex-col overflow-hidden">
+      {hasPremiumAudio && (
+        <audio
+          ref={premiumAudioRef}
+          src={premiumAudioSrc}
+          preload="auto"
+          onEnded={() => {
+            clearHighlightTimer();
+            setIsSpeaking(false);
+            setHighlightedWordIndex(-1);
+          }}
+          onError={() => {
+            clearHighlightTimer();
+            setIsSpeaking(false);
+            setHighlightedWordIndex(-1);
+          }}
+          className="hidden"
+        />
+      )}
+
       <div className="mb-4 flex flex-col gap-3 rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-aura-cyan">
@@ -308,6 +384,22 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
           <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-1">
             {audioOverview.estimatedDuration}
           </span>
+
+          <span
+            className={
+              hasPremiumAudio
+                ? "rounded-full border border-aura-cyan/40 bg-aura-cyan/10 px-3 py-1 text-aura-cyan"
+                : "rounded-full border border-aura-border bg-aura-panel px-3 py-1"
+            }
+          >
+            {hasPremiumAudio ? "Premium Narrator" : "Browser Voice"}
+          </span>
+
+          {result.scriptProvider && (
+            <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-1">
+              script: {result.scriptProvider}
+            </span>
+          )}
 
           {result.provider && (
             <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-1">
@@ -338,11 +430,11 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={playCurrentSegment}
+              onClick={playAudio}
               disabled={isSpeaking}
               className="grid h-11 w-11 place-items-center rounded-full border border-aura-cyan/50 bg-aura-cyan/15 text-base font-black text-aura-text transition hover:border-aura-cyan hover:bg-aura-cyan/20 disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label="Play audio segment"
-              title="Play"
+              aria-label="Play audio overview"
+              title={hasPremiumAudio ? "Play Premium Narrator" : "Play"}
             >
               ▶
             </button>
@@ -352,7 +444,7 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
               onClick={stopSpeech}
               disabled={!isSpeaking}
               className="grid h-11 w-11 place-items-center rounded-full border border-aura-border bg-aura-panel text-sm font-black text-aura-muted transition hover:border-aura-cyan hover:text-aura-text disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label="Stop audio segment"
+              aria-label="Stop audio overview"
               title="Stop"
             >
               ■

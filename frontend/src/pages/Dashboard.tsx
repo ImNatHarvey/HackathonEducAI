@@ -144,7 +144,7 @@ const Dashboard = ({
   const selectedSourceCount = selectedSources.length;
 
   const showXpToast = (xpResult: AwardXpResult) => {
-    if (xpResult.accountXpGained === 0 && xpResult.toolXpGained === 0) {
+    if (!xpResult || (xpResult.accountXpGained === 0 && xpResult.toolXpGained === 0)) {
       showToast({
         type: "warning",
         title: "Daily XP cap reached",

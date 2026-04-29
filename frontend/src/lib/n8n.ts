@@ -264,7 +264,16 @@ export type N8nAudioPayload = {
   userId?: string;
 };
 
+export type N8nPremiumAudio = {
+  provider?: string;
+  voice?: string;
+  mimeType?: string;
+  base64?: string;
+};
+
 export type N8nAudioResponse = N8nBaseResponse & {
+  scriptProvider?: string;
+  voiceFallback?: string;
   audioOverview: {
     title: string;
     description: string;
@@ -274,6 +283,8 @@ export type N8nAudioResponse = N8nBaseResponse & {
     script: string;
     audioUrl?: string;
     provider?: string;
+    premiumAudio?: N8nPremiumAudio;
+    audio?: N8nPremiumAudio;
   };
 };
 
@@ -475,6 +486,29 @@ const cleanAudioLabel = (value: string) => {
     .trim();
 };
 
+const normalizePremiumAudio = (
+  rawAudio: unknown,
+): N8nPremiumAudio | undefined => {
+  if (!isRecord(rawAudio)) return undefined;
+
+  const base64 = pickFirstString(rawAudio, ["base64", "data", "audioBase64"]);
+  const audioUrl = pickFirstString(rawAudio, ["url", "audioUrl"]);
+
+  if (!base64 && !audioUrl) return undefined;
+
+  return {
+    provider:
+      pickFirstString(rawAudio, ["provider", "service"]) || "elevenlabs",
+    voice:
+      pickFirstString(rawAudio, ["voice", "voiceName", "voice_name"]) ||
+      "Premium Narrator",
+    mimeType:
+      pickFirstString(rawAudio, ["mimeType", "mime_type", "contentType"]) ||
+      "audio/mpeg",
+    base64: base64 || undefined,
+  };
+};
+
 const normalizeSourceType = (
   value: unknown,
 ): N8nSourceReaderResponse["sourceType"] => {
@@ -510,7 +544,6 @@ const normalizeSourceStatus = (
 
   return hasContent ? "ready" : "failed";
 };
-
 const normalizeSourceReaderResponse = (
   response: unknown,
 ): N8nSourceReaderResponse => {
@@ -602,14 +635,13 @@ const normalizeWebSearchResults = (response: unknown): N8nWebSearchResponse => {
     throw new Error("Web Search workflow returned an invalid response.");
   }
 
-  const rawResults =
-    Array.isArray(unwrapped.results)
-      ? unwrapped.results
-      : Array.isArray(unwrapped.items)
-        ? unwrapped.items
-        : Array.isArray(unwrapped.data)
-          ? unwrapped.data
-          : [];
+  const rawResults = Array.isArray(unwrapped.results)
+    ? unwrapped.results
+    : Array.isArray(unwrapped.items)
+      ? unwrapped.items
+      : Array.isArray(unwrapped.data)
+        ? unwrapped.data
+        : [];
 
   const results: WebSearchResult[] = rawResults
     .filter(isRecord)
@@ -701,7 +733,7 @@ const normalizeAudioResponse = (response: unknown): N8nAudioResponse => {
       speaker: "Audio",
       text: cleanAudioLabel(
         pickFirstString(segment, ["text", "content", "script", "line"]) ||
-          "Review this section carefully.",
+        "Review this section carefully.",
       ),
     }))
     .filter((segment) => segment.text.trim());
@@ -722,11 +754,11 @@ const normalizeAudioResponse = (response: unknown): N8nAudioResponse => {
       : fallbackScript
         ? [{ speaker: "Audio", text: fallbackScript }]
         : [
-            {
-              speaker: "Audio",
-              text: "Welcome to this Study Aura audio overview. Review the selected source, focus on the main idea, and practice recalling the key details.",
-            },
-          ];
+          {
+            speaker: "Audio",
+            text: "Welcome to this Study Aura audio overview. Review the selected source, focus on the main idea, and practice recalling the key details.",
+          },
+        ];
 
   const rawRecap = Array.isArray(rawOverview.recap)
     ? rawOverview.recap
@@ -745,8 +777,28 @@ const normalizeAudioResponse = (response: unknown): N8nAudioResponse => {
     fallbackScript ||
     normalizedSegments.map((segment) => segment.text).join("\n\n");
 
+  const premiumAudio =
+    normalizePremiumAudio(rawOverview.premiumAudio) ||
+    normalizePremiumAudio(rawOverview.premium_audio) ||
+    normalizePremiumAudio(unwrapped.premiumAudio) ||
+    normalizePremiumAudio(unwrapped.premium_audio);
+
+  const audio =
+    normalizePremiumAudio(rawOverview.audio) ||
+    normalizePremiumAudio(rawOverview.audioData) ||
+    normalizePremiumAudio(rawOverview.audio_data) ||
+    normalizePremiumAudio(unwrapped.audio) ||
+    normalizePremiumAudio(unwrapped.audioData) ||
+    normalizePremiumAudio(unwrapped.audio_data);
+
   return {
     provider: pickFirstString(unwrapped, ["provider"]) || undefined,
+    scriptProvider:
+      pickFirstString(unwrapped, ["scriptProvider", "script_provider"]) ||
+      undefined,
+    voiceFallback:
+      pickFirstString(unwrapped, ["voiceFallback", "voice_fallback"]) ||
+      undefined,
     fallback:
       typeof unwrapped.fallback === "boolean" ? unwrapped.fallback : undefined,
     audioOverview: {
@@ -768,10 +820,10 @@ const normalizeAudioResponse = (response: unknown): N8nAudioResponse => {
         recap.length > 0
           ? recap
           : [
-              "Review the main idea",
-              "Practice active recall",
-              "Connect examples to concepts",
-            ],
+            "Review the main idea",
+            "Practice active recall",
+            "Connect examples to concepts",
+          ],
       script,
       audioUrl:
         pickFirstString(rawOverview, [
@@ -781,7 +833,12 @@ const normalizeAudioResponse = (response: unknown): N8nAudioResponse => {
           "fileUrl",
           "file_url",
         ]) || undefined,
-      provider: pickFirstString(unwrapped, ["provider"]) || undefined,
+      provider:
+        pickFirstString(rawOverview, ["provider"]) ||
+        pickFirstString(unwrapped, ["provider"]) ||
+        undefined,
+      premiumAudio,
+      audio,
     },
   };
 };
@@ -998,6 +1055,7 @@ export const generateAudioOverviewWithN8n = async (
     webhookName: "Audio Overview",
     envKey: "VITE_N8N_AUDIO_WEBHOOK_URL",
     payload,
+    timeoutMs: 120_000,
   });
 
   const response = normalizeAudioResponse(rawResponse);
