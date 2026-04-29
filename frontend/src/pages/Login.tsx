@@ -28,6 +28,7 @@ const Login = ({
   const [displayName, setDisplayName] = useState("John Doe");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   const validationMessage = useMemo(() => {
     if (mode === "register" && !displayName.trim()) {
@@ -55,6 +56,7 @@ const Login = ({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setHasSubmitted(true);
 
     if (validationMessage || isAuthLoading) return;
 
@@ -75,6 +77,7 @@ const Login = ({
 
   const switchMode = (nextMode: AuthMode) => {
     setMode(nextMode);
+    setHasSubmitted(false);
   };
 
   return (
@@ -213,7 +216,7 @@ const Login = ({
                   />
                 </label>
 
-                {(validationMessage || authError) && (
+                {(authError || (hasSubmitted && validationMessage)) && (
                   <div className="mt-4 rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm font-semibold leading-6 text-red-200">
                     {authError || validationMessage}
                   </div>
@@ -227,7 +230,7 @@ const Login = ({
 
                 <button
                   type="submit"
-                  disabled={Boolean(validationMessage) || isAuthLoading}
+                  disabled={isAuthLoading}
                   className="mt-5 w-full rounded-2xl bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold px-5 py-3 text-sm font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(34,211,238,0.22)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isAuthLoading

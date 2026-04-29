@@ -6,6 +6,7 @@ import { getXpNeededForLevel, type AuraStats } from "../../lib/xp";
 type DashboardNavbarProps = {
   profile: AuthProfile | null;
   auraStats?: AuraStats;
+  libraryButtonLabel?: string;
   onOpenSettings: (panel?: SettingsPanel) => void;
   onOpenLibrary: () => void;
   onOpenCreateModule: () => void;
@@ -27,6 +28,7 @@ const getInitials = (name: string) => {
 const DashboardNavbar = ({
   profile,
   auraStats,
+  libraryButtonLabel = "Module Library",
   onOpenSettings,
   onOpenLibrary,
   onOpenCreateModule,
@@ -93,48 +95,48 @@ const DashboardNavbar = ({
 
   return (
     <header className="shrink-0 border-b border-aura-border bg-aura-panel/90 px-3 py-3 backdrop-blur-xl sm:px-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex min-h-[3rem] items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
             onClick={onOpenLibrary}
-            className="flex min-w-0 items-center gap-3 rounded-2xl px-2 py-1 text-left transition hover:bg-aura-bg-soft"
-            aria-label="Open module library"
+            className="flex h-12 w-[260px] min-w-[260px] items-center gap-3 rounded-2xl px-2 text-left transition hover:bg-aura-bg-soft max-sm:w-auto max-sm:min-w-0"
+            aria-label={libraryButtonLabel}
           >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-aura-primary via-aura-cyan to-aura-gold text-lg font-black text-aura-bg shadow-[0_0_30px_rgba(34,211,238,0.22)]">
               ✦
             </div>
 
             <div className="hidden min-w-0 sm:block">
-              <p className="truncate text-sm font-black text-aura-text">
+              <p className="truncate text-sm font-black leading-4 text-aura-text">
                 Study Aura
               </p>
-              <p className="truncate text-xs font-semibold text-aura-muted">
+              <p className="truncate text-xs font-semibold leading-4 text-aura-muted">
                 AI-powered study workspace
               </p>
             </div>
           </button>
 
-          <div className="ml-1 hidden h-8 w-px bg-aura-border lg:block" />
+          <div className="hidden h-8 w-px shrink-0 bg-aura-border lg:block" />
 
           <button
             type="button"
             onClick={onOpenLibrary}
-            className="hidden rounded-2xl border border-aura-border bg-aura-bg-soft px-4 py-2 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text md:inline-flex"
+            className="hidden h-11 w-[190px] items-center justify-center rounded-2xl border border-aura-border bg-aura-bg-soft px-4 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text md:inline-flex"
           >
-            Module Library
+            {libraryButtonLabel}
           </button>
 
           <button
             type="button"
             onClick={onOpenCreateModule}
-            className="hidden rounded-2xl bg-aura-cyan px-4 py-2 text-xs font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(34,211,238,0.2)] md:inline-flex"
+            className="hidden h-11 w-[172px] items-center justify-center rounded-2xl bg-aura-cyan px-4 text-xs font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(34,211,238,0.2)] md:inline-flex"
           >
             + Create Module
           </button>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={onOpenCreateModule}
@@ -150,7 +152,7 @@ const DashboardNavbar = ({
             onClick={onOpenLibrary}
             className="rounded-2xl border border-aura-border bg-aura-bg-soft px-3 py-2 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text md:hidden"
           >
-            Library
+            {libraryButtonLabel === "Module Library" ? "Library" : "Back"}
           </button>
 
           <button

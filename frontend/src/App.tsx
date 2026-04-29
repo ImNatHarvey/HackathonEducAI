@@ -6,9 +6,13 @@ import ModuleLibrary from "./pages/ModuleLibrary";
 import CreateModuleModal from "./components/dashboard/CreateModuleModal";
 import LoadingState from "./components/states/LoadingState";
 import ErrorState from "./components/states/ErrorState";
+import SettingsModal from "./components/settings/SettingsModal";
 import { useAuth } from "./hooks/useAuth";
 import { useSupabaseModules } from "./hooks/useSupabaseModules";
+import { useAuraProgress } from "./hooks/useAuraProgress";
 import { isSupabaseConfigured, supabaseConfigError } from "./lib/supabase";
+import type { SettingsPanel } from "./components/settings/settingsTypes";
+import type { AuthProfile } from "./services/authService";
 
 type AppView = "landing" | "login" | "dashboard" | "library";
 
@@ -33,10 +37,17 @@ const saveView = (view: AppView) => {
   localStorage.setItem(APP_VIEW_STORAGE_KEY, view);
 };
 
+const getProfileName = (profile: AuthProfile | null) => {
+  return profile?.displayName || profile?.email?.split("@")[0] || "Student";
+};
+
 function App() {
   const [view, setViewState] = useState<AppView>(getStoredView);
   const [isCreateModuleOpen, setIsCreateModuleOpen] = useState(false);
   const [isAuthActionLoading, setIsAuthActionLoading] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsInitialPanel, setSettingsInitialPanel] =
+    useState<SettingsPanel>("home");
 
   const {
     user,
@@ -50,6 +61,16 @@ function App() {
     register,
     logout,
   } = useAuth();
+
+  const {
+    stats,
+    accountProgress,
+    toolProgress,
+    equipTitle,
+  } = useAuraProgress({
+    userId: user?.id,
+    username: getProfileName(profile),
+  });
 
   const {
     modules,
@@ -72,13 +93,18 @@ function App() {
     saveView(nextView);
   };
 
+  const openSettings = (panel: SettingsPanel = "home") => {
+    setSettingsInitialPanel(panel);
+    setIsSettingsOpen(true);
+  };
+
   useEffect(() => {
     saveView(view);
   }, [view]);
 
   useEffect(() => {
     if (!isLoadingAuth && isAuthenticated && view === "landing") {
-      setView("dashboard");
+      setView("library");
     }
 
     if (
@@ -100,7 +126,9 @@ function App() {
 
     try {
       await login(credentials);
-      setView("dashboard");
+      setView("library");
+    } catch (error) {
+      console.error(error);
     } finally {
       setIsAuthActionLoading(false);
     }
@@ -117,10 +145,12 @@ function App() {
       await register(credentials);
 
       if (session || user) {
-        setView("dashboard");
+        setView("library");
       } else {
         setView("login");
       }
+    } catch (error) {
+      console.error(error);
     } finally {
       setIsAuthActionLoading(false);
     }
@@ -251,10 +281,14 @@ function App() {
         <ModuleLibrary
           modules={modules}
           activeModuleId={activeModule?.id}
+          profile={profile}
+          auraStats={stats}
           onOpenModule={handleOpenModule}
           onCreateModule={() => setIsCreateModuleOpen(true)}
           onDeleteModule={deleteModule}
           onBackToDashboard={() => setView("dashboard")}
+          onOpenSettings={openSettings}
+          onLogout={handleLogout}
         />
       )}
 
@@ -281,6 +315,17 @@ function App() {
         isOpen={isCreateModuleOpen}
         onClose={() => setIsCreateModuleOpen(false)}
         onCreateModule={handleCreateModule}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        initialPanel={settingsInitialPanel}
+        profile={profile}
+        auraStats={stats}
+        accountProgress={accountProgress}
+        toolProgress={toolProgress}
+        onEquipTitle={equipTitle}
+        onClose={() => setIsSettingsOpen(false)}
       />
     </>
   );

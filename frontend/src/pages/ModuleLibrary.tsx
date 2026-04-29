@@ -1,13 +1,21 @@
 import { useState } from "react";
+import DashboardNavbar from "../components/dashboard/DashboardNavbar";
 import type { StudyModule } from "../components/dashboard/dashboardTypes";
+import type { AuthProfile } from "../services/authService";
+import type { AuraStats } from "../lib/xp";
+import type { SettingsPanel } from "../components/settings/settingsTypes";
 
 type ModuleLibraryProps = {
   modules: StudyModule[];
   activeModuleId?: string;
+  profile: AuthProfile | null;
+  auraStats?: AuraStats;
   onOpenModule: (moduleId: string) => void;
   onCreateModule: () => void;
   onDeleteModule: (moduleId: string) => Promise<void>;
   onBackToDashboard: () => void;
+  onOpenSettings: (panel?: SettingsPanel) => void;
+  onLogout: () => void;
 };
 
 const formatDate = (isoDate: string) => {
@@ -26,10 +34,14 @@ const getModuleIcon = (index: number) => {
 const ModuleLibrary = ({
   modules,
   activeModuleId,
+  profile,
+  auraStats,
   onOpenModule,
   onCreateModule,
   onDeleteModule,
   onBackToDashboard,
+  onOpenSettings,
+  onLogout,
 }: ModuleLibraryProps) => {
   const [moduleToDelete, setModuleToDelete] = useState<StudyModule | null>(
     null,
@@ -77,47 +89,18 @@ const ModuleLibrary = ({
     moduleToDelete && deletingModuleId === moduleToDelete.id;
 
   return (
-    <div className="h-dvh overflow-y-auto bg-aura-bg text-aura-text aura-scrollbar">
-      <header className="sticky top-0 z-20 border-b border-aura-border bg-aura-panel/90 px-6 py-4 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={onBackToDashboard}
-            className="flex items-center gap-3 rounded-2xl px-2 py-1 text-left transition hover:bg-aura-bg-soft"
-          >
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-aura-primary via-aura-cyan to-aura-gold text-lg font-black text-aura-bg">
-              ✦
-            </div>
+    <div className="flex h-dvh max-h-dvh w-full flex-col overflow-hidden bg-aura-bg text-aura-text">
+      <DashboardNavbar
+        profile={profile}
+        auraStats={auraStats}
+        libraryButtonLabel="Workspace"
+        onOpenSettings={onOpenSettings}
+        onOpenLibrary={onBackToDashboard}
+        onOpenCreateModule={onCreateModule}
+        onLogout={onLogout}
+      />
 
-            <div>
-              <p className="text-sm font-black text-aura-text">Study Aura</p>
-              <p className="text-xs font-semibold text-aura-muted">
-                Module Library
-              </p>
-            </div>
-          </button>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onBackToDashboard}
-              className="rounded-2xl border border-aura-border bg-aura-bg-soft px-4 py-2 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text"
-            >
-              Back to Workspace
-            </button>
-
-            <button
-              type="button"
-              onClick={onCreateModule}
-              className="rounded-2xl bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold px-4 py-2 text-xs font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(34,211,238,0.22)]"
-            >
-              + Create Module
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-6 py-8 pb-16">
+      <main className="aura-scrollbar mx-auto w-full max-w-7xl flex-1 overflow-y-auto px-6 py-8 pb-16">
         <section className="overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel p-8 shadow-[0_30px_90px_rgba(0,0,0,0.25)]">
           <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
             <div>
