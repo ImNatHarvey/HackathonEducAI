@@ -198,7 +198,7 @@ const DashboardNavbar = ({
   };
 
   return (
-    <header className="relative z-[9999] shrink-0 border-b border-aura-border bg-aura-panel/90 px-3 py-3 backdrop-blur-xl sm:px-5">
+    <header className="relative z-40 shrink-0 border-b border-aura-border bg-aura-panel/90 px-3 py-3 backdrop-blur-xl sm:px-5">
       <div className="flex min-h-[3rem] items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <button
