@@ -15,6 +15,10 @@ import SavedQuizResult from "./results/SavedQuizResult";
 import SavedSlidesResult from "./results/SavedSlidesResult";
 import SavedTablesResult from "./results/SavedTablesResult";
 import { FallbackJsonView, isRecord } from "./results/resultUtils";
+import {
+  loadAudioSettings,
+  subscribeToAudioSettings,
+} from "../settings/AudioOverviewPanel";
 
 type AIToolResultRendererProps = {
   toolName: AIToolName;
@@ -103,6 +107,9 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [highlightedWordIndex, setHighlightedWordIndex] = useState(-1);
+  const [audioSettings, setAudioSettings] = useState(loadAudioSettings);
+
+  const karaokeEnabled = audioSettings.karaokeHighlight;
 
   const intervalRef = useRef<number | null>(null);
   const fallbackTimeoutRef = useRef<number | null>(null);
@@ -160,6 +167,19 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
     }
   };
 
+  useEffect(() => {
+    const unsubscribe = subscribeToAudioSettings((nextSettings) => {
+      setAudioSettings(nextSettings);
+
+      if (!nextSettings.karaokeHighlight) {
+        clearHighlightTimer();
+        setHighlightedWordIndex(-1);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
   const stopSpeech = () => {
     clearHighlightTimer();
 
@@ -178,6 +198,11 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
 
   const startHighlightFallback = (text: string) => {
     clearHighlightTimer();
+
+    if (!karaokeEnabled) {
+      setHighlightedWordIndex(-1);
+      return;
+    }
 
     const wordCount = getWordCount(text);
 
@@ -219,6 +244,12 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
 
     utterance.onstart = () => {
       setIsSpeaking(true);
+
+      if (!karaokeEnabled) {
+        setHighlightedWordIndex(-1);
+        return;
+      }
+
       setHighlightedWordIndex(0);
 
       fallbackTimeoutRef.current = window.setTimeout(() => {
@@ -229,6 +260,11 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
     };
 
     utterance.onboundary = (event) => {
+      if (!karaokeEnabled) {
+        setHighlightedWordIndex(-1);
+        return;
+      }
+
       receivedBoundary = true;
 
       if (intervalRef.current !== null) {
@@ -272,7 +308,13 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
     try {
       premiumAudioRef.current.currentTime = 0;
       setIsSpeaking(true);
-      startHighlightFallback(fullScript);
+
+      if (karaokeEnabled) {
+        startHighlightFallback(fullScript);
+      } else {
+        setHighlightedWordIndex(-1);
+      }
+
       await premiumAudioRef.current.play();
     } catch {
       clearHighlightTimer();
@@ -314,6 +356,10 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
   }, []);
 
   const renderKaraokeText = () => {
+    if (!karaokeEnabled) {
+      return <span className="text-aura-muted">{currentText}</span>;
+    }
+
     let wordPosition = -1;
 
     return currentWords.map((part, index) => {

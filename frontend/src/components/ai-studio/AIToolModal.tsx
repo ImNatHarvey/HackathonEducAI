@@ -445,7 +445,9 @@ const AIToolModal = ({
           {status === "error" && (
             <ErrorState
               title="Generation failed"
-              description={error || "Study Aura could not generate this output."}
+              description={
+                error || "Study Aura could not generate this output."
+              }
               actionLabel="Retry"
               onRetry={handleGenerate}
             />
@@ -453,12 +455,18 @@ const AIToolModal = ({
 
           {hasResult && (
             <div className={isAudioResult ? "h-full" : "space-y-4"}>
-              {!isViewingSavedOutput && saveNotice && !isAudioResult && (
-                <div className="rounded-2xl border border-aura-gold/30 bg-aura-gold/10 px-4 py-3 text-xs font-black uppercase tracking-[0.18em] text-aura-gold">
-                  {saveNotice}
+              {!isViewingSavedOutput && !isAudioResult && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleGenerate}
+                    disabled={isLoading}
+                    className="rounded-2xl border border-aura-border bg-aura-panel px-4 py-2 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text disabled:opacity-50"
+                  >
+                    Regenerate
+                  </button>
                 </div>
               )}
-
               <AIToolResultRenderer
                 toolName={activeTool}
                 result={isViewingSavedOutput ? savedResult : result}
