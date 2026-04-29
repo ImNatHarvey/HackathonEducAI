@@ -7,10 +7,10 @@
   --color-aura-panel-2: #172033;
   --color-aura-card: #151f32;
 
-  --color-aura-primary: #7c3aed;
-  --color-aura-primary-soft: #a78bfa;
-  --color-aura-cyan: #22d3ee;
-  --color-aura-gold: #facc15;
+  --color-aura-primary: #D62828;
+  --color-aura-primary-soft: #003049;
+  --color-aura-cyan: #F77F00;
+  --color-aura-gold: #FCBF49;
   --color-aura-green: #34d399;
   --color-aura-pink: #fb7185;
   --color-aura-orange: #fb923c;
@@ -477,18 +477,18 @@ button:disabled {
 
 .slides-new-button {
   flex-shrink: 0;
-  border: 1px solid rgba(244, 114, 182, 0.42);
+  border: 1px solid rgba(34, 211, 238, 0.42);
   border-radius: 1rem;
   padding: 0.7rem 1rem;
-  color: #f472b6;
-  background: rgba(244, 114, 182, 0.1);
+  color: #22d3ee;
+  background: rgba(34, 211, 238, 0.1);
   font-size: 0.85rem;
   font-weight: 900;
   cursor: pointer;
 }
 
 .slides-new-button:hover {
-  border-color: rgba(244, 114, 182, 0.75);
+  border-color: rgba(34, 211, 238, 0.75);
 }
 
 .slides-viewer-shell {
@@ -550,8 +550,8 @@ button:disabled {
 
 .slides-nav-button-primary {
   color: #020617;
-  border-color: rgba(250, 204, 21, 0.75);
-  background: linear-gradient(135deg, #facc15, #22d3ee);
+  border-color: rgba(34, 211, 238, 0.75);
+  background: linear-gradient(135deg, #0891b2, #22d3ee);
 }
 
 .slides-progress-track {
@@ -691,18 +691,18 @@ button:disabled {
 }
 
 .slides-speaker-button {
-  border: 1px solid rgba(250, 204, 21, 0.45);
+  border: 1px solid rgba(34, 211, 238, 0.45);
   border-radius: 1rem;
   padding: 0.85rem 1rem;
-  color: #facc15;
-  background: rgba(250, 204, 21, 0.1);
+  color: #22d3ee;
+  background: rgba(34, 211, 238, 0.1);
   font-size: 0.85rem;
   font-weight: 950;
   cursor: pointer;
 }
 
 .slides-speaker-button:hover {
-  border-color: rgba(250, 204, 21, 0.78);
+  border-color: rgba(34, 211, 238, 0.78);
 }
 
 .slides-thumbnail-strip {
