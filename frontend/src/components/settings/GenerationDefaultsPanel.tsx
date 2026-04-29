@@ -7,14 +7,11 @@ import AudioDefaults from "./generation-defaults/AudioDefaults";
 
 const GenerationDefaultsPanel = () => {
   return (
-    <section className="mx-auto max-w-5xl space-y-5">
+    <section className="space-y-5">
       <div className="rounded-[1.75rem] border border-aura-border bg-aura-bg-soft p-6">
-        <h3 className="text-xl font-black text-aura-text">
-          Generation Defaults
-        </h3>
-        <p className="mt-2 text-sm leading-6 text-aura-muted">
-          Default behavior for Study Aura tools. Quiz is now connected to n8n;
-          the other tools are ready as placeholders.
+        <p className="max-w-3xl text-sm leading-6 text-aura-muted">
+          Default behavior for Study Aura tools. These presets keep AI
+          generation predictable and help control token usage.
         </p>
 
         <div className="mt-5 grid gap-4 md:grid-cols-2">

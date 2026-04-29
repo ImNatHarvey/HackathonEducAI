@@ -23,6 +23,10 @@ type AIToolModalProps = {
   selectedSources: StudySource[];
   savedOutput?: GeneratedOutput | null;
   onClose: () => void;
+  onToolGenerated?: (params: {
+    toolName: AIToolName;
+    options: AIToolGenerationOptions;
+  }) => void;
 };
 
 const toolTitles: Record<AIToolName, string> = {
@@ -102,6 +106,7 @@ const AIToolModal = ({
   selectedSources,
   savedOutput = null,
   onClose,
+  onToolGenerated,
 }: AIToolModalProps) => {
   const [options, setOptions] =
     useState<AIToolGenerationOptions>(defaultOptions);
@@ -110,6 +115,7 @@ const AIToolModal = ({
 
   const lastStatusRef = useRef<string>("idle");
   const viewedSavedOutputRef = useRef<string | null>(null);
+  const lastGeneratedKeyRef = useRef<string>("");
 
   const {
     status,
@@ -172,6 +178,17 @@ const AIToolModal = ({
             ? "Your audio study cards are ready to play."
             : saveNotice || "Your generated output is ready.",
       });
+
+      const generatedKey = `${activeTool}-${Date.now()}`;
+
+      if (generatedKey !== lastGeneratedKeyRef.current) {
+        lastGeneratedKeyRef.current = generatedKey;
+
+        onToolGenerated?.({
+          toolName: activeTool,
+          options,
+        });
+      }
     }
 
     if (status === "error" && previousStatus === "loading") {
@@ -184,7 +201,15 @@ const AIToolModal = ({
     }
 
     lastStatusRef.current = status;
-  }, [activeTool, error, saveNotice, showToast, status]);
+  }, [
+    activeTool,
+    error,
+    onToolGenerated,
+    options,
+    saveNotice,
+    showToast,
+    status,
+  ]);
 
   if (!activeTool) return null;
 
@@ -200,7 +225,8 @@ const AIToolModal = ({
       showToast({
         type: "warning",
         title: "No sources selected",
-        message: "Aura will use the module topic only. Select sources for better results.",
+        message:
+          "Aura will use the module topic only. Select sources for better results.",
       });
     }
 

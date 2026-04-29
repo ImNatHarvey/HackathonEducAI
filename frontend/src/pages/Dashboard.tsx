@@ -7,6 +7,7 @@ import ChatPanel from "../components/dashboard/ChatPanel";
 import AIStudioPanel from "../components/dashboard/AIStudioPanel";
 import AddSourceModal from "../components/dashboard/AddSourceModal";
 import { useToast } from "../components/toast/ToastProvider";
+import { useAuraProgress } from "../hooks/useAuraProgress";
 import { useDashboardActions } from "../hooks/useDashboardActions";
 import {
   deleteGeneratedOutput,
@@ -15,6 +16,7 @@ import {
 } from "../services/generatedOutputService";
 import type { SettingsPanel } from "../components/settings/settingsTypes";
 import type { AuthProfile } from "../services/authService";
+import type { AwardXpResult } from "../lib/xp";
 import type {
   AIToolName,
   SourceUploadPayload,
@@ -55,6 +57,10 @@ interface DashboardProps {
   onLogout: () => void;
 }
 
+const getProfileName = (profile: AuthProfile | null) => {
+  return profile?.displayName || profile?.email?.split("@")[0] || "Student";
+};
+
 const Dashboard = ({
   topic,
   modules,
@@ -71,6 +77,11 @@ const Dashboard = ({
   onLogout,
 }: DashboardProps) => {
   const { showToast } = useToast();
+
+  const { stats, accountProgress, toolProgress, awardXp } = useAuraProgress({
+    userId,
+    username: getProfileName(profile),
+  });
 
   const [inputValue, setInputValue] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -100,6 +111,38 @@ const Dashboard = ({
   }, [currentSources]);
 
   const selectedSourceCount = selectedSources.length;
+
+  const showXpToast = (xpResult: AwardXpResult) => {
+    if (xpResult.accountXpGained === 0 && xpResult.toolXpGained === 0) {
+      showToast({
+        type: "warning",
+        title: "Daily XP cap reached",
+        message: "You can still study, but XP rewards are capped for today.",
+        duration: 4200,
+      });
+      return;
+    }
+
+    showToast({
+      type: xpResult.leveledUp || xpResult.toolLeveledUp ? "xp" : "success",
+      title: xpResult.leveledUp
+        ? `Aura Level ${xpResult.nextStats.level} reached!`
+        : xpResult.toolLeveledUp
+          ? "Tool proficiency leveled up!"
+          : "XP earned",
+      message: xpResult.message,
+      duration: xpResult.leveledUp || xpResult.toolLeveledUp ? 6500 : 3800,
+    });
+
+    xpResult.unlockedTitles.forEach((title) => {
+      showToast({
+        type: "xp",
+        title: "New title unlocked",
+        message: title,
+        duration: 6500,
+      });
+    });
+  };
 
   const loadGeneratedOutputs = async () => {
     if (!userId || !currentModule?.id) {
@@ -193,6 +236,13 @@ const Dashboard = ({
               `${savedSource.title} was added, but Study Aura could not fully read it.`
             : `${savedSource.title} is ready in your workspace.`,
       });
+
+      const xpResult = awardXp({
+        event: "source_added",
+        sourceType: savedSource.type,
+      });
+
+      showXpToast(xpResult);
     } catch (error) {
       showToast({
         type: "error",
@@ -246,16 +296,23 @@ const Dashboard = ({
           } added, but ${failedCount} could not be fully read.`,
           duration: 6500,
         });
-
-        return;
+      } else {
+        showToast({
+          type: "success",
+          title: "Sources added",
+          message: `${savedSources.length} source${
+            savedSources.length === 1 ? "" : "s"
+          } added to your workspace.`,
+        });
       }
 
-      showToast({
-        type: "success",
-        title: "Sources added",
-        message: `${savedSources.length} source${
-          savedSources.length === 1 ? "" : "s"
-        } added to your workspace.`,
+      savedSources.forEach((savedSource) => {
+        const xpResult = awardXp({
+          event: "source_added",
+          sourceType: savedSource.type,
+        });
+
+        showXpToast(xpResult);
       });
     } catch (error) {
       showToast({
@@ -530,7 +587,27 @@ const Dashboard = ({
       duration: 2600,
     });
 
+    const xpResult = awardXp({
+      event: "web_sources_imported",
+    });
+
+    showXpToast(xpResult);
+
     handleUploadSources(payloads);
+  };
+
+  const handleChatSendWithXp = () => {
+    const message = inputValue.trim();
+
+    handleSendMessage();
+
+    if (!message) return;
+
+    const xpResult = awardXp({
+      event: "chat_send",
+    });
+
+    showXpToast(xpResult);
   };
 
   const handleOpenTool = (toolName: AIToolName) => {
@@ -546,7 +623,9 @@ const Dashboard = ({
   const handleDeleteSavedOutput = async (outputId: string) => {
     if (!userId) return;
 
-    const outputToDelete = recentOutputs.find((output) => output.id === outputId);
+    const outputToDelete = recentOutputs.find(
+      (output) => output.id === outputId,
+    );
 
     setDeletingOutputId(outputId);
     setOutputError("");
@@ -602,6 +681,7 @@ const Dashboard = ({
     <div className="flex h-dvh max-h-dvh w-full flex-col overflow-hidden bg-aura-bg text-aura-text">
       <DashboardNavbar
         profile={profile}
+        auraStats={stats}
         onOpenSettings={openSettings}
         onOpenLibrary={onOpenLibrary}
         onOpenCreateModule={onOpenCreateModule}
@@ -636,7 +716,7 @@ const Dashboard = ({
             messages={messages}
             isChatLoading={isChatLoading}
             chatError={chatError}
-            onSend={handleSendMessage}
+            onSend={handleChatSendWithXp}
           />
         </div>
 
@@ -658,6 +738,9 @@ const Dashboard = ({
         isOpen={isSettingsOpen}
         initialPanel={settingsInitialPanel}
         profile={profile}
+        auraStats={stats}
+        accountProgress={accountProgress}
+        toolProgress={toolProgress}
         onClose={() => setIsSettingsOpen(false)}
       />
 
@@ -669,6 +752,17 @@ const Dashboard = ({
         selectedSources={selectedSources}
         savedOutput={savedOutputToView}
         onClose={handleCloseToolModal}
+        onToolGenerated={({ toolName, options }) => {
+          const xpResult = awardXp({
+            event: "ai_tool_generated",
+            toolName,
+            difficulty: options.difficulty,
+            audioLength: options.audioLength,
+            tableType: options.tableType,
+          });
+
+          showXpToast(xpResult);
+        }}
       />
 
       <AddSourceModal

@@ -1,6 +1,12 @@
 import { useMemo, useState } from "react";
 
-type ActivityType = "all" | "chat" | "quiz" | "flashcards" | "youtube" | "settings";
+type ActivityType =
+  | "all"
+  | "chat"
+  | "quiz"
+  | "flashcards"
+  | "youtube"
+  | "settings";
 
 type ActivityItem = {
   id: number;
@@ -77,7 +83,8 @@ const ActivityLogPanel = () => {
 
   const filteredActivities = useMemo(() => {
     return activityItems.filter((item) => {
-      const searchableText = `${item.action} ${item.detail} ${item.type}`.toLowerCase();
+      const searchableText =
+        `${item.action} ${item.detail} ${item.type}`.toLowerCase();
       const matchesSearch = searchableText.includes(search.toLowerCase());
       const matchesType = typeFilter === "all" || item.type === typeFilter;
       const matchesFromDate = !fromDate || item.date >= fromDate;
@@ -95,16 +102,13 @@ const ActivityLogPanel = () => {
   };
 
   return (
-    <section className="mx-auto max-w-5xl space-y-5">
+    <section className="space-y-5">
       <div className="rounded-[1.75rem] border border-aura-border bg-aura-bg-soft p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h3 className="text-xl font-black text-aura-text">Activity Log</h3>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-aura-muted">
-              Search your chat prompts, generated quizzes, flashcards, YouTube context,
-              and settings changes. Later, this will come from Supabase.
-            </p>
-          </div>
+          <p className="max-w-3xl text-sm leading-6 text-aura-muted">
+            Search your chat prompts, generated quizzes, flashcards, YouTube
+            context, and settings changes. Later, this will come from Supabase.
+          </p>
 
           <button
             type="button"
@@ -134,7 +138,9 @@ const ActivityLogPanel = () => {
             </label>
             <select
               value={typeFilter}
-              onChange={(event) => setTypeFilter(event.target.value as ActivityType)}
+              onChange={(event) =>
+                setTypeFilter(event.target.value as ActivityType)
+              }
               className="w-full rounded-2xl border border-aura-border bg-aura-panel px-4 py-3 text-sm text-aura-text outline-none focus:border-aura-cyan/70"
             >
               {activityTypes.map((type) => (
@@ -177,9 +183,7 @@ const ActivityLogPanel = () => {
             result{filteredActivities.length === 1 ? "" : "s"}
           </p>
 
-          <p className="text-xs text-aura-dim">
-            Date format: YYYY-MM-DD
-          </p>
+          <p className="text-xs text-aura-dim">Date format: YYYY-MM-DD</p>
         </div>
       </div>
 

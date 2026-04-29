@@ -5,7 +5,7 @@ type SettingRowProps = {
 };
 
 const SettingRow = ({ label, description, enabled = true }: SettingRowProps) => (
-  <div className="flex items-center justify-between gap-5 rounded-2xl border border-aura-border bg-aura-bg-soft p-4">
+  <div className="flex items-center justify-between gap-5 rounded-2xl border border-aura-border bg-aura-panel p-4">
     <div>
       <p className="font-black text-aura-text">{label}</p>
       <p className="mt-1 text-sm leading-6 text-aura-muted">{description}</p>
@@ -16,7 +16,7 @@ const SettingRow = ({ label, description, enabled = true }: SettingRowProps) => 
       className={`relative h-7 w-12 shrink-0 rounded-full border transition ${
         enabled
           ? "border-aura-cyan/50 bg-aura-cyan/25"
-          : "border-aura-border bg-aura-panel"
+          : "border-aura-border bg-aura-bg-soft"
       }`}
       aria-label={label}
     >
@@ -33,11 +33,12 @@ const SettingRow = ({ label, description, enabled = true }: SettingRowProps) => 
 
 const PersonalPreferencePanel = () => {
   return (
-    <section className="mx-auto max-w-4xl space-y-5">
+    <section className="space-y-5">
       <div className="rounded-[1.75rem] border border-aura-border bg-aura-bg-soft p-6">
-        <h3 className="text-xl font-black text-aura-text">Personal Preference</h3>
-        <p className="mt-2 text-sm leading-6 text-aura-muted">
-          Choose how Study Aura should communicate and guide your study sessions.
+        <p className="max-w-3xl text-sm leading-6 text-aura-muted">
+          Choose how Study Aura should communicate and guide your study
+          sessions. These preferences will later be used as custom AI
+          instructions for every module.
         </p>
 
         <div className="mt-5 space-y-3">
