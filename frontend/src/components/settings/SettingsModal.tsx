@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import ActivityLogPanel from "./ActivityLogPanel";
 import AudioOverviewPanel from "./AudioOverviewPanel";
 import GenerationDefaultsPanel from "./GenerationDefaultsPanel";
-import PersonalPreferencePanel from "./PersonalPreferencePanel";
 import ProfilePanel from "./ProfilePanel";
 import SafeLearningFilterPanel from "./SafeLearningFilterPanel";
 import SettingsHome from "./SettingsHome";
@@ -28,7 +27,6 @@ type ExtendedSettingsModalProps = SettingsModalProps & {
 const panelTitles: Record<SettingsPanel, string> = {
   home: "Personal Learning Space",
   profile: "Learner Profile",
-  preferences: "Personal Preference",
   audio: "Audio Overview",
   safety: "Safe Learning Filter",
   generation: "Generation Defaults",
@@ -74,8 +72,6 @@ const SettingsModal = ({
             onEquipTitle={onEquipTitle}
           />
         );
-      case "preferences":
-        return <PersonalPreferencePanel />;
       case "audio":
         return <AudioOverviewPanel />;
       case "safety":

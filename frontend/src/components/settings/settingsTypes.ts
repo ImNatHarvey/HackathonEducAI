@@ -1,7 +1,6 @@
 export type SettingsPanel =
   | "home"
   | "profile"
-  | "preferences"
   | "audio"
   | "safety"
   | "generation"

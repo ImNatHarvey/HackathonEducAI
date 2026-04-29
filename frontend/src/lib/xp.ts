@@ -134,7 +134,8 @@ export const toolLabels: Record<AuraToolKey, string> = {
 };
 
 const legacyTitleMap: Record<string, string> = {
-  "New Learner": "Fresh Spawn",
+  "New Learner": "The Protagonist",
+  "Fresh Spawn": "The Protagonist",
   "Focused Student": "Aura Farmer",
   "Aura Scholar": "Lore Keeper",
   "Knowledge Seeker": "Wisdom Seeker",
@@ -166,8 +167,8 @@ export const createDefaultAuraStats = (username = "Student"): AuraStats => {
     maxEnergy: 100,
     dailyXp: 0,
     lastDailyReset: today,
-    titles: ["Fresh Spawn"],
-    activeTitle: "Fresh Spawn",
+    titles: ["The Protagonist"],
+    activeTitle: "The Protagonist",
     activityCounts: {
       chatMessages: 0,
       sourcesAdded: 0,
@@ -253,7 +254,7 @@ export const migrateAuraStats = (
   };
 
   if (!nextStats.titles.includes(nextStats.activeTitle)) {
-    nextStats.activeTitle = nextStats.titles[0] ?? "Fresh Spawn";
+    nextStats.activeTitle = nextStats.titles[0] ?? "The Protagonist";
   }
 
   return nextStats;
@@ -394,8 +395,8 @@ export const getEnergyCostForEvent = (input: SpendEnergyInput) => {
 
 export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   {
-    id: "fresh-spawn",
-    title: "Fresh Spawn",
+    id: "the-protagonist",
+    title: "The Protagonist",
     icon: "🌱",
     category: "general",
     requirement: "Start your Study Aura journey.",
@@ -403,7 +404,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "aura-farmer",
-    title: "Aura Farmer",
+    title: "The Drifter",
     icon: "🌾",
     category: "meme",
     requirement: "Reach Aura Level 3.",
@@ -411,7 +412,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "ranked-scholar",
-    title: "Ranked Scholar",
+    title: "The Professional",
     icon: "🏅",
     category: "gaming",
     requirement: "Reach Aura Level 5.",
@@ -419,7 +420,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "lore-keeper",
-    title: "Lore Keeper",
+    title: "The Fullmetal Alchemist",
     icon: "📜",
     category: "gaming",
     requirement: "Reach Aura Level 8.",
@@ -427,7 +428,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "wisdom-seeker",
-    title: "Wisdom Seeker",
+    title: "The Winter Soldier",
     icon: "🧭",
     category: "anime",
     requirement: "Reach Aura Level 10.",
@@ -435,7 +436,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "tactician",
-    title: "Tactician",
+    title: "Heisenberg",
     icon: "♟️",
     category: "gaming",
     requirement: "Reach Aura Level 12.",
@@ -443,7 +444,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "review-demon",
-    title: "Review Demon",
+    title: "The Ghost of the Uchiha",
     icon: "👹",
     category: "anime",
     requirement: "Reach Aura Level 15.",
@@ -451,7 +452,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "grindset-awakened",
-    title: "Grindset Awakened",
+    title: "The Chosen One",
     icon: "🔥",
     category: "meme",
     requirement: "Reach Aura Level 18.",
@@ -459,7 +460,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "grandmaster",
-    title: "Grandmaster",
+    title: "Shadow Monarch",
     icon: "👑",
     category: "gaming",
     requirement: "Reach Aura Level 25.",
@@ -467,7 +468,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "diamond-mindset",
-    title: "Diamond Mindset",
+    title: "The King of Heroes",
     icon: "💎",
     category: "gaming",
     requirement: "Reach Aura Level 35.",
@@ -475,7 +476,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "mythic-grinder",
-    title: "Mythic Grinder",
+    title: "The Baba Yaga",
     icon: "🌌",
     category: "gaming",
     requirement: "Reach Aura Level 45.",
@@ -483,7 +484,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "tenno-scholar",
-    title: "Tenno Scholar",
+    title: "The Second Dream",
     icon: "⚔️",
     category: "gaming",
     requirement: "Reach Aura Level 55.",
@@ -491,7 +492,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "void-farmer",
-    title: "Void Farmer",
+    title: "Architect of the New World",
     icon: "🌀",
     category: "gaming",
     requirement: "Reach Aura Level 65.",
@@ -499,7 +500,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "final-boss",
-    title: "Final Boss",
+    title: "The Emperor of Mankind",
     icon: "👾",
     category: "gaming",
     requirement: "Reach Aura Level 75.",
@@ -515,7 +516,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "limitless-learner",
-    title: "Limitless Learner",
+    title: "The Truth",
     icon: "♾️",
     category: "legendary",
     requirement: "Reach Aura Level 100.",
@@ -531,7 +532,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "prompt-sorcerer",
-    title: "Prompt Sorcerer",
+    title: "Wizard King",
     icon: "🪄",
     category: "chat",
     requirement: "Send 25 chat prompts.",
@@ -539,7 +540,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "dialogue-domain",
-    title: "Dialogue Domain",
+    title: "Domain Expansion",
     icon: "🗣️",
     category: "anime",
     requirement: "Send 50 chat prompts.",
@@ -547,7 +548,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "main-character-energy",
-    title: "Main Character Energy",
+    title: "He Who Stands Above All",
     icon: "🎬",
     category: "meme",
     requirement: "Send 100 chat prompts.",
@@ -555,7 +556,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "the-source",
-    title: "The Source",
+    title: "Librarian of Babel",
     icon: "🌐",
     category: "source",
     requirement: "Add 5 sources.",
@@ -571,7 +572,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "archive-beast",
-    title: "Archive Beast",
+    title: "The Archivist",
     icon: "🗃️",
     category: "source",
     requirement: "Add 30 sources.",
@@ -579,7 +580,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "librarian-of-babel",
-    title: "Librarian of Babel",
+    title: "Keeper of the Akashic Records",
     icon: "🏛️",
     category: "source",
     requirement: "Add 60 sources.",
@@ -587,7 +588,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "web-drifter",
-    title: "Web Drifter",
+    title: "The Matrix Glitch",
     icon: "🕸️",
     category: "web",
     requirement: "Import 3 web sources.",
@@ -603,7 +604,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "google-fu-grandmaster",
-    title: "Google-Fu Grandmaster",
+    title: "He Who Walks the Path of Heaven",
     icon: "🥋",
     category: "web",
     requirement: "Import 25 web sources.",
@@ -611,7 +612,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "quiz-master",
-    title: "Quiz Master",
+    title: "The Game Master",
     icon: "⚡",
     category: "quiz",
     requirement: "Reach Quiz Level 3.",
@@ -619,7 +620,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "quiz-expert",
-    title: "Quiz Expert",
+    title: "The Ultimate Despair",
     icon: "🧪",
     category: "quiz",
     requirement: "Reach Quiz Level 8.",
@@ -627,7 +628,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "question-bank-overlord",
-    title: "Question Bank Overlord",
+    title: "Overlord",
     icon: "🧠",
     category: "quiz",
     requirement: "Generate 25 quizzes.",
@@ -635,7 +636,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "card-slinger",
-    title: "Card Slinger",
+    title: "The Gambit",
     icon: "🃏",
     category: "flashcards",
     requirement: "Reach Cards Level 3.",
@@ -643,7 +644,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "memory-palace-owner",
-    title: "Memory Palace Owner",
+    title: "Magician",
     icon: "🏰",
     category: "flashcards",
     requirement: "Reach Cards Level 8.",
@@ -651,7 +652,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "anki-avenger",
-    title: "Anki Avenger",
+    title: "The Joker",
     icon: "🛡️",
     category: "flashcards",
     requirement: "Generate 25 card sets.",
@@ -659,7 +660,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "slide-alchemist",
-    title: "Slide Alchemist",
+    title: "Daywalker",
     icon: "📊",
     category: "slides",
     requirement: "Reach Slides Level 3.",
@@ -667,7 +668,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "deck-builder",
-    title: "Deck Builder",
+    title: "Peerless",
     icon: "🧱",
     category: "slides",
     requirement: "Generate 10 slide decks.",
@@ -675,7 +676,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "presentation-sensei",
-    title: "Presentation Sensei",
+    title: "Untamed",
     icon: "🎤",
     category: "slides",
     requirement: "Generate 25 slide decks.",
@@ -683,7 +684,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "table-tactician",
-    title: "Table Tactician",
+    title: "True Shogun",
     icon: "📋",
     category: "tables",
     requirement: "Reach Tables Level 3.",
@@ -707,7 +708,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "mind-map-monk",
-    title: "Mind Map Monk",
+    title: "Mind Monk",
     icon: "🧘",
     category: "mindMap",
     requirement: "Reach Mind Map Level 3.",
@@ -715,7 +716,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "idea-domain-expansion",
-    title: "Idea Domain Expansion",
+    title: "Domain Expansion",
     icon: "🌀",
     category: "anime",
     requirement: "Generate 15 mind maps.",
@@ -723,7 +724,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "cosmic-brain-web",
-    title: "Cosmic Brain Web",
+    title: "Perfect Human",
     icon: "🪐",
     category: "mindMap",
     requirement: "Generate 30 mind maps.",
@@ -731,7 +732,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "audio-oracle",
-    title: "Audio Oracle",
+    title: "Bohemian Rhapsody",
     icon: "🎧",
     category: "audio",
     requirement: "Reach Audio Level 3.",
@@ -739,7 +740,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "podcast-prophet",
-    title: "Podcast Prophet",
+    title: "Soul King",
     icon: "🎙️",
     category: "audio",
     requirement: "Generate 15 audio overviews.",
@@ -747,7 +748,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "radio-demon",
-    title: "Radio Demon",
+    title: "Phantom of the Opera",
     icon: "📻",
     category: "audio",
     requirement: "Generate 30 audio overviews.",
@@ -755,7 +756,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "ai-studio-addict",
-    title: "AI Studio Addict",
+    title: "The Fool",
     icon: "🤖",
     category: "general",
     requirement: "Generate 20 AI Studio outputs.",
@@ -763,7 +764,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "factory-reset-brain",
-    title: "Factory Reset Brain",
+    title: "The Masterpiece",
     icon: "🧼",
     category: "meme",
     requirement: "Generate 50 AI Studio outputs.",
@@ -771,7 +772,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "the-grinder",
-    title: "The Grinder",
+    title: "The Monster",
     icon: "🔥",
     category: "meme",
     requirement: "Earn 1,000 total Aura XP.",
@@ -779,7 +780,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "no-sleep-scholar",
-    title: "No Sleep Scholar",
+    title: "Flaw of the World",
     icon: "🌙",
     category: "meme",
     requirement: "Earn 3,000 total Aura XP.",
@@ -787,7 +788,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "xp-millionaire",
-    title: "XP Millionaire",
+    title: "Great Love Immortal Venerable",
     icon: "💰",
     category: "legendary",
     requirement: "Earn 7,500 total Aura XP.",
@@ -795,7 +796,7 @@ export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
   },
   {
     id: "aura-billionaire",
-    title: "Aura Billionaire",
+    title: "The One Above All",
     icon: "🤑",
     category: "legendary",
     requirement: "Earn 15,000 total Aura XP.",
