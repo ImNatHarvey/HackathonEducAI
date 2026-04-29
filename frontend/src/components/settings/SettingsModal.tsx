@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import ActivityLogPanel from "./ActivityLogPanel";
 import AudioOverviewPanel from "./AudioOverviewPanel";
-import GenerationDefaultsPanel from "./GenerationDefaultsPanel";
 import ProfilePanel from "./ProfilePanel";
 import SafeLearningFilterPanel from "./SafeLearningFilterPanel";
 import SettingsHome from "./SettingsHome";
@@ -29,7 +28,7 @@ const panelTitles: Record<SettingsPanel, string> = {
   profile: "Learner Profile",
   audio: "Audio Overview",
   safety: "Safe Learning Filter",
-  generation: "Generation Defaults",
+  generation: "Personal Learning Space",
   activity: "Activity Log",
 };
 
@@ -47,7 +46,7 @@ const SettingsModal = ({
 
   useEffect(() => {
     if (isOpen) {
-      setActivePanel(initialPanel);
+      setActivePanel(initialPanel === "generation" ? "home" : initialPanel);
     }
   }, [isOpen, initialPanel]);
 
@@ -76,10 +75,10 @@ const SettingsModal = ({
         return <AudioOverviewPanel />;
       case "safety":
         return <SafeLearningFilterPanel />;
-      case "generation":
-        return <GenerationDefaultsPanel />;
       case "activity":
         return <ActivityLogPanel />;
+      case "generation":
+      case "home":
       default:
         return <SettingsHome onOpenPanel={setActivePanel} />;
     }

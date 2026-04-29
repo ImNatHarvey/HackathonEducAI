@@ -15,7 +15,7 @@ const settingsCards: SettingsCard[] = [
   {
     id: "audio",
     title: "Audio Overview",
-    description: "Control text-to-speech playback and listening behavior.",
+    description: "Control narration, playback, and transcript behavior.",
     icon: "🎧",
     accent: "from-aura-cyan/25 to-aura-blue/10 border-aura-cyan/30",
   },
@@ -25,13 +25,6 @@ const settingsCards: SettingsCard[] = [
     description: "Manage sensitive, harmful, and illegal topic filtering.",
     icon: "🛡️",
     accent: "from-aura-green/25 to-aura-cyan/10 border-aura-green/30",
-  },
-  {
-    id: "generation",
-    title: "Generation Defaults",
-    description: "Set defaults for quizzes, flashcards, slides, tables, and mind maps.",
-    icon: "⚙️",
-    accent: "from-aura-gold/25 to-aura-orange/10 border-aura-gold/30",
   },
   {
     id: "activity",
@@ -53,7 +46,7 @@ const SettingsHome = ({ onOpenPanel }: SettingsHomeProps) => {
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           {settingsCards.map((card) => (
             <button
               key={card.id}

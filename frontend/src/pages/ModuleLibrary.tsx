@@ -100,7 +100,7 @@ const ModuleLibrary = ({
         onLogout={onLogout}
       />
 
-      <main className="aura-scrollbar mx-auto w-full max-w-7xl flex-1 overflow-y-auto px-6 py-8 pb-16">
+      <main className="aura-scrollbar w-full max-w-none flex-1 overflow-y-auto px-5 py-8 pb-16 sm:px-6 lg:px-8">
         <section className="overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel p-8 shadow-[0_30px_90px_rgba(0,0,0,0.25)]">
           <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
             <div>
@@ -112,7 +112,7 @@ const ModuleLibrary = ({
                 Module Library
               </h1>
 
-              <p className="mt-4 max-w-3xl text-base leading-7 text-aura-muted">
+              <p className="mt-4 max-w-4xl text-base leading-7 text-aura-muted">
                 Organize each lesson, subject, or review topic into a focused
                 module. Every module keeps its own sources, selected AI context,
                 chat history, and generated study outputs.
@@ -174,7 +174,26 @@ const ModuleLibrary = ({
             </button>
           </section>
         ) : (
-          <section className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <section className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            <button
+              type="button"
+              onClick={onCreateModule}
+              className="rounded-[1.75rem] border border-dashed border-aura-border bg-aura-panel/60 p-5 text-left transition hover:-translate-y-1 hover:border-aura-cyan/60 hover:bg-aura-cyan/5"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-aura-cyan/10 text-2xl">
+                +
+              </div>
+
+              <h2 className="mt-5 text-xl font-black text-aura-text">
+                Create a new module
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-aura-muted">
+                Start a clean study space with its own sources, chat, and AI
+                outputs.
+              </p>
+            </button>
+
             {modules.map((module, index) => {
               const selectedSources = module.sources.filter(
                 (source) => source.selected,
@@ -282,25 +301,6 @@ const ModuleLibrary = ({
                 </div>
               );
             })}
-
-            <button
-              type="button"
-              onClick={onCreateModule}
-              className="rounded-[1.75rem] border border-dashed border-aura-border bg-aura-panel/60 p-5 text-left transition hover:-translate-y-1 hover:border-aura-cyan/60 hover:bg-aura-cyan/5"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-aura-cyan/10 text-2xl">
-                +
-              </div>
-
-              <h2 className="mt-5 text-xl font-black text-aura-text">
-                Create a new module
-              </h2>
-
-              <p className="mt-2 text-sm leading-6 text-aura-muted">
-                Start a clean study space with its own sources, chat, and AI
-                outputs.
-              </p>
-            </button>
           </section>
         )}
       </main>

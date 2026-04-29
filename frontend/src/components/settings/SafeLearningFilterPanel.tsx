@@ -74,13 +74,13 @@ const SafeLearningFilterPanel = () => {
   return (
     <section className="space-y-5">
       <div className="rounded-[1.75rem] border border-aura-border bg-aura-bg-soft p-6">
-        <p className="max-w-3xl text-sm leading-6 text-aura-muted">
+        <p className="max-w-4xl text-sm leading-6 text-aura-muted">
           Manage safety controls for sensitive, harmful, or illegal topics.
           These controls help keep Study Aura appropriate for classroom and
           school-demo use.
         </p>
 
-        <div className="mt-5 space-y-3">
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
           {safetyItems.map((item) => {
             const enabled = settings[item.key];
 
@@ -90,9 +90,10 @@ const SafeLearningFilterPanel = () => {
                 type="button"
                 onClick={() => toggleSetting(item.key)}
                 className="w-full rounded-2xl border border-aura-border bg-aura-panel p-5 text-left transition hover:-translate-y-0.5 hover:border-aura-cyan/50"
+                aria-pressed={enabled}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
+                <div className="flex items-start justify-between gap-5">
+                  <div className="min-w-0">
                     <p className="font-black text-aura-text">{item.title}</p>
                     <p className="mt-2 text-sm leading-6 text-aura-muted">
                       {item.description}
@@ -100,13 +101,20 @@ const SafeLearningFilterPanel = () => {
                   </div>
 
                   <span
-                    className={`shrink-0 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${
+                    className={`relative mt-1 h-7 w-12 shrink-0 rounded-full border transition ${
                       enabled
-                        ? "border-aura-cyan/35 bg-aura-cyan/10 text-aura-cyan"
-                        : "border-aura-border bg-aura-bg-soft text-aura-muted"
+                        ? "border-aura-cyan/50 bg-aura-cyan/25"
+                        : "border-aura-border bg-aura-bg-soft"
                     }`}
+                    aria-label={enabled ? "Enabled" : "Disabled"}
                   >
-                    {enabled ? "Enabled" : "Disabled"}
+                    <span
+                      className={`absolute top-1 h-5 w-5 rounded-full transition-all duration-200 ${
+                        enabled
+                          ? "left-6 bg-aura-cyan shadow-[0_0_18px_rgba(34,211,238,0.55)]"
+                          : "left-1 bg-aura-dim"
+                      }`}
+                    />
                   </span>
                 </div>
               </button>
