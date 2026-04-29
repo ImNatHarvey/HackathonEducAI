@@ -240,6 +240,7 @@ function App() {
         <Login
           onLogin={handleLogin}
           onRegister={handleRegister}
+          onBackToLanding={() => setView("landing")}
           authError={authError}
           authNotice={authNotice}
           isAuthLoading={isAuthActionLoading}
