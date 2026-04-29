@@ -8,13 +8,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "2170888c-d1c6-47d9-95fa-5f8f10a80f78",
+      "id": "e47a52b1-edb6-401d-8134-c79734b48bb7",
       "name": "Audio Agent Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -1984,
-        960
+        -1392,
+        896
       ],
       "webhookId": "study-aura-audio"
     },
@@ -56,13 +56,13 @@
         },
         "options": {}
       },
-      "id": "ce158e6a-8385-4ce6-8201-13077609ebaa",
+      "id": "df11703e-3ef7-49fc-b103-3ee050f5cdc5",
       "name": "Prepare Audio Agent Prompt",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -1760,
-        960
+        -1168,
+        896
       ]
     },
     {
@@ -73,13 +73,13 @@
           "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
         }
       },
-      "id": "c4027516-53b6-4636-8507-6dd025e2dec6",
+      "id": "95e38af4-d89c-4651-bd2d-c9a0ad5ac27f",
       "name": "Audio Gemini AI Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        -1536,
-        960
+        -944,
+        896
       ],
       "continueOnFail": true
     },
@@ -91,13 +91,13 @@
           "temperature": 0.45
         }
       },
-      "id": "3dbe8a29-6e67-48de-9fc9-b5a7c7ee6f28",
+      "id": "e7e48dcd-234c-4280-80ac-1c280efa3eeb",
       "name": "Audio Gemini Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        -1464,
-        1184
+        -880,
+        1120
       ],
       "credentials": {
         "googlePalmApi": {
@@ -141,38 +141,38 @@
         },
         "options": {}
       },
-      "id": "e361e5d9-ed6a-4350-a271-de8f20b4767a",
+      "id": "616eb5a1-77e0-4601-84a6-3f3b84ead6cc",
       "name": "Audio Gemini Succeeded?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -1184,
-        960
+        -592,
+        896
       ]
     },
     {
       "parameters": {
         "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet audioOverview;\nlet fallback = false;\n\ntry {\n  audioOverview = JSON.parse(cleaned);\n\n  if (!audioOverview.title || !Array.isArray(audioOverview.segments)) {\n    throw new Error(\"Invalid audio overview format\");\n  }\n} catch (error) {\n  fallback = true;\n  audioOverview = {\n    title: \"Study Aura Audio Overview\",\n    description: \"A quick fallback audio review for the selected topic.\",\n    estimatedDuration: \"1 minute\",\n    segments: [\n      {\n        speaker: \"Audio\",\n        text: \"Welcome to this Study Aura audio overview. In this short review, we will focus on the main idea, important details, and a simple way to remember the topic.\"\n      },\n      {\n        speaker: \"Audio\",\n        text: \"Start by identifying the key concept. Then connect it to examples, definitions, and review questions so the idea becomes easier to recall.\"\n      }\n    ],\n    recap: [\"Identify the main idea\", \"Connect details with examples\", \"Review using active recall\"]\n  };\n}\n\nconst cleanSpeakerLabel = (value) => {\n  return String(value || \"\")\n    .replace(/^\\s*(Narrator|Host A|Host B|Audio|Speaker)\\s*:\\s*/i, \"\")\n    .trim();\n};\n\nconst segments = Array.isArray(audioOverview.segments)\n  ? audioOverview.segments.map((segment) => ({\n      speaker: \"Audio\",\n      text: cleanSpeakerLabel(segment.text || \"Review this topic carefully.\")\n    })).filter((segment) => segment.text)\n  : [];\n\nconst recap = Array.isArray(audioOverview.recap)\n  ? audioOverview.recap.map((item) => cleanSpeakerLabel(item)).filter(Boolean).slice(0, 5)\n  : [\"Review the main idea\", \"Practice recall\", \"Connect examples\"];\n\nconst script = segments.map((segment) => segment.text).join(\"\\n\\n\");\n\nreturn [\n  {\n    json: {\n      audioOverview: {\n        title: String(audioOverview.title || \"Study Aura Audio Overview\"),\n        description: String(audioOverview.description || \"Generated audio overview.\"),\n        estimatedDuration: String(audioOverview.estimatedDuration || \"2 minutes\"),\n        segments,\n        recap,\n        script\n      },\n      fallback,\n      provider: \"gemini\"\n    }\n  }\n];"
       },
-      "id": "6dd42fcd-fafe-46be-9eb0-80975f8c9435",
+      "id": "da9f10f9-8417-475f-971c-bb72b5f655a3",
       "name": "Clean Gemini Audio JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -896,
-        768
+        -304,
+        704
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM",
+        "url": "=https://api.elevenlabs.io/v1/text-to-speech/ypgjxMR3w6s97y9XEi9i",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "xi-api-key",
-              "value": "=YOUR_ELEVENLABS_API_KEY_HERE"
+              "value": "=sk_fd0aba429d4aaba05d6b7111bdd0f552d541a1d3ccabba90"
             },
             {
               "name": "Accept",
@@ -197,13 +197,13 @@
           "timeout": 120000
         }
       },
-      "id": "9ae6a2dd-a1ed-4ae5-8707-a33395fbf13b",
+      "id": "c5c8b205-2802-41b5-b9d1-bcc275961853",
       "name": "Generate ElevenLabs Premium Audio",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -608,
-        768
+        -16,
+        704
       ],
       "continueOnFail": true
     },
@@ -232,26 +232,26 @@
         },
         "options": {}
       },
-      "id": "ad7a9e14-9e80-47c1-9281-62e7a45259c2",
+      "id": "c6c2df46-8c43-41b1-802a-7473aa998ac8",
       "name": "ElevenLabs Audio Created?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -384,
-        768
+        208,
+        704
       ]
     },
     {
       "parameters": {
         "jsCode": "const binaryAudio = $binary.premiumAudio;\nconst audioOverview = $json.audioOverview;\n\nreturn [\n  {\n    json: {\n      audioOverview: {\n        ...audioOverview,\n        premiumAudio: {\n          provider: \"elevenlabs\",\n          voice: \"Premium Narrator\",\n          mimeType: binaryAudio.mimeType || \"audio/mpeg\",\n          base64: binaryAudio.data\n        }\n      },\n      provider: \"elevenlabs\",\n      scriptProvider: $json.provider || \"gemini\",\n      fallback: false\n    }\n  }\n];"
       },
-      "id": "f284f036-07e7-4171-83a2-9417e8a216ab",
+      "id": "bd8981c4-63ab-4473-b280-70b2bb28f63f",
       "name": "Attach ElevenLabs Audio",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -160,
-        672
+        432,
+        608
       ]
     },
     {
@@ -260,13 +260,13 @@
         "responseBody": "={{\n  {\n    \"audioOverview\": $json.audioOverview,\n    \"provider\": $json.provider,\n    \"scriptProvider\": $json.scriptProvider,\n    \"fallback\": $json.fallback\n  }\n}}",
         "options": {}
       },
-      "id": "a3e7599a-00b5-44b2-9d9a-d1b12abf98b2",
+      "id": "62a2557d-4c03-4403-a37e-9073344c6225",
       "name": "Return ElevenLabs Audio Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        64,
-        672
+        656,
+        608
       ]
     },
     {
@@ -275,13 +275,13 @@
         "responseBody": "={{\n  {\n    \"audioOverview\": $json.audioOverview,\n    \"provider\": \"gemini\",\n    \"scriptProvider\": \"gemini\",\n    \"fallback\": true,\n    \"voiceFallback\": \"browser\"\n  }\n}}",
         "options": {}
       },
-      "id": "2533aaf7-9856-4fd4-9927-ad5017a5b9d8",
+      "id": "b1fd3d4f-e880-449a-8e16-f526d3262d85",
       "name": "Return Gemini Script Browser Voice Fallback",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        -160,
-        864
+        432,
+        800
       ]
     },
     {
@@ -292,13 +292,13 @@
           "systemMessage": "You are Study Aura. Return only valid JSON. Do not include markdown, code fences, or explanations outside JSON."
         }
       },
-      "id": "0daeb1ad-88ad-4c9a-9592-34c92e49b1c2",
+      "id": "5a7e0912-912d-496a-90d2-9a9c1a59089c",
       "name": "Audio Groq AI Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        -960,
-        1152
+        -368,
+        1088
       ],
       "continueOnFail": true
     },
@@ -309,13 +309,13 @@
           "temperature": 0.45
         }
       },
-      "id": "062713b2-ba59-460a-baf1-958ae2e0266c",
+      "id": "0fb757ec-167f-4995-b011-f3afa8cd8708",
       "name": "Audio Groq Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
       "position": [
-        -888,
-        1376
+        -304,
+        1312
       ],
       "credentials": {
         "groqApi": {
@@ -359,38 +359,38 @@
         },
         "options": {}
       },
-      "id": "08708af4-ab5c-4a12-89ec-856038a00644",
+      "id": "a1e2186f-e087-4d9e-81b9-0ff09b6c134e",
       "name": "Audio Groq Succeeded?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -608,
-        1152
+        -16,
+        1088
       ]
     },
     {
       "parameters": {
         "jsCode": "const raw = $json.output ?? \"\";\n\nconst cleaned = String(raw)\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet audioOverview;\nlet fallback = false;\n\ntry {\n  audioOverview = JSON.parse(cleaned);\n\n  if (!audioOverview.title || !Array.isArray(audioOverview.segments)) {\n    throw new Error(\"Invalid audio overview format\");\n  }\n} catch (error) {\n  fallback = true;\n  audioOverview = {\n    title: \"Study Aura Audio Overview\",\n    description: \"A quick fallback audio review for the selected topic.\",\n    estimatedDuration: \"1 minute\",\n    segments: [\n      {\n        speaker: \"Audio\",\n        text: \"Welcome to this Study Aura audio overview. In this short review, we will focus on the main idea, important details, and a simple way to remember the topic.\"\n      },\n      {\n        speaker: \"Audio\",\n        text: \"Start by identifying the key concept. Then connect it to examples, definitions, and review questions so the idea becomes easier to recall.\"\n      }\n    ],\n    recap: [\"Identify the main idea\", \"Connect details with examples\", \"Review using active recall\"]\n  };\n}\n\nconst cleanSpeakerLabel = (value) => {\n  return String(value || \"\")\n    .replace(/^\\s*(Narrator|Host A|Host B|Audio|Speaker)\\s*:\\s*/i, \"\")\n    .trim();\n};\n\nconst segments = Array.isArray(audioOverview.segments)\n  ? audioOverview.segments.map((segment) => ({\n      speaker: \"Audio\",\n      text: cleanSpeakerLabel(segment.text || \"Review this topic carefully.\")\n    })).filter((segment) => segment.text)\n  : [];\n\nconst recap = Array.isArray(audioOverview.recap)\n  ? audioOverview.recap.map((item) => cleanSpeakerLabel(item)).filter(Boolean).slice(0, 5)\n  : [\"Review the main idea\", \"Practice recall\", \"Connect examples\"];\n\nconst script = segments.map((segment) => segment.text).join(\"\\n\\n\");\n\nreturn [\n  {\n    json: {\n      audioOverview: {\n        title: String(audioOverview.title || \"Study Aura Audio Overview\"),\n        description: String(audioOverview.description || \"Generated audio overview.\"),\n        estimatedDuration: String(audioOverview.estimatedDuration || \"2 minutes\"),\n        segments,\n        recap,\n        script\n      },\n      fallback,\n      provider: \"groq\"\n    }\n  }\n];"
       },
-      "id": "75818e2a-a669-4c0e-8706-adac2896487d",
+      "id": "40a4e7b7-267e-4a49-ae19-8bc7b17353ac",
       "name": "Clean Groq Audio JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -384,
-        1056
+        208,
+        992
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM",
+        "url": "=https://api.elevenlabs.io/v1/text-to-speech/ypgjxMR3w6s97y9XEi9i",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "xi-api-key",
-              "value": "=YOUR_ELEVENLABS_API_KEY_HERE"
+              "value": "=sk_fd0aba429d4aaba05d6b7111bdd0f552d541a1d3ccabba90"
             },
             {
               "name": "Accept",
@@ -415,13 +415,13 @@
           "timeout": 120000
         }
       },
-      "id": "207a5bc5-4b1a-479d-9c09-39376ebda960",
+      "id": "d576625f-a311-4650-860a-0ee3f65e0818",
       "name": "Generate ElevenLabs Premium Audio Groq",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -144,
-        1056
+        448,
+        992
       ],
       "continueOnFail": true
     },
@@ -450,26 +450,26 @@
         },
         "options": {}
       },
-      "id": "4258dcf5-7dc9-4903-ba8d-a7b9fbed90b7",
+      "id": "3ed7732a-98e6-4c3a-8af6-3857d95639ef",
       "name": "ElevenLabs Groq Audio Created?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        48,
-        1056
+        640,
+        992
       ]
     },
     {
       "parameters": {
         "jsCode": "const binaryAudio = $binary.premiumAudio;\nconst audioOverview = $json.audioOverview;\n\nreturn [\n  {\n    json: {\n      audioOverview: {\n        ...audioOverview,\n        premiumAudio: {\n          provider: \"elevenlabs\",\n          voice: \"Premium Narrator\",\n          mimeType: binaryAudio.mimeType || \"audio/mpeg\",\n          base64: binaryAudio.data\n        }\n      },\n      provider: \"elevenlabs\",\n      scriptProvider: $json.provider || \"groq\",\n      fallback: false\n    }\n  }\n];"
       },
-      "id": "d08ef392-1742-4e50-8246-99a980941a0a",
+      "id": "657308d3-8a9a-4161-8630-5afa2dbadb58",
       "name": "Attach ElevenLabs Groq Audio",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        256,
-        1056
+        848,
+        992
       ]
     },
     {
@@ -478,13 +478,13 @@
         "responseBody": "={{\n  {\n    \"audioOverview\": $json.audioOverview,\n    \"provider\": $json.provider,\n    \"scriptProvider\": $json.scriptProvider,\n    \"fallback\": $json.fallback\n  }\n}}",
         "options": {}
       },
-      "id": "0a900e20-abc5-4c1d-b737-0deb1966aee6",
+      "id": "8f149de8-5e46-4cef-9b06-0d020b6ad76a",
       "name": "Return ElevenLabs Groq Audio Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        480,
-        1056
+        1072,
+        992
       ]
     },
     {
@@ -493,13 +493,13 @@
         "responseBody": "={{\n  {\n    \"audioOverview\": $json.audioOverview,\n    \"provider\": \"groq\",\n    \"scriptProvider\": \"groq\",\n    \"fallback\": true,\n    \"voiceFallback\": \"browser\"\n  }\n}}",
         "options": {}
       },
-      "id": "35038605-5702-444e-9dba-b99ec7ab894d",
+      "id": "77b7979b-9a92-47a5-bcda-afb121386dd6",
       "name": "Return Groq Script Browser Voice Fallback",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        256,
-        1248
+        848,
+        1184
       ]
     },
     {
@@ -508,13 +508,13 @@
         "responseBody": "={{\n  {\n    \"audioOverview\": {\n      \"title\": \"Study Aura Audio Overview\",\n      \"description\": \"A quick fallback audio review for the selected topic.\",\n      \"estimatedDuration\": \"1 minute\",\n      \"segments\": [\n        {\n          \"speaker\": \"Audio\",\n          \"text\": \"Welcome to this Study Aura audio overview. In this short review, we will focus on the main idea, important details, and a simple way to remember the topic.\"\n        },\n        {\n          \"speaker\": \"Audio\",\n          \"text\": \"Start by identifying the key concept. Then connect it to examples, definitions, and review questions so the idea becomes easier to recall.\"\n        }\n      ],\n      \"recap\": [\"Identify the main idea\", \"Connect details with examples\", \"Review using active recall\"],\n      \"script\": \"Welcome to this Study Aura audio overview. In this short review, we will focus on the main idea, important details, and a simple way to remember the topic.\\n\\nStart by identifying the key concept. Then connect it to examples, definitions, and review questions so the idea becomes easier to recall.\"\n    },\n    \"provider\": \"static-fallback\",\n    \"scriptProvider\": \"static-fallback\",\n    \"fallback\": true,\n    \"voiceFallback\": \"browser\"\n  }\n}}",
         "options": {}
       },
-      "id": "e923f6e4-b8ab-416e-b500-99c6983f2cc0",
+      "id": "8d0f1f91-8d62-45a4-af1a-312ce5af6529",
       "name": "Return Static Audio Fallback",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        -384,
-        1248
+        208,
+        1184
       ]
     }
   ],
@@ -730,10 +730,11 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "study-aura-audio-elevenlabs-gemini-groq-v2",
+  "versionId": "4fb78365-56eb-4c33-88ca-1ca04dcba4ab",
   "meta": {
-    "templateCredsSetupCompleted": true
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f764945c1c84e3150fef3e723867048d510331bfb76c2fd5193ecd91ac2a5a2e"
   },
-  "id": "study-aura-audio-elevenlabs-gemini-groq",
+  "id": "cfb6tQrcvc1fxQIY",
   "tags": []
 }
