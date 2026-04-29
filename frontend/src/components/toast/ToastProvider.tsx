@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -149,6 +150,34 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
     setToasts([]);
   }, []);
 
+  useEffect(() => {
+    const handleExternalToast = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        type?: ToastType;
+        title?: string;
+        message?: string;
+        duration?: number;
+      }>;
+
+      const detail = customEvent.detail;
+
+      if (!detail) return;
+
+      showToast({
+        type: detail.type ?? "info",
+        title: detail.title ?? "Notification",
+        message: detail.message ?? "",
+        duration: detail.duration,
+      });
+    };
+
+    window.addEventListener("studyAura.toast", handleExternalToast);
+
+    return () => {
+      window.removeEventListener("studyAura.toast", handleExternalToast);
+    };
+  }, [showToast]);
+
   const value = useMemo(
     () => ({
       showToast,
@@ -162,7 +191,7 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
     <ToastContext.Provider value={value}>
       {children}
 
-      <div className="pointer-events-none fixed inset-x-3 bottom-4 z-[100] flex flex-col gap-3 sm:inset-x-auto sm:bottom-auto sm:right-5 sm:top-5 sm:w-[380px]">
+      <div className="pointer-events-none fixed inset-x-3 bottom-4 z-[2000] flex flex-col gap-3 sm:inset-x-auto sm:bottom-auto sm:right-5 sm:top-5 sm:w-[380px]">
         {toasts.map((toast) => {
           const styles = toastStyles[toast.type];
 

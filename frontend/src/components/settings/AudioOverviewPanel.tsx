@@ -1,10 +1,6 @@
-import { useEffect, useState } from "react";
-
-type AudioSettings = {
+export type AudioSettings = {
   useBrowserTts: boolean;
-  stopWhenModalCloses: boolean;
   karaokeHighlight: boolean;
-  saveGeneratedTranscript: boolean;
 };
 
 type AudioSettingKey = keyof AudioSettings;
@@ -15,13 +11,17 @@ type AudioSettingItem = {
   description: string;
 };
 
-const STORAGE_KEY = "studyAura.audioSettings";
+type AudioOverviewPanelProps = {
+  settings: AudioSettings;
+  onChange: (settings: AudioSettings) => void;
+};
 
-const defaultAudioSettings: AudioSettings = {
+export const AUDIO_SETTINGS_STORAGE_KEY = "studyAura.audioSettings";
+export const AUDIO_SETTINGS_EVENT_NAME = "studyAura.audioSettingsUpdated";
+
+export const defaultAudioSettings: AudioSettings = {
   useBrowserTts: true,
-  stopWhenModalCloses: true,
   karaokeHighlight: true,
-  saveGeneratedTranscript: true,
 };
 
 const audioSettingItems: AudioSettingItem[] = [
@@ -29,65 +29,94 @@ const audioSettingItems: AudioSettingItem[] = [
     key: "useBrowserTts",
     title: "Use browser text-to-speech",
     description:
-      "Uses the browser's free speech engine as a fallback when premium narration is unavailable.",
-  },
-  {
-    key: "stopWhenModalCloses",
-    title: "Stop audio when modal closes",
-    description:
-      "Automatically stops playback when leaving the Audio Overview modal.",
+      "Allows Study Aura to use the browser voice as a fallback when premium narration is unavailable.",
   },
   {
     key: "karaokeHighlight",
     title: "Karaoke word highlight",
     description:
-      "Highlights spoken words while the current study card is being read.",
-  },
-  {
-    key: "saveGeneratedTranscript",
-    title: "Save generated transcript",
-    description:
-      "Keeps the generated audio overview script with the saved output.",
+      "Highlights the spoken words while the audio overview is playing.",
   },
 ];
 
-const loadAudioSettings = (): AudioSettings => {
+export const loadAudioSettings = (): AudioSettings => {
   if (typeof window === "undefined") return defaultAudioSettings;
 
   try {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
+    const saved = window.localStorage.getItem(AUDIO_SETTINGS_STORAGE_KEY);
 
     if (!saved) return defaultAudioSettings;
 
+    const parsed = JSON.parse(saved) as Partial<AudioSettings>;
+
     return {
-      ...defaultAudioSettings,
-      ...JSON.parse(saved),
+      useBrowserTts:
+        typeof parsed.useBrowserTts === "boolean"
+          ? parsed.useBrowserTts
+          : defaultAudioSettings.useBrowserTts,
+      karaokeHighlight:
+        typeof parsed.karaokeHighlight === "boolean"
+          ? parsed.karaokeHighlight
+          : defaultAudioSettings.karaokeHighlight,
     };
   } catch {
     return defaultAudioSettings;
   }
 };
 
-const AudioOverviewPanel = () => {
-  const [settings, setSettings] = useState<AudioSettings>(loadAudioSettings);
+export const saveAudioSettings = (settings: AudioSettings) => {
+  if (typeof window === "undefined") return;
 
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  }, [settings]);
+  window.localStorage.setItem(
+    AUDIO_SETTINGS_STORAGE_KEY,
+    JSON.stringify(settings),
+  );
 
+  window.dispatchEvent(
+    new CustomEvent<AudioSettings>(AUDIO_SETTINGS_EVENT_NAME, {
+      detail: settings,
+    }),
+  );
+};
+
+export const subscribeToAudioSettings = (
+  callback: (settings: AudioSettings) => void,
+) => {
+  if (typeof window === "undefined") return () => {};
+
+  const handleSettingsUpdate = (event: Event) => {
+    const customEvent = event as CustomEvent<AudioSettings>;
+    callback(customEvent.detail ?? loadAudioSettings());
+  };
+
+  const handleStorageUpdate = (event: StorageEvent) => {
+    if (event.key !== AUDIO_SETTINGS_STORAGE_KEY) return;
+    callback(loadAudioSettings());
+  };
+
+  window.addEventListener(AUDIO_SETTINGS_EVENT_NAME, handleSettingsUpdate);
+  window.addEventListener("storage", handleStorageUpdate);
+
+  return () => {
+    window.removeEventListener(AUDIO_SETTINGS_EVENT_NAME, handleSettingsUpdate);
+    window.removeEventListener("storage", handleStorageUpdate);
+  };
+};
+
+const AudioOverviewPanel = ({ settings, onChange }: AudioOverviewPanelProps) => {
   const toggleSetting = (key: AudioSettingKey) => {
-    setSettings((current) => ({
-      ...current,
-      [key]: !current[key],
-    }));
+    onChange({
+      ...settings,
+      [key]: !settings[key],
+    });
   };
 
   return (
     <section className="space-y-5">
       <div className="rounded-[1.75rem] border border-aura-border bg-aura-bg-soft p-6">
         <p className="max-w-4xl text-sm leading-6 text-aura-muted">
-          Manage Audio Overview playback behavior, transcript saving, and browser
-          text-to-speech fallback options.
+          Manage Audio Overview playback fallback and spoken-content
+          highlighting.
         </p>
 
         <div className="mt-5 grid gap-3 md:grid-cols-2">

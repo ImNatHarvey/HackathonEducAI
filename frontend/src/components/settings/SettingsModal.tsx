@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
 import ActivityLogPanel from "./ActivityLogPanel";
-import AudioOverviewPanel from "./AudioOverviewPanel";
+import AudioOverviewPanel, {
+  loadAudioSettings,
+  saveAudioSettings,
+  type AudioSettings,
+} from "./AudioOverviewPanel";
 import ProfilePanel from "./ProfilePanel";
-import SafeLearningFilterPanel from "./SafeLearningFilterPanel";
+import SafeLearningFilterPanel, {
+  loadSafetySettings,
+  saveSafetySettings,
+  type SafetySettings,
+} from "./SafeLearningFilterPanel";
 import SettingsHome from "./SettingsHome";
 import type { AuthProfile } from "../../services/authService";
 import type { AuraStats } from "../../lib/xp";
@@ -43,20 +51,50 @@ const SettingsModal = ({
   onEquipTitle,
 }: ExtendedSettingsModalProps) => {
   const [activePanel, setActivePanel] = useState<SettingsPanel>(initialPanel);
+  const [draftAudioSettings, setDraftAudioSettings] =
+    useState<AudioSettings>(loadAudioSettings);
+  const [draftSafetySettings, setDraftSafetySettings] =
+    useState<SafetySettings>(loadSafetySettings);
 
   useEffect(() => {
     if (isOpen) {
       setActivePanel(initialPanel === "generation" ? "home" : initialPanel);
+      setDraftAudioSettings(loadAudioSettings());
+      setDraftSafetySettings(loadSafetySettings());
     }
   }, [isOpen, initialPanel]);
 
   if (!isOpen) return null;
 
-  const goHome = () => setActivePanel("home");
+  const showSettingsSavedToast = () => {
+    window.dispatchEvent(
+      new CustomEvent("studyAura.toast", {
+        detail: {
+          type: "success",
+          title: "Settings saved",
+          message: "Your Study Aura settings have been updated.",
+        },
+      }),
+    );
+  };
+
+  const goHome = () => {
+    setActivePanel("home");
+  };
 
   const handleClose = () => {
     setActivePanel("home");
+    setDraftAudioSettings(loadAudioSettings());
+    setDraftSafetySettings(loadSafetySettings());
     onClose();
+  };
+
+  const handleSave = () => {
+    saveAudioSettings(draftAudioSettings);
+    saveSafetySettings(draftSafetySettings);
+    window.dispatchEvent(new Event("studyAura.settingsSaved"));
+    showSettingsSavedToast();
+    handleClose();
   };
 
   const renderPanel = () => {
@@ -72,9 +110,19 @@ const SettingsModal = ({
           />
         );
       case "audio":
-        return <AudioOverviewPanel />;
+        return (
+          <AudioOverviewPanel
+            settings={draftAudioSettings}
+            onChange={setDraftAudioSettings}
+          />
+        );
       case "safety":
-        return <SafeLearningFilterPanel />;
+        return (
+          <SafeLearningFilterPanel
+            settings={draftSafetySettings}
+            onChange={setDraftSafetySettings}
+          />
+        );
       case "activity":
         return <ActivityLogPanel />;
       case "generation":
@@ -85,7 +133,7 @@ const SettingsModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-aura-bg/80 px-3 py-3 backdrop-blur-xl">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-aura-bg/80 px-3 py-3 backdrop-blur-xl">
       <div className="flex max-h-[94vh] w-full max-w-[1500px] flex-col overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
         <header className="flex shrink-0 items-center justify-between border-b border-aura-border bg-aura-bg-soft/80 px-6 py-4">
           <div className="flex min-w-0 items-center gap-4">
@@ -124,6 +172,30 @@ const SettingsModal = ({
         <main className="aura-scrollbar min-h-0 flex-1 overflow-y-auto px-6 py-5">
           {renderPanel()}
         </main>
+
+        <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-aura-border bg-aura-bg-soft/80 px-6 py-4">
+          <p className="text-sm font-semibold text-aura-muted">
+            Changes are only applied after clicking Save Settings.
+          </p>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="rounded-2xl border border-aura-border bg-aura-panel px-5 py-3 text-sm font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSave}
+              className="rounded-2xl bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold px-6 py-3 text-sm font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(34,211,238,0.22)]"
+            >
+              Save Settings
+            </button>
+          </div>
+        </footer>
       </div>
     </div>
   );

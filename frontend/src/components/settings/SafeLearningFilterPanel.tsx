@@ -1,6 +1,4 @@
-import { useEffect, useState } from "react";
-
-type SafetySettings = {
+export type SafetySettings = {
   strictSafetyMode: boolean;
   warnBeforeSensitiveTopics: boolean;
   blockIllegalInstructions: boolean;
@@ -14,9 +12,15 @@ type SafetySettingItem = {
   description: string;
 };
 
-const STORAGE_KEY = "studyAura.safetySettings";
+type SafeLearningFilterPanelProps = {
+  settings: SafetySettings;
+  onChange: (settings: SafetySettings) => void;
+};
 
-const defaultSafetySettings: SafetySettings = {
+export const SAFETY_SETTINGS_STORAGE_KEY = "studyAura.safetySettings";
+export const SAFETY_SETTINGS_EVENT_NAME = "studyAura.safetySettingsUpdated";
+
+export const defaultSafetySettings: SafetySettings = {
   strictSafetyMode: true,
   warnBeforeSensitiveTopics: true,
   blockIllegalInstructions: true,
@@ -40,35 +44,83 @@ const safetyItems: SafetySettingItem[] = [
   },
 ];
 
-const loadSafetySettings = (): SafetySettings => {
+export const loadSafetySettings = (): SafetySettings => {
   if (typeof window === "undefined") return defaultSafetySettings;
 
   try {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
+    const saved = window.localStorage.getItem(SAFETY_SETTINGS_STORAGE_KEY);
 
     if (!saved) return defaultSafetySettings;
 
+    const parsed = JSON.parse(saved) as Partial<SafetySettings>;
+
     return {
-      ...defaultSafetySettings,
-      ...JSON.parse(saved),
+      strictSafetyMode:
+        typeof parsed.strictSafetyMode === "boolean"
+          ? parsed.strictSafetyMode
+          : defaultSafetySettings.strictSafetyMode,
+      warnBeforeSensitiveTopics:
+        typeof parsed.warnBeforeSensitiveTopics === "boolean"
+          ? parsed.warnBeforeSensitiveTopics
+          : defaultSafetySettings.warnBeforeSensitiveTopics,
+      blockIllegalInstructions:
+        typeof parsed.blockIllegalInstructions === "boolean"
+          ? parsed.blockIllegalInstructions
+          : defaultSafetySettings.blockIllegalInstructions,
     };
   } catch {
     return defaultSafetySettings;
   }
 };
 
-const SafeLearningFilterPanel = () => {
-  const [settings, setSettings] = useState<SafetySettings>(loadSafetySettings);
+export const saveSafetySettings = (settings: SafetySettings) => {
+  if (typeof window === "undefined") return;
 
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  }, [settings]);
+  window.localStorage.setItem(
+    SAFETY_SETTINGS_STORAGE_KEY,
+    JSON.stringify(settings),
+  );
 
+  window.dispatchEvent(
+    new CustomEvent<SafetySettings>(SAFETY_SETTINGS_EVENT_NAME, {
+      detail: settings,
+    }),
+  );
+};
+
+export const subscribeToSafetySettings = (
+  callback: (settings: SafetySettings) => void,
+) => {
+  if (typeof window === "undefined") return () => {};
+
+  const handleSettingsUpdate = (event: Event) => {
+    const customEvent = event as CustomEvent<SafetySettings>;
+    callback(customEvent.detail ?? loadSafetySettings());
+  };
+
+  const handleStorageUpdate = (event: StorageEvent) => {
+    if (event.key !== SAFETY_SETTINGS_STORAGE_KEY) return;
+    callback(loadSafetySettings());
+  };
+
+  window.addEventListener(SAFETY_SETTINGS_EVENT_NAME, handleSettingsUpdate);
+  window.addEventListener("storage", handleStorageUpdate);
+
+  return () => {
+    window.removeEventListener(SAFETY_SETTINGS_EVENT_NAME, handleSettingsUpdate);
+    window.removeEventListener("storage", handleStorageUpdate);
+  };
+};
+
+const SafeLearningFilterPanel = ({
+  settings,
+  onChange,
+}: SafeLearningFilterPanelProps) => {
   const toggleSetting = (key: SafetySettingKey) => {
-    setSettings((current) => ({
-      ...current,
-      [key]: !current[key],
-    }));
+    onChange({
+      ...settings,
+      [key]: !settings[key],
+    });
   };
 
   return (
