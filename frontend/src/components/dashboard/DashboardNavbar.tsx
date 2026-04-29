@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { SettingsPanel } from "../settings/settingsTypes";
 import type { AuthProfile } from "../../services/authService";
-import type { AuraStats } from "../../lib/xp";
+import { getXpNeededForLevel, type AuraStats } from "../../lib/xp";
 
 type DashboardNavbarProps = {
   profile: AuthProfile | null;
@@ -40,12 +40,12 @@ const DashboardNavbar = ({
 
   const displayName =
     auraStats?.username || profile?.displayName || "Study Aura User";
-  const title = auraStats?.activeTitle || profile?.title || "New Learner";
+  const title = auraStats?.activeTitle || profile?.title || "Fresh Spawn";
   const initials = getInitials(displayName);
 
   const level = auraStats?.level ?? profile?.level ?? 1;
   const currentXp = auraStats?.xp ?? profile?.xp ?? 0;
-  const neededXp = profile?.xpToNextLevel ?? 100;
+  const neededXp = auraStats ? getXpNeededForLevel(auraStats.level) : 100;
   const totalXp = auraStats?.totalXp ?? currentXp;
   const energy = auraStats?.energy ?? 100;
   const maxEnergy = auraStats?.maxEnergy ?? 100;

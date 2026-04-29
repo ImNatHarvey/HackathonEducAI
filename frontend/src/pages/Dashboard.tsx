@@ -9,6 +9,7 @@ import AddSourceModal from "../components/dashboard/AddSourceModal";
 import { useToast } from "../components/toast/ToastProvider";
 import { useAuraProgress } from "../hooks/useAuraProgress";
 import { useDashboardActions } from "../hooks/useDashboardActions";
+import { logActivity } from "../lib/activityLog";
 import {
   deleteGeneratedOutput,
   fetchGeneratedOutputs,
@@ -57,6 +58,29 @@ interface DashboardProps {
   onLogout: () => void;
 }
 
+const sourceIcons: Record<StudySource["type"], string> = {
+  text: "📝",
+  youtube: "▶️",
+  website: "🌐",
+  pdf: "📄",
+  image: "🖼️",
+};
+
+const toolActivityMeta: Record<
+  AIToolName,
+  {
+    type: "quiz" | "flashcards" | "slides" | "tables" | "mindmap" | "audio";
+    icon: string;
+  }
+> = {
+  Quiz: { type: "quiz", icon: "⚡" },
+  Cards: { type: "flashcards", icon: "🃏" },
+  Slides: { type: "slides", icon: "📊" },
+  Tables: { type: "tables", icon: "📋" },
+  "Mind Map": { type: "mindmap", icon: "🧠" },
+  Audio: { type: "audio", icon: "🎧" },
+};
+
 const getProfileName = (profile: AuthProfile | null) => {
   return profile?.displayName || profile?.email?.split("@")[0] || "Student";
 };
@@ -78,11 +102,17 @@ const Dashboard = ({
 }: DashboardProps) => {
   const { showToast } = useToast();
 
-  const { stats, accountProgress, toolProgress, awardXp, spendEnergy } =
-    useAuraProgress({
-      userId,
-      username: getProfileName(profile),
-    });
+  const {
+    stats,
+    accountProgress,
+    toolProgress,
+    awardXp,
+    spendEnergy,
+    equipTitle,
+  } = useAuraProgress({
+    userId,
+    username: getProfileName(profile),
+  });
 
   const [inputValue, setInputValue] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -272,6 +302,14 @@ const Dashboard = ({
             : `${savedSource.title} is ready in your workspace.`,
       });
 
+      logActivity({
+        type: "source",
+        icon: sourceIcons[savedSource.type] ?? "📚",
+        action: "Added source",
+        detail: `${savedSource.title} was added as a ${savedSource.type} source.`,
+        moduleTitle: currentModule.title,
+      });
+
       const energyResult = spendEnergy({
         event: "source_added",
         sourceType: savedSource.type,
@@ -346,6 +384,16 @@ const Dashboard = ({
           } added to your workspace.`,
         });
       }
+
+      logActivity({
+        type: "source",
+        icon: "📚",
+        action: "Added multiple sources",
+        detail: `${savedSources.length} source${
+          savedSources.length === 1 ? "" : "s"
+        } added to the workspace.`,
+        moduleTitle: currentModule.title,
+      });
 
       savedSources.forEach((savedSource) => {
         const energyResult = spendEnergy({
@@ -561,6 +609,16 @@ const Dashboard = ({
           ? `${sourceToDelete.title} was removed from your workspace.`
           : "The source was removed from your workspace.",
       });
+
+      logActivity({
+        type: "source",
+        icon: "🗑️",
+        action: "Removed source",
+        detail: sourceToDelete
+          ? `${sourceToDelete.title} was removed from the workspace.`
+          : "A source was removed from the workspace.",
+        moduleTitle: currentModule.title,
+      });
     } catch (error) {
       updateCurrentModule((module) => ({
         ...module,
@@ -634,6 +692,16 @@ const Dashboard = ({
       duration: 2600,
     });
 
+    logActivity({
+      type: "web",
+      icon: "🌐",
+      action: "Imported web sources",
+      detail: `${payloads.length} web source${
+        payloads.length === 1 ? "" : "s"
+      } selected from Web Source Finder.`,
+      moduleTitle: currentModule?.title ?? topic,
+    });
+
     const energyResult = spendEnergy({
       event: "web_sources_imported",
     });
@@ -654,6 +722,16 @@ const Dashboard = ({
     handleSendMessage();
 
     if (!message) return;
+
+    logActivity({
+      type: "chat",
+      icon: "💬",
+      action: "Asked Study Aura",
+      detail: `Prompt: ${message.slice(0, 160)}${
+        message.length > 160 ? "..." : ""
+      }`,
+      moduleTitle: currentModule?.title ?? topic,
+    });
 
     const energyResult = spendEnergy({
       event: "chat_send",
@@ -708,6 +786,16 @@ const Dashboard = ({
         message: outputToDelete
           ? `${outputToDelete.title} was removed from this module.`
           : "The saved output was removed from this module.",
+      });
+
+      logActivity({
+        type: "output",
+        icon: "🗑️",
+        action: "Deleted saved output",
+        detail: outputToDelete
+          ? `${outputToDelete.title} was deleted.`
+          : "A saved output was deleted.",
+        moduleTitle: currentModule?.title ?? topic,
       });
     } catch (error) {
       const message =
@@ -799,6 +887,7 @@ const Dashboard = ({
         auraStats={stats}
         accountProgress={accountProgress}
         toolProgress={toolProgress}
+        onEquipTitle={equipTitle}
         onClose={() => setIsSettingsOpen(false)}
       />
 
@@ -818,6 +907,17 @@ const Dashboard = ({
             audioLength: options.audioLength,
             tableType: options.tableType,
           });
+
+          const activityMeta = toolActivityMeta[toolName];
+
+          logActivity({
+            type: activityMeta.type,
+            icon: activityMeta.icon,
+            action: `Generated ${toolName}`,
+            detail: `Created a ${toolName.toLowerCase()} output using Study Aura AI Studio.`,
+            moduleTitle: currentModule?.title ?? topic,
+          });
+
           showEnergyToast(energyResult);
 
           const xpResult = awardXp({

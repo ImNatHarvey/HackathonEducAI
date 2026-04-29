@@ -3,8 +3,11 @@ import {
   awardAuraXp,
   createDefaultAuraStats,
   getToolXpNeededForLevel,
+  getUnlockedTitleDefinitions,
   getXpNeededForLevel,
+  migrateAuraStats,
   resetDailyCapsIfNeeded,
+  setActiveAuraTitle,
   spendAuraEnergy,
   type AuraStats,
   type AwardXpInput,
@@ -23,8 +26,8 @@ const safelyParseStats = (value: string | null, username: string) => {
   if (!value) return createDefaultAuraStats(username);
 
   try {
-    const parsed = JSON.parse(value) as AuraStats;
-    return resetDailyCapsIfNeeded(parsed);
+    const parsed = JSON.parse(value) as Partial<AuraStats>;
+    return resetDailyCapsIfNeeded(migrateAuraStats(parsed, username));
   } catch {
     return createDefaultAuraStats(username);
   }
@@ -68,20 +71,45 @@ export const useAuraProgress = ({
     localStorage.setItem(storageKey, JSON.stringify(stats));
   }, [stats, storageKey]);
 
-  const awardXp = useCallback((input: AwardXpInput): AwardXpResult => {
-    const result = awardAuraXp(stats, input);
-    setStats(result.nextStats);
-    return result;
-  }, [stats]);
+  const awardXp = useCallback(
+    (input: AwardXpInput): AwardXpResult => {
+      let result: AwardXpResult;
+
+      setStats((currentStats) => {
+        result = awardAuraXp(currentStats, input);
+        return result.nextStats;
+      });
+
+      return result!;
+    },
+    [],
+  );
 
   const spendEnergy = useCallback(
     (input: SpendEnergyInput): SpendEnergyResult => {
-      const result = spendAuraEnergy(stats, input);
-      setStats(result.nextStats);
-      return result;
+      let result: SpendEnergyResult;
+
+      setStats((currentStats) => {
+        result = spendAuraEnergy(currentStats, input);
+        return result.nextStats;
+      });
+
+      return result!;
     },
-    [stats],
+    [],
   );
+
+  const equipTitle = useCallback((title: string) => {
+    let wasEquipped = false;
+
+    setStats((currentStats) => {
+      const nextStats = setActiveAuraTitle(currentStats, title);
+      wasEquipped = nextStats.activeTitle === title;
+      return nextStats;
+    });
+
+    return wasEquipped;
+  }, []);
 
   const resetProgress = useCallback(() => {
     setStats(createDefaultAuraStats(displayName));
@@ -117,12 +145,18 @@ export const useAuraProgress = ({
     );
   }, [stats.tools]);
 
+  const unlockedTitleDefinitions = useMemo(() => {
+    return getUnlockedTitleDefinitions(stats);
+  }, [stats]);
+
   return {
     stats,
     accountProgress,
     toolProgress,
+    unlockedTitleDefinitions,
     awardXp,
     spendEnergy,
+    equipTitle,
     resetProgress,
   };
 };

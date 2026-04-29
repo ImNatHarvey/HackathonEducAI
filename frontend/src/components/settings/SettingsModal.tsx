@@ -22,6 +22,7 @@ type ExtendedSettingsModalProps = SettingsModalProps & {
   auraStats?: AuraStats;
   accountProgress?: ProgressInfo;
   toolProgress?: Record<string, ProgressInfo>;
+  onEquipTitle?: (title: string) => boolean;
 };
 
 const panelTitles: Record<SettingsPanel, string> = {
@@ -42,6 +43,7 @@ const SettingsModal = ({
   auraStats,
   accountProgress,
   toolProgress,
+  onEquipTitle,
 }: ExtendedSettingsModalProps) => {
   const [activePanel, setActivePanel] = useState<SettingsPanel>(initialPanel);
 
@@ -69,6 +71,7 @@ const SettingsModal = ({
             auraStats={auraStats}
             accountProgress={accountProgress}
             toolProgress={toolProgress}
+            onEquipTitle={onEquipTitle}
           />
         );
       case "preferences":
@@ -106,6 +109,7 @@ const SettingsModal = ({
               <p className="text-xs font-black uppercase tracking-[0.28em] text-aura-cyan">
                 Study Aura Settings
               </p>
+
               <h2 className="mt-2 truncate text-2xl font-black text-aura-text">
                 {panelTitles[activePanel]}
               </h2>
@@ -125,16 +129,6 @@ const SettingsModal = ({
         <main className="aura-scrollbar min-h-0 flex-1 overflow-y-auto px-6 py-5">
           {renderPanel()}
         </main>
-
-        <footer className="flex shrink-0 justify-end border-t border-aura-border bg-aura-bg-soft/80 px-6 py-4">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="rounded-2xl bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold px-5 py-3 text-sm font-black text-aura-bg transition hover:-translate-y-0.5"
-          >
-            Save Changes
-          </button>
-        </footer>
       </div>
     </div>
   );

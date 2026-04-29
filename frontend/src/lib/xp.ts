@@ -23,6 +23,31 @@ export type AuraXpEvent =
   | "web_sources_imported"
   | "ai_tool_generated";
 
+export type TitleCategory =
+  | "general"
+  | "chat"
+  | "source"
+  | "web"
+  | "quiz"
+  | "flashcards"
+  | "audio"
+  | "slides"
+  | "tables"
+  | "mindMap"
+  | "anime"
+  | "gaming"
+  | "meme"
+  | "legendary";
+
+export type AuraTitleDefinition = {
+  id: string;
+  title: string;
+  icon: string;
+  category: TitleCategory;
+  requirement: string;
+  isUnlocked: (stats: AuraStats) => boolean;
+};
+
 export type AuraStats = {
   username: string;
   level: number;
@@ -34,6 +59,12 @@ export type AuraStats = {
   lastDailyReset: string;
   titles: string[];
   activeTitle: string;
+  activityCounts: {
+    chatMessages: number;
+    sourcesAdded: number;
+    webSourcesImported: number;
+    aiOutputsGenerated: number;
+  };
   tools: Record<
     AuraToolKey,
     {
@@ -42,6 +73,7 @@ export type AuraStats = {
       xp: number;
       totalXp: number;
       dailyXp: number;
+      generations: number;
     }
   >;
 };
@@ -86,31 +118,31 @@ export type AwardXpResult = {
   message: string;
 };
 
-export const AURA_DAILY_XP_CAP = 500;
-export const TOOL_DAILY_XP_CAP = 250;
-export const MAX_AURA_LEVEL = 50;
-export const MAX_TOOL_LEVEL = 20;
+export const AURA_DAILY_XP_CAP = 900;
+export const TOOL_DAILY_XP_CAP = 500;
+export const MAX_AURA_LEVEL = 100;
+export const MAX_TOOL_LEVEL = 50;
 export const LOW_ENERGY_THRESHOLD = 20;
-
-export const AURA_LEVEL_TITLES: Record<number, string> = {
-  1: "New Learner",
-  3: "Focused Student",
-  5: "Aura Scholar",
-  10: "Knowledge Seeker",
-  15: "Study Strategist",
-  20: "Master Reviewer",
-  30: "Aura Sage",
-  40: "Academic Champion",
-  50: "Study Aura Legend",
-};
 
 export const toolLabels: Record<AuraToolKey, string> = {
   quiz: "Quiz",
-  flashcards: "Flashcards",
+  flashcards: "Cards",
   audio: "Audio",
   slides: "Slides",
   tables: "Tables",
   mindMap: "Mind Map",
+};
+
+const legacyTitleMap: Record<string, string> = {
+  "New Learner": "Fresh Spawn",
+  "Focused Student": "Aura Farmer",
+  "Aura Scholar": "Lore Keeper",
+  "Knowledge Seeker": "Wisdom Seeker",
+  "Study Strategist": "Tactician",
+  "Master Reviewer": "Review Demon",
+  "Aura Sage": "Grandmaster",
+  "Academic Champion": "Ranked Scholar",
+  "Study Aura Legend": "Mythic Grinder",
 };
 
 const createDefaultToolStats = (label: string) => ({
@@ -119,6 +151,7 @@ const createDefaultToolStats = (label: string) => ({
   xp: 0,
   totalXp: 0,
   dailyXp: 0,
+  generations: 0,
 });
 
 export const createDefaultAuraStats = (username = "Student"): AuraStats => {
@@ -133,11 +166,17 @@ export const createDefaultAuraStats = (username = "Student"): AuraStats => {
     maxEnergy: 100,
     dailyXp: 0,
     lastDailyReset: today,
-    titles: ["New Learner"],
-    activeTitle: "New Learner",
+    titles: ["Fresh Spawn"],
+    activeTitle: "Fresh Spawn",
+    activityCounts: {
+      chatMessages: 0,
+      sourcesAdded: 0,
+      webSourcesImported: 0,
+      aiOutputsGenerated: 0,
+    },
     tools: {
       quiz: createDefaultToolStats("Quiz"),
-      flashcards: createDefaultToolStats("Flashcards"),
+      flashcards: createDefaultToolStats("Cards"),
       audio: createDefaultToolStats("Audio"),
       slides: createDefaultToolStats("Slides"),
       tables: createDefaultToolStats("Tables"),
@@ -146,12 +185,86 @@ export const createDefaultAuraStats = (username = "Student"): AuraStats => {
   };
 };
 
+const mapLegacyTitle = (title: string) => legacyTitleMap[title] ?? title;
+
+export const migrateAuraStats = (
+  stats: Partial<AuraStats>,
+  username = "Student",
+): AuraStats => {
+  const defaults = createDefaultAuraStats(username);
+
+  const migratedTitles =
+    Array.isArray(stats.titles) && stats.titles.length > 0
+      ? Array.from(new Set(stats.titles.map(mapLegacyTitle)))
+      : defaults.titles;
+
+  const migratedActiveTitle = mapLegacyTitle(
+    stats.activeTitle || defaults.activeTitle,
+  );
+
+  const nextStats: AuraStats = {
+    ...defaults,
+    ...stats,
+    username: stats.username || username,
+    titles: migratedTitles,
+    activeTitle: migratedActiveTitle,
+    activityCounts: {
+      ...defaults.activityCounts,
+      ...(stats.activityCounts ?? {}),
+    },
+    tools: {
+      quiz: {
+        ...defaults.tools.quiz,
+        ...(stats.tools?.quiz ?? {}),
+        label: "Quiz",
+        generations: stats.tools?.quiz?.generations ?? 0,
+      },
+      flashcards: {
+        ...defaults.tools.flashcards,
+        ...(stats.tools?.flashcards ?? {}),
+        label: "Cards",
+        generations: stats.tools?.flashcards?.generations ?? 0,
+      },
+      audio: {
+        ...defaults.tools.audio,
+        ...(stats.tools?.audio ?? {}),
+        label: "Audio",
+        generations: stats.tools?.audio?.generations ?? 0,
+      },
+      slides: {
+        ...defaults.tools.slides,
+        ...(stats.tools?.slides ?? {}),
+        label: "Slides",
+        generations: stats.tools?.slides?.generations ?? 0,
+      },
+      tables: {
+        ...defaults.tools.tables,
+        ...(stats.tools?.tables ?? {}),
+        label: "Tables",
+        generations: stats.tools?.tables?.generations ?? 0,
+      },
+      mindMap: {
+        ...defaults.tools.mindMap,
+        ...(stats.tools?.mindMap ?? {}),
+        label: "Mind Map",
+        generations: stats.tools?.mindMap?.generations ?? 0,
+      },
+    },
+  };
+
+  if (!nextStats.titles.includes(nextStats.activeTitle)) {
+    nextStats.activeTitle = nextStats.titles[0] ?? "Fresh Spawn";
+  }
+
+  return nextStats;
+};
+
 export const getXpNeededForLevel = (level: number) => {
-  return Math.round(100 + (level - 1) * 75 + Math.pow(level - 1, 1.35) * 35);
+  return 100 + Math.max(0, level - 1) * 25;
 };
 
 export const getToolXpNeededForLevel = (level: number) => {
-  return Math.round(80 + (level - 1) * 55 + Math.pow(level - 1, 1.25) * 25);
+  return 75 + Math.max(0, level - 1) * 20;
 };
 
 export const getToolKeyFromName = (
@@ -172,17 +285,17 @@ export const getToolKeyFromName = (
 export const getAccountXpForEvent = (input: AwardXpInput) => {
   if (typeof input.amountOverride === "number") return input.amountOverride;
 
-  if (input.event === "chat_send") return 5;
-  if (input.event === "web_search_completed") return 10;
-  if (input.event === "web_sources_imported") return 15;
-  if (input.event === "ai_tool_generated") return 20;
+  if (input.event === "chat_send") return 8;
+  if (input.event === "web_search_completed") return 15;
+  if (input.event === "web_sources_imported") return 25;
+  if (input.event === "ai_tool_generated") return 35;
 
   if (input.event === "source_added") {
-    if (input.sourceType === "youtube") return 20;
-    if (input.sourceType === "pdf") return 25;
-    if (input.sourceType === "image") return 25;
-    if (input.sourceType === "website") return 15;
-    return 10;
+    if (input.sourceType === "youtube") return 30;
+    if (input.sourceType === "pdf") return 35;
+    if (input.sourceType === "image") return 35;
+    if (input.sourceType === "website") return 25;
+    return 20;
   }
 
   return 0;
@@ -195,50 +308,44 @@ export const getToolXpForEvent = (input: AwardXpInput) => {
   if (!toolKey) return 0;
 
   if (toolKey === "audio") {
-    if (input.audioLength === "short") return 15;
-    if (input.audioLength === "deep") return 40;
-    return 25;
+    if (input.audioLength === "short") return 25;
+    if (input.audioLength === "deep") return 60;
+    return 40;
   }
 
   const difficulty = input.difficulty || "medium";
 
-  const easyMediumHard = {
-    easy: 0,
-    medium: 0,
-    hard: 0,
-  };
-
   if (toolKey === "quiz") {
-    easyMediumHard.easy = 20;
-    easyMediumHard.medium = 35;
-    easyMediumHard.hard = 55;
+    if (difficulty === "easy") return 35;
+    if (difficulty === "hard") return 80;
+    return 55;
   }
 
   if (toolKey === "flashcards") {
-    easyMediumHard.easy = 15;
-    easyMediumHard.medium = 25;
-    easyMediumHard.hard = 40;
+    if (difficulty === "easy") return 30;
+    if (difficulty === "hard") return 65;
+    return 45;
   }
 
   if (toolKey === "slides") {
-    easyMediumHard.easy = 25;
-    easyMediumHard.medium = 40;
-    easyMediumHard.hard = 60;
+    if (difficulty === "easy") return 40;
+    if (difficulty === "hard") return 90;
+    return 65;
   }
 
   if (toolKey === "tables") {
-    easyMediumHard.easy = 15;
-    easyMediumHard.medium = 25;
-    easyMediumHard.hard = 40;
+    if (difficulty === "easy") return 30;
+    if (difficulty === "hard") return 65;
+    return 45;
   }
 
   if (toolKey === "mindMap") {
-    easyMediumHard.easy = 20;
-    easyMediumHard.medium = 35;
-    easyMediumHard.hard = 50;
+    if (difficulty === "easy") return 35;
+    if (difficulty === "hard") return 80;
+    return 55;
   }
 
-  return easyMediumHard[difficulty];
+  return 0;
 };
 
 export const getEnergyCostForEvent = (input: SpendEnergyInput) => {
@@ -285,7 +392,467 @@ export const getEnergyCostForEvent = (input: SpendEnergyInput) => {
   return 0;
 };
 
-export const resetDailyCapsIfNeeded = (stats: AuraStats): AuraStats => {
+export const AURA_TITLE_DEFINITIONS: AuraTitleDefinition[] = [
+  {
+    id: "fresh-spawn",
+    title: "Fresh Spawn",
+    icon: "🌱",
+    category: "general",
+    requirement: "Start your Study Aura journey.",
+    isUnlocked: () => true,
+  },
+  {
+    id: "aura-farmer",
+    title: "Aura Farmer",
+    icon: "🌾",
+    category: "meme",
+    requirement: "Reach Aura Level 3.",
+    isUnlocked: (stats) => stats.level >= 3,
+  },
+  {
+    id: "ranked-scholar",
+    title: "Ranked Scholar",
+    icon: "🏅",
+    category: "gaming",
+    requirement: "Reach Aura Level 5.",
+    isUnlocked: (stats) => stats.level >= 5,
+  },
+  {
+    id: "lore-keeper",
+    title: "Lore Keeper",
+    icon: "📜",
+    category: "gaming",
+    requirement: "Reach Aura Level 8.",
+    isUnlocked: (stats) => stats.level >= 8,
+  },
+  {
+    id: "wisdom-seeker",
+    title: "Wisdom Seeker",
+    icon: "🧭",
+    category: "anime",
+    requirement: "Reach Aura Level 10.",
+    isUnlocked: (stats) => stats.level >= 10,
+  },
+  {
+    id: "tactician",
+    title: "Tactician",
+    icon: "♟️",
+    category: "gaming",
+    requirement: "Reach Aura Level 12.",
+    isUnlocked: (stats) => stats.level >= 12,
+  },
+  {
+    id: "review-demon",
+    title: "Review Demon",
+    icon: "👹",
+    category: "anime",
+    requirement: "Reach Aura Level 15.",
+    isUnlocked: (stats) => stats.level >= 15,
+  },
+  {
+    id: "grindset-awakened",
+    title: "Grindset Awakened",
+    icon: "🔥",
+    category: "meme",
+    requirement: "Reach Aura Level 18.",
+    isUnlocked: (stats) => stats.level >= 18,
+  },
+  {
+    id: "grandmaster",
+    title: "Grandmaster",
+    icon: "👑",
+    category: "gaming",
+    requirement: "Reach Aura Level 25.",
+    isUnlocked: (stats) => stats.level >= 25,
+  },
+  {
+    id: "diamond-mindset",
+    title: "Diamond Mindset",
+    icon: "💎",
+    category: "gaming",
+    requirement: "Reach Aura Level 35.",
+    isUnlocked: (stats) => stats.level >= 35,
+  },
+  {
+    id: "mythic-grinder",
+    title: "Mythic Grinder",
+    icon: "🌌",
+    category: "gaming",
+    requirement: "Reach Aura Level 45.",
+    isUnlocked: (stats) => stats.level >= 45,
+  },
+  {
+    id: "tenno-scholar",
+    title: "Tenno Scholar",
+    icon: "⚔️",
+    category: "gaming",
+    requirement: "Reach Aura Level 55.",
+    isUnlocked: (stats) => stats.level >= 55,
+  },
+  {
+    id: "void-farmer",
+    title: "Void Farmer",
+    icon: "🌀",
+    category: "gaming",
+    requirement: "Reach Aura Level 65.",
+    isUnlocked: (stats) => stats.level >= 65,
+  },
+  {
+    id: "final-boss",
+    title: "Final Boss",
+    icon: "👾",
+    category: "gaming",
+    requirement: "Reach Aura Level 75.",
+    isUnlocked: (stats) => stats.level >= 75,
+  },
+  {
+    id: "the-honored-one",
+    title: "The Honored One",
+    icon: "🔵",
+    category: "anime",
+    requirement: "Reach Aura Level 90.",
+    isUnlocked: (stats) => stats.level >= 90,
+  },
+  {
+    id: "limitless-learner",
+    title: "Limitless Learner",
+    icon: "♾️",
+    category: "legendary",
+    requirement: "Reach Aura Level 100.",
+    isUnlocked: (stats) => stats.level >= 100,
+  },
+  {
+    id: "the-rizzler",
+    title: "The Rizzler",
+    icon: "💬",
+    category: "meme",
+    requirement: "Send 10 chat prompts.",
+    isUnlocked: (stats) => stats.activityCounts.chatMessages >= 10,
+  },
+  {
+    id: "prompt-sorcerer",
+    title: "Prompt Sorcerer",
+    icon: "🪄",
+    category: "chat",
+    requirement: "Send 25 chat prompts.",
+    isUnlocked: (stats) => stats.activityCounts.chatMessages >= 25,
+  },
+  {
+    id: "dialogue-domain",
+    title: "Dialogue Domain",
+    icon: "🗣️",
+    category: "anime",
+    requirement: "Send 50 chat prompts.",
+    isUnlocked: (stats) => stats.activityCounts.chatMessages >= 50,
+  },
+  {
+    id: "main-character-energy",
+    title: "Main Character Energy",
+    icon: "🎬",
+    category: "meme",
+    requirement: "Send 100 chat prompts.",
+    isUnlocked: (stats) => stats.activityCounts.chatMessages >= 100,
+  },
+  {
+    id: "the-source",
+    title: "The Source",
+    icon: "🌐",
+    category: "source",
+    requirement: "Add 5 sources.",
+    isUnlocked: (stats) => stats.activityCounts.sourcesAdded >= 5,
+  },
+  {
+    id: "source-hunter",
+    title: "Source Hunter",
+    icon: "🕵️",
+    category: "source",
+    requirement: "Add 15 sources.",
+    isUnlocked: (stats) => stats.activityCounts.sourcesAdded >= 15,
+  },
+  {
+    id: "archive-beast",
+    title: "Archive Beast",
+    icon: "🗃️",
+    category: "source",
+    requirement: "Add 30 sources.",
+    isUnlocked: (stats) => stats.activityCounts.sourcesAdded >= 30,
+  },
+  {
+    id: "librarian-of-babel",
+    title: "Librarian of Babel",
+    icon: "🏛️",
+    category: "source",
+    requirement: "Add 60 sources.",
+    isUnlocked: (stats) => stats.activityCounts.sourcesAdded >= 60,
+  },
+  {
+    id: "web-drifter",
+    title: "Web Drifter",
+    icon: "🕸️",
+    category: "web",
+    requirement: "Import 3 web sources.",
+    isUnlocked: (stats) => stats.activityCounts.webSourcesImported >= 3,
+  },
+  {
+    id: "search-engine-sage",
+    title: "Search Engine Sage",
+    icon: "🔎",
+    category: "web",
+    requirement: "Import 10 web sources.",
+    isUnlocked: (stats) => stats.activityCounts.webSourcesImported >= 10,
+  },
+  {
+    id: "google-fu-grandmaster",
+    title: "Google-Fu Grandmaster",
+    icon: "🥋",
+    category: "web",
+    requirement: "Import 25 web sources.",
+    isUnlocked: (stats) => stats.activityCounts.webSourcesImported >= 25,
+  },
+  {
+    id: "quiz-master",
+    title: "Quiz Master",
+    icon: "⚡",
+    category: "quiz",
+    requirement: "Reach Quiz Level 3.",
+    isUnlocked: (stats) => stats.tools.quiz.level >= 3,
+  },
+  {
+    id: "quiz-expert",
+    title: "Quiz Expert",
+    icon: "🧪",
+    category: "quiz",
+    requirement: "Reach Quiz Level 8.",
+    isUnlocked: (stats) => stats.tools.quiz.level >= 8,
+  },
+  {
+    id: "question-bank-overlord",
+    title: "Question Bank Overlord",
+    icon: "🧠",
+    category: "quiz",
+    requirement: "Generate 25 quizzes.",
+    isUnlocked: (stats) => stats.tools.quiz.generations >= 25,
+  },
+  {
+    id: "card-slinger",
+    title: "Card Slinger",
+    icon: "🃏",
+    category: "flashcards",
+    requirement: "Reach Cards Level 3.",
+    isUnlocked: (stats) => stats.tools.flashcards.level >= 3,
+  },
+  {
+    id: "memory-palace-owner",
+    title: "Memory Palace Owner",
+    icon: "🏰",
+    category: "flashcards",
+    requirement: "Reach Cards Level 8.",
+    isUnlocked: (stats) => stats.tools.flashcards.level >= 8,
+  },
+  {
+    id: "anki-avenger",
+    title: "Anki Avenger",
+    icon: "🛡️",
+    category: "flashcards",
+    requirement: "Generate 25 card sets.",
+    isUnlocked: (stats) => stats.tools.flashcards.generations >= 25,
+  },
+  {
+    id: "slide-alchemist",
+    title: "Slide Alchemist",
+    icon: "📊",
+    category: "slides",
+    requirement: "Reach Slides Level 3.",
+    isUnlocked: (stats) => stats.tools.slides.level >= 3,
+  },
+  {
+    id: "deck-builder",
+    title: "Deck Builder",
+    icon: "🧱",
+    category: "slides",
+    requirement: "Generate 10 slide decks.",
+    isUnlocked: (stats) => stats.tools.slides.generations >= 10,
+  },
+  {
+    id: "presentation-sensei",
+    title: "Presentation Sensei",
+    icon: "🎤",
+    category: "slides",
+    requirement: "Generate 25 slide decks.",
+    isUnlocked: (stats) => stats.tools.slides.generations >= 25,
+  },
+  {
+    id: "table-tactician",
+    title: "Table Tactician",
+    icon: "📋",
+    category: "tables",
+    requirement: "Reach Tables Level 3.",
+    isUnlocked: (stats) => stats.tools.tables.level >= 3,
+  },
+  {
+    id: "spreadsheet-samurai",
+    title: "Spreadsheet Samurai",
+    icon: "🗡️",
+    category: "tables",
+    requirement: "Reach Tables Level 8.",
+    isUnlocked: (stats) => stats.tools.tables.level >= 8,
+  },
+  {
+    id: "data-grandmaster",
+    title: "Data Grandmaster",
+    icon: "📈",
+    category: "tables",
+    requirement: "Generate 25 tables.",
+    isUnlocked: (stats) => stats.tools.tables.generations >= 25,
+  },
+  {
+    id: "mind-map-monk",
+    title: "Mind Map Monk",
+    icon: "🧘",
+    category: "mindMap",
+    requirement: "Reach Mind Map Level 3.",
+    isUnlocked: (stats) => stats.tools.mindMap.level >= 3,
+  },
+  {
+    id: "idea-domain-expansion",
+    title: "Idea Domain Expansion",
+    icon: "🌀",
+    category: "anime",
+    requirement: "Generate 15 mind maps.",
+    isUnlocked: (stats) => stats.tools.mindMap.generations >= 15,
+  },
+  {
+    id: "cosmic-brain-web",
+    title: "Cosmic Brain Web",
+    icon: "🪐",
+    category: "mindMap",
+    requirement: "Generate 30 mind maps.",
+    isUnlocked: (stats) => stats.tools.mindMap.generations >= 30,
+  },
+  {
+    id: "audio-oracle",
+    title: "Audio Oracle",
+    icon: "🎧",
+    category: "audio",
+    requirement: "Reach Audio Level 3.",
+    isUnlocked: (stats) => stats.tools.audio.level >= 3,
+  },
+  {
+    id: "podcast-prophet",
+    title: "Podcast Prophet",
+    icon: "🎙️",
+    category: "audio",
+    requirement: "Generate 15 audio overviews.",
+    isUnlocked: (stats) => stats.tools.audio.generations >= 15,
+  },
+  {
+    id: "radio-demon",
+    title: "Radio Demon",
+    icon: "📻",
+    category: "audio",
+    requirement: "Generate 30 audio overviews.",
+    isUnlocked: (stats) => stats.tools.audio.generations >= 30,
+  },
+  {
+    id: "ai-studio-addict",
+    title: "AI Studio Addict",
+    icon: "🤖",
+    category: "general",
+    requirement: "Generate 20 AI Studio outputs.",
+    isUnlocked: (stats) => stats.activityCounts.aiOutputsGenerated >= 20,
+  },
+  {
+    id: "factory-reset-brain",
+    title: "Factory Reset Brain",
+    icon: "🧼",
+    category: "meme",
+    requirement: "Generate 50 AI Studio outputs.",
+    isUnlocked: (stats) => stats.activityCounts.aiOutputsGenerated >= 50,
+  },
+  {
+    id: "the-grinder",
+    title: "The Grinder",
+    icon: "🔥",
+    category: "meme",
+    requirement: "Earn 1,000 total Aura XP.",
+    isUnlocked: (stats) => stats.totalXp >= 1000,
+  },
+  {
+    id: "no-sleep-scholar",
+    title: "No Sleep Scholar",
+    icon: "🌙",
+    category: "meme",
+    requirement: "Earn 3,000 total Aura XP.",
+    isUnlocked: (stats) => stats.totalXp >= 3000,
+  },
+  {
+    id: "xp-millionaire",
+    title: "XP Millionaire",
+    icon: "💰",
+    category: "legendary",
+    requirement: "Earn 7,500 total Aura XP.",
+    isUnlocked: (stats) => stats.totalXp >= 7500,
+  },
+  {
+    id: "aura-billionaire",
+    title: "Aura Billionaire",
+    icon: "🤑",
+    category: "legendary",
+    requirement: "Earn 15,000 total Aura XP.",
+    isUnlocked: (stats) => stats.totalXp >= 15000,
+  },
+];
+
+export const getUnlockedTitleDefinitions = (stats: AuraStats) => {
+  return AURA_TITLE_DEFINITIONS.filter((definition) =>
+    definition.isUnlocked(stats),
+  );
+};
+
+export const getUnlockedTitleNames = (stats: AuraStats) => {
+  return getUnlockedTitleDefinitions(stats).map((definition) => definition.title);
+};
+
+export const unlockEligibleTitles = (stats: AuraStats) => {
+  const unlockedTitleNames = getUnlockedTitleNames(stats);
+  const currentTitleSet = new Set(stats.titles);
+  const newlyUnlockedTitles = unlockedTitleNames.filter(
+    (title) => !currentTitleSet.has(title),
+  );
+
+  if (newlyUnlockedTitles.length === 0) {
+    return {
+      nextStats: stats,
+      newlyUnlockedTitles,
+    };
+  }
+
+  return {
+    nextStats: {
+      ...stats,
+      titles: [...stats.titles, ...newlyUnlockedTitles],
+      activeTitle: newlyUnlockedTitles[newlyUnlockedTitles.length - 1],
+    },
+    newlyUnlockedTitles,
+  };
+};
+
+export const setActiveAuraTitle = (
+  currentStats: AuraStats,
+  title: string,
+): AuraStats => {
+  const stats = migrateAuraStats(currentStats, currentStats.username);
+
+  if (!stats.titles.includes(title)) return stats;
+
+  return {
+    ...stats,
+    activeTitle: title,
+  };
+};
+
+export const resetDailyCapsIfNeeded = (currentStats: AuraStats): AuraStats => {
+  const stats = migrateAuraStats(currentStats, currentStats.username);
   const today = new Date().toISOString().slice(0, 10);
 
   if (stats.lastDailyReset === today) return stats;
@@ -355,7 +922,8 @@ export const spendAuraEnergy = (
   };
 
   const wasDepleted = remainingEnergy <= 0;
-  const wasLowEnergy = remainingEnergy > 0 && remainingEnergy <= LOW_ENERGY_THRESHOLD;
+  const wasLowEnergy =
+    remainingEnergy > 0 && remainingEnergy <= LOW_ENERGY_THRESHOLD;
 
   return {
     nextStats,
@@ -367,7 +935,9 @@ export const spendAuraEnergy = (
     message:
       requestedEnergy === 0
         ? "No energy spent"
-        : `-${energySpent} Energy${energySpent < requestedEnergy ? ` (${requestedEnergy} requested)` : ""}`,
+        : `-${energySpent} Energy${
+            energySpent < requestedEnergy ? ` (${requestedEnergy} requested)` : ""
+          }`,
   };
 };
 
@@ -385,6 +955,21 @@ export const awardAuraXp = (
     xp: stats.xp + accountXpGained,
     totalXp: stats.totalXp + accountXpGained,
     dailyXp: stats.dailyXp + accountXpGained,
+    activityCounts: {
+      ...stats.activityCounts,
+      chatMessages:
+        stats.activityCounts.chatMessages +
+        (input.event === "chat_send" ? 1 : 0),
+      sourcesAdded:
+        stats.activityCounts.sourcesAdded +
+        (input.event === "source_added" ? 1 : 0),
+      webSourcesImported:
+        stats.activityCounts.webSourcesImported +
+        (input.event === "web_sources_imported" ? 1 : 0),
+      aiOutputsGenerated:
+        stats.activityCounts.aiOutputsGenerated +
+        (input.event === "ai_tool_generated" ? 1 : 0),
+    },
   };
 
   const accountLevelResult = applyLeveling({
@@ -399,28 +984,6 @@ export const awardAuraXp = (
     level: accountLevelResult.level,
     xp: accountLevelResult.xp,
   };
-
-  const unlockedTitles: string[] = [];
-
-  Object.entries(AURA_LEVEL_TITLES).forEach(([levelValue, title]) => {
-    const levelNumber = Number(levelValue);
-
-    if (
-      stats.level < levelNumber &&
-      nextStats.level >= levelNumber &&
-      !nextStats.titles.includes(title)
-    ) {
-      unlockedTitles.push(title);
-    }
-  });
-
-  if (unlockedTitles.length > 0) {
-    nextStats = {
-      ...nextStats,
-      titles: [...nextStats.titles, ...unlockedTitles],
-      activeTitle: unlockedTitles[unlockedTitles.length - 1],
-    };
-  }
 
   const toolKey = getToolKeyFromName(input.toolName);
   let toolXpGained = 0;
@@ -451,10 +1014,15 @@ export const awardAuraXp = (
           level: toolLevelResult.level,
           totalXp: tool.totalXp + toolXpGained,
           dailyXp: tool.dailyXp + toolXpGained,
+          generations:
+            tool.generations + (input.event === "ai_tool_generated" ? 1 : 0),
         },
       },
     };
   }
+
+  const titleUnlockResult = unlockEligibleTitles(nextStats);
+  nextStats = titleUnlockResult.nextStats;
 
   const messageParts = [];
 
@@ -467,7 +1035,7 @@ export const awardAuraXp = (
     toolXpGained,
     leveledUp: accountLevelResult.leveledUp,
     toolLeveledUp,
-    unlockedTitles,
+    unlockedTitles: titleUnlockResult.newlyUnlockedTitles,
     message: messageParts.join(" • ") || "Daily XP cap reached",
   };
 };
