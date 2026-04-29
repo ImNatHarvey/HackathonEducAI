@@ -19,14 +19,17 @@ const SavedQuizResult = ({ result }: { result: N8nQuizResponse }) => {
 
   const currentQuestion = questions[currentQuestionIndex];
   const answeredCount = Object.keys(selectedAnswers).length;
+  const selectedAnswer = selectedAnswers[currentQuestionIndex];
+  const canSubmit = answeredCount === questions.length;
 
   const score = useMemo(() => {
     return questions.reduce((total, question, index) => {
-      const selectedAnswer = selectedAnswers[index];
+      const selectedAnswerForQuestion = selectedAnswers[index];
 
       if (
-        selectedAnswer &&
-        normalizeAnswer(selectedAnswer) === normalizeAnswer(question.answer)
+        selectedAnswerForQuestion &&
+        normalizeAnswer(selectedAnswerForQuestion) ===
+          normalizeAnswer(question.answer)
       ) {
         return total + 1;
       }
@@ -38,8 +41,6 @@ const SavedQuizResult = ({ result }: { result: N8nQuizResponse }) => {
   const accuracy = questions.length
     ? Math.round((score / questions.length) * 100)
     : 0;
-
-  const selectedAnswer = selectedAnswers[currentQuestionIndex];
 
   const isCorrect =
     selectedAnswer &&
@@ -72,6 +73,11 @@ const SavedQuizResult = ({ result }: { result: N8nQuizResponse }) => {
     setCurrentQuestionIndex(0);
   };
 
+  const handleSubmit = () => {
+    if (!canSubmit) return;
+    setIsSubmitted(true);
+  };
+
   const handlePrevious = () => {
     setCurrentQuestionIndex((current) => Math.max(current - 1, 0));
   };
@@ -88,23 +94,83 @@ const SavedQuizResult = ({ result }: { result: N8nQuizResponse }) => {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div>
+      {isSubmitted && (
+        <div className="rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-cyan">
+                Interactive Saved Quiz
+              </p>
+
+              <h3 className="mt-1 text-xl font-black text-aura-text">
+                {result.quiz.title}
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-aura-muted">
+                Quiz completed. Review your score, accuracy, correct answers,
+                and explanations.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleReset}
+              className="rounded-2xl border border-aura-border bg-aura-panel px-5 py-3 text-sm font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text"
+            >
+              Try Again
+            </button>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-aura-border bg-aura-panel p-4">
+              <p className="text-2xl font-black text-aura-text">
+                {answeredCount}/{questions.length}
+              </p>
+              <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-aura-dim">
+                Answered
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-aura-border bg-aura-panel p-4">
+              <p className="text-2xl font-black text-aura-text">
+                {score}/{questions.length}
+              </p>
+              <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-aura-dim">
+                Score
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-aura-border bg-aura-panel p-4">
+              <p className="text-2xl font-black text-aura-text">{accuracy}%</p>
+              <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-aura-dim">
+                Accuracy
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-[1.75rem] border border-aura-border bg-aura-bg-soft p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-cyan">
-              Interactive Saved Quiz
+              Question {currentQuestionIndex + 1} of {questions.length}
             </p>
 
-            <h3 className="mt-1 text-xl font-black text-aura-text">
-              {result.quiz.title}
+            <h3 className="mt-3 text-2xl font-black leading-9 text-aura-text">
+              {currentQuestion.question}
             </h3>
 
-            <p className="mt-2 text-sm leading-6 text-aura-muted">
-              Answer one question at a time. Use Previous and Next to navigate.
-            </p>
-
-            <div className="mt-3">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <ProviderBadge result={result} />
+
+              <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-1 text-[10px] font-black uppercase tracking-wider text-aura-dim">
+                {answeredCount}/{questions.length} answered
+              </span>
+
+              <span className="rounded-full border border-aura-cyan/35 bg-aura-cyan/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-aura-cyan">
+                {progressPercentage}% progress
+              </span>
             </div>
           </div>
 
@@ -126,54 +192,34 @@ const SavedQuizResult = ({ result }: { result: N8nQuizResponse }) => {
               Reset
             </button>
 
-            <button
-              type="button"
-              onClick={() => setIsSubmitted(true)}
-              disabled={answeredCount === 0}
-              className="rounded-2xl bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold px-4 py-3 text-sm font-black text-aura-bg transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2"
-            >
-              Submit Answers
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-aura-border bg-aura-panel p-4">
-            <p className="text-2xl font-black text-aura-text">
-              {answeredCount}/{questions.length}
-            </p>
-            <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-aura-dim">
-              Answered
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-aura-border bg-aura-panel p-4">
-            <p className="text-2xl font-black text-aura-text">
-              {isSubmitted ? `${score}/${questions.length}` : "--"}
-            </p>
-            <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-aura-dim">
-              Score
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-aura-border bg-aura-panel p-4">
-            <p className="text-2xl font-black text-aura-text">
-              {isSubmitted ? `${accuracy}%` : "--"}
-            </p>
-            <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-aura-dim">
-              Accuracy
-            </p>
+            {!isSubmitted && (
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!canSubmit}
+                className="rounded-2xl bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold px-4 py-3 text-sm font-black text-aura-bg transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2"
+                title={
+                  canSubmit
+                    ? "Submit answers"
+                    : "Answer all questions before submitting"
+                }
+              >
+                {canSubmit
+                  ? "Submit Answers"
+                  : `Answer all questions (${answeredCount}/${questions.length})`}
+              </button>
+            )}
           </div>
         </div>
 
         <div className="mt-5">
           <div className="flex items-center justify-between gap-3">
             <p className="text-[10px] font-black uppercase tracking-wider text-aura-dim">
-              Question {currentQuestionIndex + 1} of {questions.length}
+              Focus Mode
             </p>
 
             <p className="text-[10px] font-black uppercase tracking-wider text-aura-cyan">
-              {progressPercentage}% Progress
+              {canSubmit ? "Ready to Submit" : "Keep Going"}
             </p>
           </div>
 
@@ -184,34 +230,8 @@ const SavedQuizResult = ({ result }: { result: N8nQuizResponse }) => {
             />
           </div>
         </div>
-      </div>
 
-      <div className="rounded-[1.75rem] border border-aura-border bg-aura-bg-soft p-6">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-black uppercase tracking-wider text-aura-cyan">
-              Question {currentQuestionIndex + 1}
-            </p>
-
-            <p className="mt-3 text-xl font-black leading-8 text-aura-text">
-              {currentQuestion.question}
-            </p>
-          </div>
-
-          {isSubmitted && (
-            <span
-              className={`shrink-0 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wider ${
-                isCorrect
-                  ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-200"
-                  : "border-red-400/40 bg-red-500/10 text-red-200"
-              }`}
-            >
-              {isCorrect ? "Correct" : "Review"}
-            </span>
-          )}
-        </div>
-
-        <div className="mt-5 grid gap-3 lg:grid-cols-2">
+        <div className="mt-6 grid gap-3 lg:grid-cols-2">
           {currentQuestion.choices.map((choice) => {
             const isSelected = selectedAnswer === choice;
             const isCorrectChoice =

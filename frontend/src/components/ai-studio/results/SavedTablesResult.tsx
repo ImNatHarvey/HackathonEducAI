@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 export type StudyTableColumn = {
   key: string;
@@ -215,7 +215,6 @@ function formatProvider(provider?: unknown): string {
 }
 
 export default function SavedTablesResult({ data }: SavedTablesResultProps) {
-  const [showRawData, setShowRawData] = useState(false);
   const table = getTablePayload(data);
 
   const normalized = useMemo(() => {
@@ -248,11 +247,12 @@ export default function SavedTablesResult({ data }: SavedTablesResultProps) {
 
   return (
     <section className="saved-table-result">
-      <div className="saved-result-kicker">Saved Table</div>
-
       <div className="saved-table-header">
         <div>
+          <div className="saved-result-kicker">Study Table</div>
+
           <h3 className="saved-result-title">{title}</h3>
+
           <p className="saved-result-description">{description}</p>
         </div>
 
@@ -344,34 +344,11 @@ export default function SavedTablesResult({ data }: SavedTablesResultProps) {
 
             <p>
               The table structure was generated, but the row values are blank.
-              Regenerate the table after publishing the updated n8n workflow.
+              Try generating the table again after checking your selected sources.
             </p>
           </div>
         </div>
       )}
-
-      <div className="saved-table-debug-panel">
-        <button
-          type="button"
-          className="saved-table-debug-toggle"
-          onClick={() => setShowRawData((current) => !current)}
-        >
-          {showRawData ? "Hide raw table payload" : "Show raw table payload"}
-        </button>
-
-        {showRawData && (
-          <pre className="saved-table-raw-json">
-            {JSON.stringify(
-              {
-                table,
-                normalized,
-              },
-              null,
-              2,
-            )}
-          </pre>
-        )}
-      </div>
     </section>
   );
 }
