@@ -145,8 +145,10 @@ const Dashboard = ({
     });
   };
 
-  const showEnergyToast = (energyResult: SpendEnergyResult) => {
-    if (energyResult.requestedEnergy <= 0) return;
+  const showEnergyToast = (
+    energyResult: SpendEnergyResult | null | undefined,
+  ) => {
+    if (!energyResult || energyResult.requestedEnergy <= 0) return;
 
     if (energyResult.wasDepleted) {
       showToast({

@@ -69,28 +69,18 @@ export const useAuraProgress = ({
   }, [stats, storageKey]);
 
   const awardXp = useCallback((input: AwardXpInput): AwardXpResult => {
-    let result: AwardXpResult | null = null;
-
-    setStats((currentStats) => {
-      result = awardAuraXp(currentStats, input);
-      return result.nextStats;
-    });
-
-    return result as unknown as AwardXpResult;
-  }, []);
+    const result = awardAuraXp(stats, input);
+    setStats(result.nextStats);
+    return result;
+  }, [stats]);
 
   const spendEnergy = useCallback(
     (input: SpendEnergyInput): SpendEnergyResult => {
-      let result: SpendEnergyResult | null = null;
-
-      setStats((currentStats) => {
-        result = spendAuraEnergy(currentStats, input);
-        return result.nextStats;
-      });
-
-      return result as unknown as SpendEnergyResult;
+      const result = spendAuraEnergy(stats, input);
+      setStats(result.nextStats);
+      return result;
     },
-    [],
+    [stats],
   );
 
   const resetProgress = useCallback(() => {
