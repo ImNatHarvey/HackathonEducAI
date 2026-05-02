@@ -38,11 +38,6 @@ const CreateModuleModal = ({
     onClose();
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setTitle(suggestion);
-    setSubtitle(`Study workspace for ${suggestion}.`);
-  };
-
   if (!isOpen) return null;
 
   return (
