@@ -161,17 +161,17 @@ const ChatPanel = ({
 
   return (
     <main className="flex h-full min-h-0 min-w-0 flex-col bg-aura-bg">
-      <section className="shrink-0 border-b border-aura-border bg-aura-bg/80 px-6 py-4 backdrop-blur-xl">
+      <section className="shrink-0 border-b border-aura-border bg-aura-bg/80 px-4 py-3 backdrop-blur-xl sm:px-6 sm:py-4">
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.26em] text-aura-cyan">
+          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-aura-cyan sm:text-[10px] sm:tracking-[0.26em]">
             Current Module
           </p>
 
-          <h1 className="mt-1 truncate text-2xl font-black tracking-tight text-aura-text">
+          <h1 className="mt-0.5 truncate text-xl font-black tracking-tight text-aura-text sm:mt-1 sm:text-2xl">
             {topic}
           </h1>
 
-          <p className="mt-1 text-sm leading-6 text-aura-muted">
+          <p className="mt-0.5 line-clamp-1 text-xs leading-5 text-aura-muted sm:mt-1 sm:line-clamp-none sm:leading-6">
             Chat with Aura using checked sources from the left panel.
           </p>
         </div>

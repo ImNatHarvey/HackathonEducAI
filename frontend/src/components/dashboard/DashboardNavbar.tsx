@@ -115,6 +115,7 @@ const DashboardNavbar = ({
 }: DashboardNavbarProps) => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isEnergyMenuOpen, setIsEnergyMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isEnergyAnimating, setIsEnergyAnimating] = useState(false);
   const [activityItems, setActivityItems] = useState<ActivityLogItem[]>(() =>
     getActivityLog(),
@@ -202,19 +203,19 @@ const DashboardNavbar = ({
   };
 
   return (
-    <header className="relative z-40 shrink-0 border-b border-aura-border bg-aura-panel/90 px-3 py-3 backdrop-blur-xl sm:px-5">
-      <div className="flex min-h-[3rem] items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
+    <header className="relative z-40 shrink-0 border-b border-aura-border bg-aura-panel/90 px-3 py-2 backdrop-blur-xl sm:px-5 sm:py-3">
+      <div className="flex min-h-[2.5rem] items-center justify-between gap-2 sm:min-h-[3rem] sm:gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={onOpenLibrary}
-            className="flex h-12 w-[260px] min-w-[260px] items-center gap-3 rounded-2xl px-2 text-left transition hover:bg-aura-bg-soft max-sm:w-auto max-sm:min-w-0"
+            className="flex h-10 items-center gap-2 rounded-2xl px-1 text-left transition hover:bg-aura-bg-soft sm:h-12 sm:w-[260px] sm:min-w-[260px] sm:px-2"
             aria-label={libraryButtonLabel}
           >
             <img
               src="/assets/study-aura-logo.png"
               alt="Study Aura"
-              className="h-8 w-8 object-contain"
+              className="h-7 w-7 object-contain sm:h-8 sm:w-8"
             />
 
             <div className="hidden min-w-0 sm:block">
@@ -223,6 +224,12 @@ const DashboardNavbar = ({
               </p>
               <p className="truncate text-xs font-semibold leading-4 text-aura-muted">
                 AI-powered study workspace
+              </p>
+            </div>
+
+            <div className="min-w-0 sm:hidden">
+              <p className="truncate text-xs font-black leading-tight text-aura-text">
+                Study Aura
               </p>
             </div>
           </button>
@@ -246,33 +253,15 @@ const DashboardNavbar = ({
           </button>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            onClick={onOpenCreateModule}
-            className="rounded-2xl bg-aura-cyan px-3 py-2 text-xs font-black text-aura-bg transition hover:-translate-y-0.5 md:hidden"
-            aria-label="Create module"
-            title="Create module"
-          >
-            +
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenLibrary}
-            className="rounded-2xl border border-aura-border bg-aura-bg-soft px-3 py-2 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text md:hidden"
-          >
-            {libraryButtonLabel === "Module Library" ? "Library" : "Back"}
-          </button>
-
-          <div ref={energyMenuRef} className="relative">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+          <div ref={energyMenuRef} className="relative hidden min-[450px]:block">
             <button
               type="button"
               onClick={() => {
                 setIsEnergyMenuOpen((current) => !current);
                 setIsProfileMenuOpen(false);
               }}
-              className={`hidden h-11 items-center gap-2 rounded-2xl border bg-aura-bg-soft px-3 text-left transition hover:bg-aura-gold/5 sm:flex ${
+              className={`flex h-9 items-center gap-2 rounded-xl border bg-aura-bg-soft px-2 text-left transition hover:bg-aura-gold/5 sm:h-11 sm:rounded-2xl sm:px-3 ${
                 isEnergyAnimating
                   ? "animate-aura-energy-spend border-aura-gold/80 shadow-[0_0_24px_rgba(250,204,21,0.26)]"
                   : "border-aura-border hover:border-aura-gold/60"
@@ -282,7 +271,7 @@ const DashboardNavbar = ({
               title={`Energy ${energy}/${maxEnergy}`}
             >
               <span
-                className={`grid h-7 w-7 place-items-center rounded-xl border text-sm transition ${
+                className={`grid h-6 w-6 place-items-center rounded-lg border text-xs transition sm:h-7 sm:w-7 sm:rounded-xl sm:text-sm ${
                   isEnergyAnimating
                     ? "border-aura-gold/70 bg-aura-gold/20"
                     : "border-aura-gold/35 bg-aura-gold/10"
@@ -291,17 +280,18 @@ const DashboardNavbar = ({
                 ⚡
               </span>
 
-              <span className="text-xs font-black text-aura-text">
-                {energy}/{maxEnergy}
+              <span className="text-[10px] font-black text-aura-text sm:text-xs">
+                {energy}
+                <span className="hidden sm:inline">/{maxEnergy}</span>
               </span>
 
-              <span className="text-[10px] font-black text-aura-muted">
+              <span className="hidden text-[10px] font-black text-aura-muted sm:inline">
                 {isEnergyMenuOpen ? "▲" : "▼"}
               </span>
             </button>
 
             {isEnergyMenuOpen && (
-              <div className="absolute right-0 top-[calc(100%+0.85rem)] z-[9999] w-[330px] overflow-hidden rounded-[1.5rem] border border-aura-border bg-aura-panel shadow-[0_28px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+              <div className="absolute right-0 top-[calc(100%+0.85rem)] z-[9999] w-[calc(100vw-2rem)] max-w-[330px] overflow-hidden rounded-[1.5rem] border border-aura-border bg-aura-panel shadow-[0_28px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:w-[330px]">
                 <div className="border-b border-aura-border bg-aura-bg-soft/90 p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
@@ -383,28 +373,28 @@ const DashboardNavbar = ({
                 setIsProfileMenuOpen((current) => !current);
                 setIsEnergyMenuOpen(false);
               }}
-              className="flex h-11 min-w-[210px] items-center gap-3 rounded-2xl border border-aura-border bg-aura-bg-soft px-3 py-2 text-left transition hover:border-aura-cyan/60 hover:bg-aura-cyan/5 max-sm:min-w-0"
+              className="flex h-9 items-center gap-2 rounded-xl border border-aura-border bg-aura-bg-soft px-2 py-1 text-left transition hover:border-aura-cyan/60 hover:bg-aura-cyan/5 sm:h-11 sm:min-w-[210px] sm:rounded-2xl sm:gap-3 sm:px-3 sm:py-2"
               aria-label="Open profile menu"
               aria-expanded={isProfileMenuOpen}
               title={`${displayName} • ${title}`}
             >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-aura-primary to-aura-cyan text-xs font-black text-white shadow-[0_0_22px_rgba(34,211,238,0.18)]">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-aura-primary to-aura-cyan text-[10px] font-black text-white shadow-[0_0_18px_rgba(34,211,238,0.18)] sm:h-9 sm:w-9 sm:rounded-xl sm:text-xs">
                 {initials}
               </div>
 
-              <div className="min-w-0 flex-1 max-sm:hidden">
+              <div className="hidden min-w-0 flex-1 sm:block">
                 <p className="truncate text-sm font-black leading-4 text-aura-text">
                   {displayName}
                 </p>
               </div>
 
-              <span className="shrink-0 text-xs font-black text-aura-muted">
+              <span className="shrink-0 text-[10px] font-black text-aura-muted sm:text-xs">
                 {isProfileMenuOpen ? "▲" : "▼"}
               </span>
             </button>
 
             {isProfileMenuOpen && (
-              <div className="absolute right-0 top-[calc(100%+0.85rem)] z-[9999] w-[330px] overflow-hidden rounded-[1.5rem] border border-aura-border bg-aura-panel shadow-[0_28px_80px_rgba(0,0,0,0.42)] backdrop-blur-xl">
+              <div className="absolute right-0 top-[calc(100%+0.85rem)] z-[9999] w-[calc(100vw-2rem)] max-w-[330px] overflow-hidden rounded-[1.5rem] border border-aura-border bg-aura-panel shadow-[0_28px_80px_rgba(0,0,0,0.42)] backdrop-blur-xl sm:w-[330px]">
                 <div className="border-b border-aura-border bg-aura-bg-soft/80 p-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-aura-primary via-aura-cyan to-aura-gold text-sm font-black text-white shadow-[0_0_24px_rgba(34,211,238,0.2)]">
@@ -475,40 +465,105 @@ const DashboardNavbar = ({
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => onOpenSettings("home")}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-aura-border bg-aura-bg-soft text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text"
-            aria-label="Open settings"
-            title="Settings"
-          >
-            ⚙️
-          </button>
-
-          <button
-            type="button"
-            onClick={onLogout}
-            className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 text-red-300 transition hover:-translate-y-0.5 hover:border-red-400/70 hover:bg-red-500/20 hover:text-red-100 hover:shadow-[0_16px_36px_rgba(239,68,68,0.18)]"
-            aria-label="Logout"
-            title="Logout"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-              className="h-5 w-5 transition group-hover:translate-x-0.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <div className="flex items-center gap-1 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => onOpenSettings("home")}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-aura-border bg-aura-bg-soft text-sm text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text sm:h-11 sm:w-11 sm:rounded-2xl sm:text-base"
+              aria-label="Open settings"
+              title="Settings"
             >
-              <path d="M10 6H7.5A2.5 2.5 0 0 0 5 8.5v7A2.5 2.5 0 0 0 7.5 18H10" />
-              <path d="M14 8l4 4-4 4" />
-              <path d="M18 12H9" />
-            </svg>
-          </button>
+              ⚙️
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-aura-border bg-aura-bg-soft text-sm text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text md:hidden"
+              aria-label="Open mobile menu"
+            >
+              {isMobileMenuOpen ? "✕" : "☰"}
+            </button>
+
+            <button
+              type="button"
+              onClick={onLogout}
+              className="group hidden h-11 w-11 items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 text-red-300 transition hover:-translate-y-0.5 hover:border-red-400/70 hover:bg-red-500/20 hover:text-red-100 hover:shadow-[0_16px_36px_rgba(239,68,68,0.18)] md:flex"
+              aria-label="Logout"
+              title="Logout"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                className="h-5 w-5 transition group-hover:translate-x-0.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M10 6H7.5A2.5 2.5 0 0 0 5 8.5v7A2.5 2.5 0 0 0 7.5 18H10" />
+                <path d="M14 8l4 4-4 4" />
+                <path d="M18 12H9" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
+
+      {isMobileMenuOpen && (
+        <div className="absolute left-0 right-0 top-full z-[50] border-b border-aura-border bg-aura-panel p-4 shadow-xl md:hidden">
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                onOpenLibrary();
+                setIsMobileMenuOpen(false);
+              }}
+              className="flex items-center justify-between rounded-xl border border-aura-border bg-aura-bg-soft p-4 text-sm font-black text-aura-text"
+            >
+              <span>{libraryButtonLabel}</span>
+              <span>→</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                onOpenCreateModule();
+                setIsMobileMenuOpen(false);
+              }}
+              className="flex items-center justify-between rounded-xl bg-aura-cyan p-4 text-sm font-black text-aura-bg"
+            >
+              <span>+ Create Module</span>
+              <span>→</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                onLogout();
+                setIsMobileMenuOpen(false);
+              }}
+              className="flex items-center justify-between rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-black text-red-300"
+            >
+              <span>Logout</span>
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M10 6H7.5A2.5 2.5 0 0 0 5 8.5v7A2.5 2.5 0 0 0 7.5 18H10" />
+                <path d="M14 8l4 4-4 4" />
+                <path d="M18 12H9" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

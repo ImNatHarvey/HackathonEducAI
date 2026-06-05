@@ -126,6 +126,9 @@ const Dashboard = ({
   const [outputError, setOutputError] = useState("");
   const [deletingOutputId, setDeletingOutputId] = useState<string | null>(null);
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
+  const [activeMobileTab, setActiveMobileTab] = useState<
+    "sources" | "chat" | "studio"
+  >("chat");
 
   const currentModule = useMemo(() => {
     const matchedModule = modules.find(
@@ -833,8 +836,48 @@ const Dashboard = ({
         onLogout={onLogout}
       />
 
-      <div className="aura-scrollbar grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[25%_50%_25%] lg:overflow-hidden">
-        <div className="min-h-105 overflow-hidden xl:min-h-0">
+      <div className="flex shrink-0 border-b border-aura-border bg-aura-panel lg:hidden">
+        <button
+          type="button"
+          onClick={() => setActiveMobileTab("sources")}
+          className={`flex-1 py-3 text-xs font-black uppercase tracking-wider transition ${
+            activeMobileTab === "sources"
+              ? "border-b-2 border-aura-cyan bg-aura-cyan/5 text-aura-cyan"
+              : "text-aura-muted"
+          }`}
+        >
+          Sources
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveMobileTab("chat")}
+          className={`flex-1 py-3 text-xs font-black uppercase tracking-wider transition ${
+            activeMobileTab === "chat"
+              ? "border-b-2 border-aura-cyan bg-aura-cyan/5 text-aura-cyan"
+              : "text-aura-muted"
+          }`}
+        >
+          Chat
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveMobileTab("studio")}
+          className={`flex-1 py-3 text-xs font-black uppercase tracking-wider transition ${
+            activeMobileTab === "studio"
+              ? "border-b-2 border-aura-cyan bg-aura-cyan/5 text-aura-cyan"
+              : "text-aura-muted"
+          }`}
+        >
+          AI Studio
+        </button>
+      </div>
+
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[25%_50%_25%]">
+        <div
+          className={`${
+            activeMobileTab === "sources" ? "block" : "hidden"
+          } min-h-105 overflow-hidden lg:block xl:min-h-0`}
+        >
           <SourcesPanel
             moduleTitle={currentModule?.title ?? topic}
             moduleId={currentModule?.id}
@@ -852,7 +895,11 @@ const Dashboard = ({
           />
         </div>
 
-        <div className="min-h-155 overflow-hidden xl:min-h-0">
+        <div
+          className={`${
+            activeMobileTab === "chat" ? "block" : "hidden"
+          } min-h-155 overflow-hidden lg:block xl:min-h-0`}
+        >
           <ChatPanel
             topic={currentModule?.title ?? topic}
             selectedSourceCount={selectedSourceCount}
@@ -866,7 +913,11 @@ const Dashboard = ({
           />
         </div>
 
-        <div className="min-h-105 overflow-hidden lg:col-span-1 lg:min-h-0">
+        <div
+          className={`${
+            activeMobileTab === "studio" ? "block" : "hidden"
+          } min-h-105 overflow-hidden lg:col-span-1 lg:block lg:min-h-0`}
+        >
           <AIStudioPanel
             selectedSourceCount={selectedSourceCount}
             recentOutputs={recentOutputs}

@@ -119,7 +119,7 @@ const ModuleLibrary = ({
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="rounded-2xl border border-aura-border bg-aura-bg-soft p-4">
                 <p className="text-2xl font-black text-aura-text">
                   {modules.length}

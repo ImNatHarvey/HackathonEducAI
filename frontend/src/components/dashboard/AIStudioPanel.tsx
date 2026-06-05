@@ -83,16 +83,16 @@ const AIStudioPanel = ({
 
   return (
     <aside className="flex h-full min-h-0 min-w-0 flex-col border-l border-aura-border bg-aura-panel/95">
-      <div className="shrink-0 border-b border-aura-border p-4">
-        <p className="text-xs font-black uppercase tracking-[0.24em] text-aura-cyan">
+      <div className="shrink-0 border-b border-aura-border p-3 sm:p-4">
+        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-aura-cyan">
           AI Studio
         </p>
 
-        <h2 className="mt-2 text-xl font-black text-aura-text">
+        <h2 className="mt-1 text-lg font-black text-aura-text sm:mt-2 sm:text-xl">
           Generate outputs
         </h2>
 
-        <p className="mt-2 text-sm leading-6 text-aura-muted">
+        <p className="mt-1 line-clamp-1 text-xs leading-5 text-aura-muted sm:mt-2 sm:line-clamp-none sm:leading-6 sm:text-sm">
           Create study materials from the current module and selected sources.
         </p>
 

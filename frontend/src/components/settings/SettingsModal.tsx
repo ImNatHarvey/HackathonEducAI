@@ -173,16 +173,16 @@ const SettingsModal = ({
           {renderPanel()}
         </main>
 
-        <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-aura-border bg-aura-bg-soft/80 px-6 py-4">
-          <p className="text-sm font-semibold text-aura-muted">
+        <footer className="flex shrink-0 flex-col items-center justify-between gap-4 border-t border-aura-border bg-aura-bg-soft/80 px-6 py-4 sm:flex-row sm:gap-3">
+          <p className="text-center text-sm font-semibold text-aura-muted sm:text-left">
             Changes are only applied after clicking Save Settings.
           </p>
 
-          <div className="flex items-center gap-3">
+          <div className="flex w-full items-center justify-center gap-3 sm:w-auto">
             <button
               type="button"
               onClick={handleClose}
-              className="rounded-2xl border border-aura-border bg-aura-panel px-5 py-3 text-sm font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text"
+              className="flex-1 rounded-2xl border border-aura-border bg-aura-panel px-5 py-3 text-sm font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text sm:flex-none"
             >
               Cancel
             </button>
@@ -190,7 +190,7 @@ const SettingsModal = ({
             <button
               type="button"
               onClick={handleSave}
-              className="rounded-2xl bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold px-6 py-3 text-sm font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(34,211,238,0.22)]"
+              className="flex-1 rounded-2xl bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold px-6 py-3 text-sm font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(34,211,238,0.22)] sm:flex-none"
             >
               Save Settings
             </button>

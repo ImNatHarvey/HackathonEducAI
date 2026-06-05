@@ -107,12 +107,12 @@ const SourcesPanel = ({
   return (
     <>
       <aside className="flex h-full min-h-0 min-w-0 flex-col border-r border-aura-border bg-aura-panel/95">
-        <div className="shrink-0 border-b border-aura-border p-4">
+        <div className="shrink-0 border-b border-aura-border p-3 sm:p-4">
           <button
             type="button"
             onClick={onUpload}
             disabled={isUploadingSource}
-            className="w-full rounded-2xl bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold px-4 py-3 text-sm font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(34,211,238,0.22)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-2xl bg-gradient-to-r from-aura-primary via-aura-cyan to-aura-gold px-4 py-2 text-sm font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(34,211,238,0.22)] disabled:cursor-not-allowed disabled:opacity-60 sm:py-3"
           >
             {isUploadingSource ? "Adding source..." : "+ Add Sources"}
           </button>
