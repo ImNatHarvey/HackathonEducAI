@@ -84,7 +84,7 @@ const AIStudioPanel = ({
   return (
     <aside className="flex h-full min-h-0 min-w-0 flex-col border-l border-aura-border bg-aura-panel/95">
       <div className="shrink-0 border-b border-aura-border p-3 sm:p-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-aura-cyan">
+        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-aura-cyan sm:text-xs">
           AI Studio
         </p>
 

@@ -840,7 +840,7 @@ const Dashboard = ({
         <button
           type="button"
           onClick={() => setActiveMobileTab("sources")}
-          className={`flex-1 py-3 text-xs font-black uppercase tracking-wider transition ${
+          className={`flex-1 py-3 text-sm font-black tracking-tight transition ${
             activeMobileTab === "sources"
               ? "border-b-2 border-aura-cyan bg-aura-cyan/5 text-aura-cyan"
               : "text-aura-muted"
@@ -851,7 +851,7 @@ const Dashboard = ({
         <button
           type="button"
           onClick={() => setActiveMobileTab("chat")}
-          className={`flex-1 py-3 text-xs font-black uppercase tracking-wider transition ${
+          className={`flex-1 py-3 text-sm font-black tracking-tight transition ${
             activeMobileTab === "chat"
               ? "border-b-2 border-aura-cyan bg-aura-cyan/5 text-aura-cyan"
               : "text-aura-muted"
@@ -862,7 +862,7 @@ const Dashboard = ({
         <button
           type="button"
           onClick={() => setActiveMobileTab("studio")}
-          className={`flex-1 py-3 text-xs font-black uppercase tracking-wider transition ${
+          className={`flex-1 py-3 text-sm font-black tracking-tight transition ${
             activeMobileTab === "studio"
               ? "border-b-2 border-aura-cyan bg-aura-cyan/5 text-aura-cyan"
               : "text-aura-muted"

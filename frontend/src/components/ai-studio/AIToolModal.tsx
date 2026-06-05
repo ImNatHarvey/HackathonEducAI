@@ -332,17 +332,17 @@ const AIToolModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-aura-bg/80 px-3 py-3 backdrop-blur-xl">
       <div className="flex max-h-[94vh] w-full max-w-[1500px] flex-col overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
-        <div className="flex items-start justify-between gap-4 border-b border-aura-border px-6 py-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.28em] text-aura-cyan">
+        <div className="flex items-start justify-between gap-4 border-b border-aura-border px-4 py-4 sm:px-6 sm:py-5">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-cyan sm:text-xs sm:tracking-[0.28em]">
               AI Studio Output
             </p>
 
-            <h2 className="mt-2 text-2xl font-black text-aura-text">
+            <h2 className="mt-1 text-xl font-black text-aura-text sm:mt-2 sm:text-2xl">
               {toolTitles[activeTool]}
             </h2>
 
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-aura-muted">
+            <p className="mt-1 max-w-3xl text-xs leading-5 text-aura-muted sm:mt-2 sm:text-sm sm:leading-6">
               {isViewingSavedOutput ? (
                 <>
                   Viewing a saved output from{" "}
@@ -363,7 +363,7 @@ const AIToolModal = ({
             type="button"
             onClick={handleClose}
             disabled={isLoading}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-aura-border bg-aura-bg-soft text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-aura-border bg-aura-bg-soft text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:w-10 sm:rounded-2xl"
             aria-label="Close AI tool modal"
           >
             ✕
@@ -373,8 +373,8 @@ const AIToolModal = ({
         <div
           className={
             isAudioResult
-              ? "min-h-0 flex-1 overflow-hidden px-6 py-5"
-              : "aura-scrollbar min-h-0 flex-1 overflow-y-auto px-6 py-5"
+              ? "min-h-0 flex-1 overflow-hidden px-4 py-4 sm:px-6 sm:py-5"
+              : "aura-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5"
           }
         >
           {selectedSourceCount === 0 && !isViewingSavedOutput && (

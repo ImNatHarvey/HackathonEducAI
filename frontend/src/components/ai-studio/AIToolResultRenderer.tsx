@@ -498,28 +498,28 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
           </div>
         </div>
 
-        <div className="grid min-h-0 flex-1 place-items-center overflow-hidden">
+        <div className="grid min-h-0 flex-1 place-items-center overflow-hidden px-2">
           <div
             key={activeIndex}
-            className="flex h-full max-h-[360px] w-full items-center justify-center rounded-[1.5rem] border border-aura-border bg-aura-panel/80 p-6 transition"
+            className="flex h-full max-h-[280px] w-full items-center justify-center rounded-[1.25rem] border border-aura-border bg-aura-panel/80 p-4 transition sm:max-h-[360px] sm:rounded-[1.5rem] sm:p-6"
           >
-            <p className="max-w-5xl text-center text-xl font-black leading-9 text-aura-muted sm:text-2xl sm:leading-10">
+            <p className="max-w-5xl text-center text-base font-black leading-7 text-aura-muted min-[400px]:text-lg min-[450px]:text-xl min-[450px]:leading-9 sm:text-2xl sm:leading-10">
               {renderKaraokeText()}
             </p>
           </div>
         </div>
 
-        <div className="mt-5 flex items-center justify-between gap-3">
+        <div className="mt-4 flex items-center justify-between gap-2 sm:mt-5 sm:gap-3">
           <button
             type="button"
             onClick={goPrevious}
             disabled={!canGoPrevious}
-            className="rounded-2xl border border-aura-border bg-aura-panel px-4 py-2 text-sm font-black text-aura-muted transition hover:border-aura-cyan hover:text-aura-text disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-xl border border-aura-border bg-aura-panel px-3 py-1.5 text-xs font-black text-aura-muted transition hover:border-aura-cyan hover:text-aura-text disabled:cursor-not-allowed disabled:opacity-40 sm:rounded-2xl sm:px-4 sm:py-2 sm:text-sm"
           >
-            ← Previous
+            ← Prev
           </button>
 
-          <div className="flex max-w-[45%] flex-wrap items-center justify-center gap-2">
+          <div className="flex max-w-[50%] flex-wrap items-center justify-center gap-1.5 sm:max-w-[45%] sm:gap-2">
             {safeSegments.map((_, index) => (
               <button
                 key={index}
@@ -527,8 +527,8 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
                 onClick={() => goToCard(index)}
                 className={
                   index === activeIndex
-                    ? "h-2.5 w-8 rounded-full bg-aura-cyan"
-                    : "h-2.5 w-2.5 rounded-full bg-aura-border transition hover:bg-aura-cyan/60"
+                    ? "h-2 w-6 rounded-full bg-aura-cyan sm:h-2.5 sm:w-8"
+                    : "h-2 w-2 rounded-full bg-aura-border transition hover:bg-aura-cyan/60 sm:h-2.5 sm:w-2.5"
                 }
                 aria-label={`Go to audio card ${index + 1}`}
               />
@@ -539,7 +539,7 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
             type="button"
             onClick={goNext}
             disabled={!canGoNext}
-            className="rounded-2xl border border-aura-border bg-aura-panel px-4 py-2 text-sm font-black text-aura-muted transition hover:border-aura-cyan hover:text-aura-text disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-xl border border-aura-border bg-aura-panel px-3 py-1.5 text-xs font-black text-aura-muted transition hover:border-aura-cyan hover:text-aura-text disabled:cursor-not-allowed disabled:opacity-40 sm:rounded-2xl sm:px-4 sm:py-2 sm:text-sm"
           >
             Next →
           </button>

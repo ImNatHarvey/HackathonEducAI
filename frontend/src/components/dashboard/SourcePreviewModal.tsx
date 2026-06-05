@@ -145,35 +145,35 @@ const SourcePreviewModal = ({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-aura-bg/80 px-3 py-3 backdrop-blur-xl">
       <div className="flex h-[90vh] w-full max-w-[1500px] flex-col overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
-        <div className="flex items-start justify-between gap-4 border-b border-aura-border px-7 py-5">
+        <div className="flex items-start justify-between gap-4 border-b border-aura-border px-4 py-4 sm:px-7 sm:py-5">
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.28em] text-aura-cyan">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-cyan sm:text-xs sm:tracking-[0.28em]">
               Source Preview
             </p>
 
-            <div className="mt-3 flex items-start gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-aura-border bg-aura-bg-soft text-2xl">
+            <div className="mt-2 flex items-start gap-3 sm:mt-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-aura-border bg-aura-bg-soft text-xl sm:h-12 sm:w-12 sm:rounded-2xl sm:text-2xl">
                 {sourceIcons[source.type]}
               </div>
 
               <div className="min-w-0">
-                <h2 className="line-clamp-2 text-2xl font-black leading-8 text-aura-text">
+                <h2 className="line-clamp-2 text-lg font-black leading-7 text-aura-text sm:text-2xl sm:leading-8">
                   {source.title}
                 </h2>
 
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="rounded-full border border-aura-border bg-aura-bg-soft px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-aura-muted">
+                <div className="mt-2 flex flex-wrap gap-1.5 sm:gap-2">
+                  <span className="rounded-full border border-aura-border bg-aura-bg-soft px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-aura-muted sm:px-3 sm:py-1 sm:text-[10px]">
                     {sourceLabels[source.type]}
                   </span>
 
                   <span
-                    className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${statusClasses[displayStatus]}`}
+                    className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] sm:px-3 sm:py-1 sm:text-[10px] ${statusClasses[displayStatus]}`}
                   >
                     {statusLabels[displayStatus]}
                   </span>
 
                   {source.parserProvider && (
-                    <span className="rounded-full border border-aura-border bg-aura-bg-soft px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-aura-muted">
+                    <span className="rounded-full border border-aura-border bg-aura-bg-soft px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-aura-muted sm:px-3 sm:py-1 sm:text-[10px]">
                       {source.parserProvider}
                     </span>
                   )}
@@ -185,20 +185,17 @@ const SourcePreviewModal = ({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-aura-border bg-aura-bg-soft text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-aura-border bg-aura-bg-soft text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text sm:h-10 sm:w-10 sm:rounded-2xl"
             aria-label="Close source preview"
           >
             ✕
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 px-7 py-5">
-          <div
-            className="grid h-full min-h-0 gap-5"
-            style={{ gridTemplateColumns: "minmax(320px, 420px) minmax(0, 1fr)" }}
-          >
-            <aside className="flex min-h-0 flex-col gap-4">
-              <div className="rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-5">
+        <div className="aura-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-7 sm:py-5">
+          <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[320px_1fr] xl:grid-cols-[420px_1fr]">
+            <aside className="flex flex-col gap-4">
+              <div className="rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-4 sm:p-5">
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-aura-cyan">
                   Details
                 </p>

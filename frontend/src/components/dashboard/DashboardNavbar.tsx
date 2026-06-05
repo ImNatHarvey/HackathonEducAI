@@ -239,7 +239,7 @@ const DashboardNavbar = ({
           <button
             type="button"
             onClick={onOpenLibrary}
-            className="hidden h-11 w-[190px] items-center justify-center rounded-2xl border border-aura-border bg-aura-bg-soft px-4 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text md:inline-flex"
+            className="hidden h-11 w-[160px] items-center justify-center rounded-2xl border border-aura-border bg-aura-bg-soft px-4 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text sm:inline-flex md:w-[190px]"
           >
             {libraryButtonLabel}
           </button>
@@ -247,7 +247,7 @@ const DashboardNavbar = ({
           <button
             type="button"
             onClick={onOpenCreateModule}
-            className="hidden h-11 w-[172px] items-center justify-center rounded-2xl bg-aura-cyan px-4 text-xs font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(34,211,238,0.2)] md:inline-flex"
+            className="hidden h-11 w-[140px] items-center justify-center rounded-2xl bg-aura-cyan px-4 text-xs font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(34,211,238,0.2)] sm:inline-flex md:w-[172px]"
           >
             + Create Module
           </button>

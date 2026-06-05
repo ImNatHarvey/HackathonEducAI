@@ -318,7 +318,7 @@ const ChatPanel = ({
                   ? "Ask about your selected sources..."
                   : "Ask about the module, or add/check sources for better answers..."
               }
-              className="aura-scrollbar min-h-11 max-h-32 flex-1 resize-none bg-transparent px-3 py-3 text-sm font-medium leading-6 text-aura-text outline-none placeholder:text-aura-dim"
+              className="aura-scrollbar min-h-[44px] max-h-[88px] flex-1 resize-none overflow-y-hidden bg-transparent px-3 py-3 text-sm font-medium leading-6 text-aura-text outline-none placeholder:text-aura-dim focus:overflow-y-auto [&:not(:placeholder-shown)]:overflow-y-auto"
             />
 
             <button

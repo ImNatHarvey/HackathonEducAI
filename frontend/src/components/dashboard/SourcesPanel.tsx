@@ -169,20 +169,20 @@ const SourcesPanel = ({
           )}
         </div>
 
-        <div className="shrink-0 border-b border-aura-border px-4 py-3">
+        <div className="shrink-0 border-b border-aura-border px-3 py-3 sm:px-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-aura-cyan">
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-cyan sm:text-xs">
                 Sources
               </p>
 
-              <p className="mt-1 line-clamp-1 text-xs text-aura-muted">
+              <p className="mt-1 line-clamp-1 text-[11px] text-aura-muted sm:text-xs">
                 Context for{" "}
                 <span className="font-bold text-aura-text">{moduleTitle}</span>
               </p>
             </div>
 
-            <div className="shrink-0 rounded-full border border-aura-border bg-aura-bg-soft px-3 py-1 text-[10px] font-black text-aura-muted">
+            <div className="shrink-0 rounded-full border border-aura-border bg-aura-bg-soft px-2 py-0.5 text-[9px] font-black text-aura-muted sm:px-3 sm:py-1 sm:text-[10px]">
               {selectedSourceCount}/{sources.length}
             </div>
           </div>
