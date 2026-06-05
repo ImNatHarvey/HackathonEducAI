@@ -172,7 +172,7 @@ const SourcesPanel = ({
         <div className="shrink-0 border-b border-aura-border px-3 py-3 sm:px-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-cyan sm:text-xs">
+              <p className="text-[10px] font-black tracking-[0.22em] text-aura-cyan sm:text-xs">
                 Sources
               </p>
 
@@ -291,7 +291,7 @@ const SourcesPanel = ({
 
                         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                           <span
-                            className={`inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] ${
+                            className={`inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-black tracking-[0.08em] ${
                               sourceAccentClasses[source.type]
                             }`}
                           >
@@ -299,7 +299,7 @@ const SourcesPanel = ({
                           </span>
 
                           <span
-                            className={`inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] ${
+                            className={`inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-black tracking-[0.08em] ${
                               sourceStatusClasses[displayStatus]
                             }`}
                           >

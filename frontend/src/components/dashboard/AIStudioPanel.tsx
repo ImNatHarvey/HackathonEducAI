@@ -84,7 +84,7 @@ const AIStudioPanel = ({
   return (
     <aside className="flex h-full min-h-0 min-w-0 flex-col border-l border-aura-border bg-aura-panel/95">
       <div className="shrink-0 border-b border-aura-border p-3 sm:p-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-aura-cyan sm:text-xs">
+        <p className="text-[10px] font-black tracking-[0.24em] text-aura-cyan sm:text-xs">
           AI Studio
         </p>
 
@@ -102,7 +102,7 @@ const AIStudioPanel = ({
             onClick={handleOpenOutputsModal}
             className="group rounded-2xl border border-aura-border bg-aura-bg-soft px-4 py-3 text-left transition hover:-translate-y-0.5 hover:border-aura-gold/60 hover:bg-aura-gold/5"
           >
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-aura-gold">
+            <p className="text-[10px] font-black tracking-[0.16em] text-aura-gold">
               Recent Outputs
             </p>
 

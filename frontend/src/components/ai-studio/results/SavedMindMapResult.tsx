@@ -51,11 +51,11 @@ const VerticalTreeMap = ({
   setActiveBranchIndex: (index: number) => void;
 }) => {
   return (
-    <div className="overflow-x-auto rounded-[1.75rem] border border-aura-border bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.16),transparent_35%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.98))] p-6">
-      <div className="min-w-[980px]">
+    <div className="aura-scrollbar overflow-x-auto rounded-[1.75rem] border border-aura-border bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.16),transparent_35%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.98))] p-4 sm:p-6">
+      <div className="min-w-max origin-top scale-[0.7] py-4 transition-transform sm:scale-100 sm:py-0">
         <div className="flex justify-center">
           <div className="relative rounded-[2rem] border border-aura-cyan/70 bg-aura-cyan/15 px-10 py-6 text-center shadow-[0_0_45px_rgba(34,211,238,0.18)]">
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-aura-cyan">
+            <p className="text-[10px] font-black tracking-[0.24em] text-aura-cyan">
               Center Topic
             </p>
             <h4 className="mt-2 max-w-[360px] text-2xl font-black leading-8 text-aura-text">
@@ -93,7 +93,7 @@ const VerticalTreeMap = ({
                         : "opacity-90 hover:opacity-100"
                     }`}
                   >
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-aura-dim">
+                    <p className="text-[10px] font-black tracking-[0.18em] text-aura-dim">
                       Branch {index + 1}
                     </p>
                     <h5 className="mt-1 text-sm font-black leading-5 text-aura-text">
@@ -144,8 +144,9 @@ const HorizontalTreeMap = ({
   setActiveBranchIndex: (index: number) => void;
 }) => {
   return (
-    <div className="overflow-x-auto rounded-[1.75rem] border border-aura-border bg-[radial-gradient(circle_at_left,rgba(245,158,11,0.14),transparent_35%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.98))] p-6">
-      <div className="grid min-w-[1100px] grid-cols-[240px_80px_1fr] items-center">
+    <div className="aura-scrollbar overflow-x-auto rounded-[1.75rem] border border-aura-border bg-[radial-gradient(circle_at_left,rgba(245,158,11,0.14),transparent_35%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.98))] p-4 sm:p-6">
+      <div className="min-w-max origin-left scale-[0.6] py-4 transition-transform sm:scale-100 sm:py-0">
+        <div className="grid grid-cols-[240px_80px_1fr] items-center">
         <div className="rounded-[1.6rem] border border-aura-gold/70 bg-aura-gold/15 px-6 py-5 text-center shadow-[0_0_40px_rgba(245,158,11,0.16)]">
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-aura-gold">
             Center Topic
@@ -184,7 +185,7 @@ const HorizontalTreeMap = ({
                         : "opacity-90 hover:opacity-100"
                     }`}
                   >
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-aura-dim">
+                    <p className="text-[10px] font-black tracking-[0.18em] text-aura-dim">
                       Branch {index + 1}
                     </p>
                     <h5 className="mt-1 text-sm font-black leading-5 text-aura-text">
@@ -220,6 +221,7 @@ const HorizontalTreeMap = ({
         </div>
       </div>
     </div>
+  </div>
   );
 };
 

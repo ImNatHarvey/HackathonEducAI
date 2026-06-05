@@ -29,7 +29,7 @@ const ToolProficiencyGrid = ({
   return (
     <div className="rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-4">
       <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-cyan">
+        <p className="text-[10px] font-black tracking-[0.22em] text-aura-cyan">
           Tool Proficiencies
         </p>
 

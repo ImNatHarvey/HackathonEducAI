@@ -209,7 +209,7 @@ const DashboardNavbar = ({
           <button
             type="button"
             onClick={onOpenLibrary}
-            className="flex h-10 items-center gap-2 rounded-2xl px-1 text-left transition hover:bg-aura-bg-soft sm:h-12 sm:w-[260px] sm:min-w-[260px] sm:px-2"
+            className="flex h-10 items-center gap-2 rounded-2xl px-1 text-left transition hover:bg-aura-bg-soft sm:h-12 sm:w-[220px] sm:min-w-[220px] sm:px-2 md:w-[260px] md:min-w-[260px]"
             aria-label={libraryButtonLabel}
           >
             <img
@@ -222,7 +222,7 @@ const DashboardNavbar = ({
               <p className="truncate text-sm font-black leading-4 text-aura-text">
                 Study Aura
               </p>
-              <p className="truncate text-xs font-semibold leading-4 text-aura-muted">
+              <p className="truncate text-[10px] font-semibold leading-4 text-aura-muted md:text-xs">
                 AI-powered study workspace
               </p>
             </div>
@@ -239,7 +239,7 @@ const DashboardNavbar = ({
           <button
             type="button"
             onClick={onOpenLibrary}
-            className="hidden h-11 w-[160px] items-center justify-center rounded-2xl border border-aura-border bg-aura-bg-soft px-4 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text sm:inline-flex md:w-[190px]"
+            className="hidden h-11 w-[140px] items-center justify-center rounded-2xl border border-aura-border bg-aura-bg-soft px-3 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text sm:inline-flex md:w-[190px] md:px-4"
           >
             {libraryButtonLabel}
           </button>
@@ -247,7 +247,7 @@ const DashboardNavbar = ({
           <button
             type="button"
             onClick={onOpenCreateModule}
-            className="hidden h-11 w-[140px] items-center justify-center rounded-2xl bg-aura-cyan px-4 text-xs font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(34,211,238,0.2)] sm:inline-flex md:w-[172px]"
+            className="hidden h-11 w-[130px] items-center justify-center rounded-2xl bg-aura-cyan px-3 text-xs font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(34,211,238,0.2)] sm:inline-flex md:w-[172px] md:px-4"
           >
             + Create Module
           </button>
@@ -291,11 +291,11 @@ const DashboardNavbar = ({
             </button>
 
             {isEnergyMenuOpen && (
-              <div className="absolute right-0 top-[calc(100%+0.85rem)] z-[9999] w-[calc(100vw-2rem)] max-w-[330px] overflow-hidden rounded-[1.5rem] border border-aura-border bg-aura-panel shadow-[0_28px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:w-[330px]">
-                <div className="border-b border-aura-border bg-aura-bg-soft/90 p-3">
+              <div className="absolute right-[-2rem] top-[calc(100%+0.85rem)] z-[9999] w-[calc(100vw-2rem)] max-w-[330px] overflow-hidden rounded-[1.5rem] border border-aura-border bg-aura-panel shadow-[0_28px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:right-0 sm:w-[330px]">
+                <div className="border-b border-aura-border bg-aura-bg-soft/90 p-3 sm:p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-aura-gold">
+                      <p className="text-[10px] font-black tracking-[0.18em] text-aura-gold">
                         Aura Energy
                       </p>
                       <p className="mt-1 text-lg font-black text-aura-text">
@@ -316,8 +316,8 @@ const DashboardNavbar = ({
                   </div>
                 </div>
 
-                <div className="space-y-2.5 p-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-aura-dim">
+                <div className="space-y-2.5 p-3 sm:p-4">
+                  <p className="text-[10px] font-black tracking-[0.16em] text-aura-dim">
                     Recent energy use
                   </p>
 
@@ -352,8 +352,8 @@ const DashboardNavbar = ({
                     )}
                   </div>
 
-                  <div className="rounded-2xl border border-aura-cyan/25 bg-aura-cyan/10 p-3">
-                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-aura-cyan">
+                  <div className="rounded-2xl border border-aura-cyan/25 bg-aura-cyan/10 p-3 sm:p-4">
+                    <p className="text-[10px] font-black tracking-[0.16em] text-aura-cyan">
                       Save energy
                     </p>
                     <p className="mt-2 text-xs leading-5 text-aura-muted">
@@ -402,7 +402,7 @@ const DashboardNavbar = ({
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <p className="inline-flex max-w-full rounded-full border border-aura-gold/35 bg-aura-gold/10 px-2 py-0.5 text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-aura-gold">
+                      <p className="inline-flex max-w-full rounded-full border border-aura-gold/35 bg-aura-gold/10 px-2 py-0.5 text-[10px] font-black leading-3 tracking-[0.12em] text-aura-gold">
                         <span className="truncate">{title}</span>
                       </p>
 
@@ -416,7 +416,7 @@ const DashboardNavbar = ({
                 <div className="space-y-3 p-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-2xl border border-aura-border bg-aura-bg-soft p-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-aura-dim">
+                      <p className="text-[10px] font-black tracking-[0.16em] text-aura-dim">
                         Level
                       </p>
                       <p className="mt-1 text-lg font-black text-aura-text">
@@ -425,7 +425,7 @@ const DashboardNavbar = ({
                     </div>
 
                     <div className="rounded-2xl border border-aura-border bg-aura-bg-soft p-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-aura-dim">
+                      <p className="text-[10px] font-black tracking-[0.16em] text-aura-dim">
                         Total XP
                       </p>
                       <p className="mt-1 text-lg font-black text-aura-text">
@@ -436,7 +436,7 @@ const DashboardNavbar = ({
 
                   <div className="rounded-2xl border border-aura-border bg-aura-bg-soft p-3">
                     <div className="mb-2 flex items-center justify-between gap-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-aura-dim">
+                      <p className="text-[10px] font-black tracking-[0.16em] text-aura-dim">
                         Aura XP
                       </p>
 

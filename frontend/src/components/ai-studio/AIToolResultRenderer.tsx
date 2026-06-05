@@ -391,7 +391,7 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
   };
 
   return (
-    <div className="flex h-full min-h-[620px] flex-col overflow-hidden">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
       {hasPremiumAudio && (
         <audio
           ref={premiumAudioRef}
@@ -411,22 +411,22 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
         />
       )}
 
-      <div className="mb-4 flex flex-col gap-3 rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-5 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mb-4 flex flex-col gap-3 rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-aura-cyan">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-cyan sm:text-xs">
             Audio Overview
           </p>
 
-          <h3 className="mt-2 text-2xl font-black text-aura-text">
+          <h3 className="mt-1 text-xl font-black text-aura-text sm:mt-2 sm:text-2xl">
             {audioOverview.title}
           </h3>
 
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-aura-muted">
+          <p className="mt-1 line-clamp-2 text-xs leading-5 text-aura-muted sm:mt-2 sm:line-clamp-none sm:text-sm sm:leading-6">
             {audioOverview.description}
           </p>
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-2 text-xs font-black uppercase tracking-wider text-aura-dim sm:justify-end">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 text-[9px] font-black uppercase tracking-wider text-aura-dim sm:justify-end sm:text-xs">
           <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-1">
             {audioOverview.estimatedDuration}
           </span>
@@ -440,35 +440,17 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
           >
             {hasPremiumAudio ? "Premium Narrator" : "Browser Voice"}
           </span>
-
-          {result.scriptProvider && (
-            <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-1">
-              script: {result.scriptProvider}
-            </span>
-          )}
-
-          {result.provider && (
-            <span className="rounded-full border border-aura-border bg-aura-panel px-3 py-1">
-              {result.provider}
-            </span>
-          )}
-
-          {result.fallback && (
-            <span className="rounded-full border border-aura-gold/40 bg-aura-gold/10 px-3 py-1 text-aura-gold">
-              fallback
-            </span>
-          )}
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-aura-border bg-aura-bg-soft p-5 shadow-inner">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-4 shadow-inner sm:rounded-[2rem] sm:p-5">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-aura-cyan">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-aura-cyan sm:text-xs">
               Study Card
             </p>
 
-            <p className="mt-1 text-xs font-bold text-aura-dim">
+            <p className="mt-1 text-[10px] font-bold text-aura-dim sm:text-xs">
               {activeIndex + 1} / {safeSegments.length}
             </p>
           </div>
@@ -478,7 +460,7 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
               type="button"
               onClick={playAudio}
               disabled={isSpeaking}
-              className="grid h-11 w-11 place-items-center rounded-full border border-aura-cyan/50 bg-aura-cyan/15 text-base font-black text-aura-text transition hover:border-aura-cyan hover:bg-aura-cyan/20 disabled:cursor-not-allowed disabled:opacity-50"
+              className="grid h-9 w-9 place-items-center rounded-full border border-aura-cyan/50 bg-aura-cyan/15 text-sm font-black text-aura-text transition hover:border-aura-cyan hover:bg-aura-cyan/20 disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:w-11 sm:text-base"
               aria-label="Play audio overview"
               title={hasPremiumAudio ? "Play Premium Narrator" : "Play"}
             >
@@ -489,7 +471,7 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
               type="button"
               onClick={stopSpeech}
               disabled={!isSpeaking}
-              className="grid h-11 w-11 place-items-center rounded-full border border-aura-border bg-aura-panel text-sm font-black text-aura-muted transition hover:border-aura-cyan hover:text-aura-text disabled:cursor-not-allowed disabled:opacity-50"
+              className="grid h-9 w-9 place-items-center rounded-full border border-aura-border bg-aura-panel text-xs font-black text-aura-muted transition hover:border-aura-cyan hover:text-aura-text disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:w-11 sm:text-sm"
               aria-label="Stop audio overview"
               title="Stop"
             >
@@ -501,9 +483,9 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
         <div className="grid min-h-0 flex-1 place-items-center overflow-hidden px-2">
           <div
             key={activeIndex}
-            className="flex h-full max-h-[280px] w-full items-center justify-center rounded-[1.25rem] border border-aura-border bg-aura-panel/80 p-4 transition sm:max-h-[360px] sm:rounded-[1.5rem] sm:p-6"
+            className="flex h-full max-h-[220px] w-full items-center justify-center rounded-[1.25rem] border border-aura-border bg-aura-panel/80 p-4 transition sm:max-h-[360px] sm:rounded-[1.5rem] sm:p-6"
           >
-            <p className="max-w-5xl text-center text-base font-black leading-7 text-aura-muted min-[400px]:text-lg min-[450px]:text-xl min-[450px]:leading-9 sm:text-2xl sm:leading-10">
+            <p className="aura-scrollbar max-w-5xl overflow-y-auto text-center text-sm font-black leading-6 text-aura-muted min-[400px]:text-base min-[450px]:text-lg min-[450px]:leading-8 sm:text-2xl sm:leading-10">
               {renderKaraokeText()}
             </p>
           </div>
@@ -514,12 +496,12 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
             type="button"
             onClick={goPrevious}
             disabled={!canGoPrevious}
-            className="rounded-xl border border-aura-border bg-aura-panel px-3 py-1.5 text-xs font-black text-aura-muted transition hover:border-aura-cyan hover:text-aura-text disabled:cursor-not-allowed disabled:opacity-40 sm:rounded-2xl sm:px-4 sm:py-2 sm:text-sm"
+            className="rounded-xl border border-aura-border bg-aura-panel px-3 py-1.5 text-[10px] font-black text-aura-muted transition hover:border-aura-cyan hover:text-aura-text disabled:cursor-not-allowed disabled:opacity-40 sm:rounded-2xl sm:px-4 sm:py-2 sm:text-sm"
           >
             ← Prev
           </button>
 
-          <div className="flex max-w-[50%] flex-wrap items-center justify-center gap-1.5 sm:max-w-[45%] sm:gap-2">
+          <div className="flex max-w-[50%] flex-wrap items-center justify-center gap-1 sm:max-w-[45%] sm:gap-2">
             {safeSegments.map((_, index) => (
               <button
                 key={index}
@@ -527,8 +509,8 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
                 onClick={() => goToCard(index)}
                 className={
                   index === activeIndex
-                    ? "h-2 w-6 rounded-full bg-aura-cyan sm:h-2.5 sm:w-8"
-                    : "h-2 w-2 rounded-full bg-aura-border transition hover:bg-aura-cyan/60 sm:h-2.5 sm:w-2.5"
+                    ? "h-1.5 w-4 rounded-full bg-aura-cyan sm:h-2.5 sm:w-8"
+                    : "h-1.5 w-1.5 rounded-full bg-aura-border transition hover:bg-aura-cyan/60 sm:h-2.5 sm:w-2.5"
                 }
                 aria-label={`Go to audio card ${index + 1}`}
               />
@@ -539,7 +521,7 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
             type="button"
             onClick={goNext}
             disabled={!canGoNext}
-            className="rounded-xl border border-aura-border bg-aura-panel px-3 py-1.5 text-xs font-black text-aura-muted transition hover:border-aura-cyan hover:text-aura-text disabled:cursor-not-allowed disabled:opacity-40 sm:rounded-2xl sm:px-4 sm:py-2 sm:text-sm"
+            className="rounded-xl border border-aura-border bg-aura-panel px-3 py-1.5 text-[10px] font-black text-aura-muted transition hover:border-aura-cyan hover:text-aura-text disabled:cursor-not-allowed disabled:opacity-40 sm:rounded-2xl sm:px-4 sm:py-2 sm:text-sm"
           >
             Next →
           </button>
@@ -547,22 +529,22 @@ const AudioOverviewResult = ({ result }: { result: N8nAudioResponse }) => {
       </div>
 
       {recap.length > 0 && (
-        <div className="mt-4 rounded-2xl border border-aura-cyan/30 bg-aura-cyan/10 p-4">
+        <div className="mt-3 rounded-xl border border-aura-cyan/30 bg-aura-cyan/10 p-3 sm:mt-4 sm:rounded-2xl sm:p-4">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-aura-cyan">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-aura-cyan sm:text-xs">
               Quick Recap
             </p>
 
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-aura-dim">
+            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-aura-dim sm:text-[11px]">
               Key takeaways
             </p>
           </div>
 
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="mt-2 grid gap-2 sm:mt-3 sm:grid-cols-3">
             {recap.slice(0, 3).map((item, index) => (
               <div
                 key={`${item}-${index}`}
-                className="rounded-xl border border-aura-border bg-aura-panel/70 p-3 text-xs font-semibold leading-5 text-aura-muted"
+                className="rounded-xl border border-aura-border bg-aura-panel/70 p-2 text-[10px] font-semibold leading-4 text-aura-muted sm:p-3 sm:text-xs sm:leading-5"
               >
                 {item}
               </div>

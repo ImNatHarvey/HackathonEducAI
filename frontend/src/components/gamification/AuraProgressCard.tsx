@@ -17,7 +17,7 @@ const AuraProgressCard = ({
     <div className="rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-cyan">
+          <p className="text-[10px] font-black tracking-[0.22em] text-aura-cyan">
             Aura Level
           </p>
 
@@ -55,7 +55,7 @@ const AuraProgressCard = ({
 
       <div className="mt-4 grid grid-cols-2 gap-2">
         <div className="rounded-2xl border border-aura-border bg-aura-panel p-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-aura-dim">
+          <p className="text-[10px] font-black tracking-[0.18em] text-aura-dim">
             Energy
           </p>
           <p className="mt-1 text-sm font-black text-aura-text">
@@ -64,7 +64,7 @@ const AuraProgressCard = ({
         </div>
 
         <div className="rounded-2xl border border-aura-border bg-aura-panel p-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-aura-dim">
+          <p className="text-[10px] font-black tracking-[0.18em] text-aura-dim">
             Today
           </p>
           <p className="mt-1 text-sm font-black text-aura-text">

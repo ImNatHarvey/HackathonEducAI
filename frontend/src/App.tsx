@@ -211,7 +211,7 @@ function App() {
             ⚠️
           </div>
 
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.28em] text-amber-300">
+          <p className="mb-2 text-xs font-semibold tracking-[0.28em] text-amber-300">
             Setup Required
           </p>
 

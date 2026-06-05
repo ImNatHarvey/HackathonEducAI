@@ -330,11 +330,11 @@ const AIToolModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-aura-bg/80 px-3 py-3 backdrop-blur-xl">
-      <div className="flex max-h-[94vh] w-full max-w-[1500px] flex-col overflow-hidden rounded-[2rem] border border-aura-border bg-aura-panel shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
-        <div className="flex items-start justify-between gap-4 border-b border-aura-border px-4 py-4 sm:px-6 sm:py-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-aura-bg/80 px-2 py-2 backdrop-blur-xl sm:px-4 sm:py-4">
+      <div className="flex max-h-[96vh] w-full max-w-[1500px] flex-col overflow-hidden rounded-[1.5rem] border border-aura-border bg-aura-panel shadow-[0_30px_100px_rgba(0,0,0,0.45)] sm:rounded-[2rem]">
+        <div className="flex items-start justify-between gap-4 border-b border-aura-border px-4 py-3 sm:px-6 sm:py-5">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-aura-cyan sm:text-xs sm:tracking-[0.28em]">
+            <p className="text-[10px] font-black tracking-[0.22em] text-aura-cyan sm:text-xs sm:tracking-[0.28em]">
               AI Studio Output
             </p>
 
@@ -387,7 +387,7 @@ const AIToolModal = ({
           {!hasResult && (
             <div className="mb-4 rounded-[1.5rem] border border-aura-border bg-aura-bg-soft p-5">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-aura-cyan">
+                <p className="text-xs font-black tracking-[0.22em] text-aura-cyan">
                   Generation Presets
                 </p>
 
@@ -579,7 +579,7 @@ const SelectControl = ({
 }: SelectControlProps) => {
   return (
     <label className="block">
-      <span className="text-xs font-black uppercase tracking-[0.18em] text-aura-dim">
+      <span className="text-xs font-black tracking-[0.18em] text-aura-dim">
         {label}
       </span>
 

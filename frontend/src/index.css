@@ -32,6 +32,19 @@
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: #070a13;
   color: #f8fafc;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  :root {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    font-size: 14px;
+  }
 }
 
 * {
@@ -170,7 +183,6 @@ button:disabled {
   font-size: 0.7rem;
   font-weight: 900;
   letter-spacing: 0.16em;
-  text-transform: uppercase;
 }
 
 .saved-result-title {
@@ -205,7 +217,6 @@ button:disabled {
   font-size: 0.65rem;
   font-weight: 900;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .saved-table-stats {
@@ -236,7 +247,6 @@ button:disabled {
   font-size: 0.62rem;
   font-weight: 900;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 .saved-table-shell {
@@ -264,7 +274,6 @@ button:disabled {
   font-weight: 950;
   letter-spacing: 0.08em;
   text-align: left;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -310,7 +319,6 @@ button:disabled {
   font-size: 0.78rem;
   font-weight: 950;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 .saved-table-row-field {
@@ -329,7 +337,6 @@ button:disabled {
   font-size: 0.62rem;
   font-weight: 950;
   letter-spacing: 0.09em;
-  text-transform: uppercase;
 }
 
 .saved-table-row-field p {
@@ -452,7 +459,6 @@ button:disabled {
   font-size: 0.7rem;
   font-weight: 900;
   letter-spacing: 0.16em;
-  text-transform: uppercase;
 }
 
 .slides-live-header h4 {
@@ -588,7 +594,6 @@ button:disabled {
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 .slides-card-content {
@@ -676,7 +681,6 @@ button:disabled {
   font-size: 0.68rem;
   font-weight: 950;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 .slides-speaker-notes-card .slides-panel-label {
@@ -845,4 +849,47 @@ button:disabled {
 
 .animate-aura-energy-spend {
   animation: aura-energy-spend 0.65s ease-in-out;
+}
+
+/* Landscape orientation improvements */
+@media (max-height: 500px) and (orientation: landscape) {
+  .aura-scrollbar {
+    scrollbar-width: none;
+  }
+  
+  .aura-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Reduce header heights in landscape */
+  header {
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+  }
+
+  /* Scale down large titles */
+  h2 {
+    font-size: 1.25rem !important;
+  }
+
+  /* Optimize modal heights for landscape */
+  .fixed.inset-0 > div {
+    max-height: 98vh !important;
+  }
+
+  /* Compact spacing for cards */
+  .p-5, .p-6 {
+    padding: 0.75rem !important;
+  }
+}
+
+/* Tablet refinements */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .lg\:grid-cols-\[320px_1fr\] {
+    grid-template-columns: 280px 1fr !important;
+  }
+  
+  .lg\:grid-cols-\[1fr_1\.4fr\] {
+    grid-template-columns: 1fr 1.2fr !important;
+  }
 }
