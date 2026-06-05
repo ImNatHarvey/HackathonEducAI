@@ -4,7 +4,7 @@ type LandingPageProps = {
 
 const LandingPage = ({ onGetStarted }: LandingPageProps) => {
   return (
-    <main className="min-h-dvh overflow-hidden bg-aura-bg text-aura-text">
+    <main className="aura-scrollbar min-h-dvh overflow-y-auto bg-aura-bg text-aura-text">
       <style>
         {`
           @keyframes auraFloatOne {

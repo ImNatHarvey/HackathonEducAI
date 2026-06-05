@@ -851,35 +851,153 @@ button:disabled {
   animation: aura-energy-spend 0.65s ease-in-out;
 }
 
+/* Mobile refinements */
+@media (max-width: 640px) {
+  /* Reduce padding across major containers */
+  .p-4, .p-5, .p-6, .px-6, .py-6 {
+    padding: 0.85rem !important;
+  }
+  
+  .sm\:p-6, .sm\:p-5 {
+    padding: 0.85rem !important;
+  }
+
+  /* Compact gaps */
+  .gap-4, .gap-5, .gap-6, .gap-8 {
+    gap: 0.75rem !important;
+  }
+
+  .space-y-4, .space-y-5, .space-y-6, .space-y-8 {
+    margin-top: 0.75rem !important;
+  }
+
+  /* Specific height reductions */
+  .min-h-\[620px\] {
+    min-height: 520px !important;
+  }
+
+  .max-h-\[470px\] {
+    max-height: 380px !important;
+  }
+
+  /* Navbar specific: ensure dropdowns are centered or well-aligned on mobile */
+  header .absolute {
+    right: -1rem !important;
+    left: -1rem !important;
+    width: calc(100vw - 1.5rem) !important;
+    max-width: none !important;
+    margin: 0 auto;
+  }
+}
+
 /* Landscape orientation improvements */
 @media (max-height: 500px) and (orientation: landscape) {
   .aura-scrollbar {
-    scrollbar-width: none;
+    scrollbar-width: thin !important;
   }
   
   .aura-scrollbar::-webkit-scrollbar {
-    display: none;
+    display: block !important;
+    width: 4px !important;
+    height: 4px !important;
+  }
+
+  /* Force vertical scroll on cramped containers */
+  main, section, article {
+    overflow-y: auto !important;
+    max-height: calc(100vh - 3.5rem) !important;
   }
 
   /* Reduce header heights in landscape */
   header {
-    padding-top: 0.25rem !important;
-    padding-bottom: 0.25rem !important;
+    padding-top: 0.15rem !important;
+    padding-bottom: 0.15rem !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    height: 2.8rem !important;
+  }
+
+  header .gap-2, header .gap-3, header .gap-1\.5 {
+    gap: 0.35rem !important;
+  }
+
+  /* Scale down buttons and icons in navbar */
+  header button {
+    height: 1.85rem !important;
+    padding-left: 0.4rem !important;
+    padding-right: 0.4rem !important;
+  }
+
+  header .h-11, header .h-12, header .h-10 {
+    height: 1.85rem !important;
+  }
+
+  header .w-11, header .w-9 {
+    width: 1.85rem !important;
+  }
+
+  /* Dropdown specific handling in landscape */
+  header .absolute {
+    top: calc(100% + 0.25rem) !important;
+    right: 0.5rem !important;
+    left: 0.5rem !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    max-height: 85vh !important;
+    overflow-y: auto !important;
+    scrollbar-width: none !important;
+  }
+
+  /* Compact branding in cramped landscape */
+  header button > div.sm\:block {
+    display: none !important;
+  }
+
+  /* Compact dropdown items */
+  header .absolute .rounded-2xl {
+    border-radius: 0.75rem !important;
+    padding: 0.5rem !important;
+  }
+
+  header .absolute .text-lg {
+    font-size: 1rem !important;
+  }
+
+  header .absolute .p-4 {
+    padding: 0.6rem !important;
   }
 
   /* Scale down large titles */
   h2 {
-    font-size: 1.25rem !important;
+    font-size: 1.1rem !important;
+    line-height: 1.2 !important;
+  }
+
+  h1 {
+    font-size: 1.85rem !important;
+    line-height: 1.1 !important;
   }
 
   /* Optimize modal heights for landscape */
   .fixed.inset-0 > div {
     max-height: 98vh !important;
+    height: 98vh !important;
+    border-radius: 1rem !important;
   }
 
   /* Compact spacing for cards */
-  .p-5, .p-6 {
-    padding: 0.75rem !important;
+  .p-4, .p-5, .p-6, .sm\:p-6, .sm\:p-5 {
+    padding: 0.4rem !important;
+  }
+
+  .gap-4, .gap-5, .gap-6, .gap-8 {
+    gap: 0.5rem !important;
+  }
+
+  /* Ensure content doesn't overflow horizontally */
+  .grid {
+    gap: 0.5rem !important;
   }
 }
 

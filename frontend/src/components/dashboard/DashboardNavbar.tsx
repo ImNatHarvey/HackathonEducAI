@@ -209,16 +209,16 @@ const DashboardNavbar = ({
           <button
             type="button"
             onClick={onOpenLibrary}
-            className="flex h-10 items-center gap-2 rounded-2xl px-1 text-left transition hover:bg-aura-bg-soft sm:h-12 sm:w-[220px] sm:min-w-[220px] sm:px-2 md:w-[260px] md:min-w-[260px]"
+            className="flex h-10 items-center gap-2 rounded-2xl px-1 text-left transition hover:bg-aura-bg-soft sm:h-12 sm:w-[220px] sm:min-w-[220px] sm:px-2 md:w-[260px] md:min-w-[260px] landscape:w-auto landscape:min-w-0"
             aria-label={libraryButtonLabel}
           >
             <img
               src="/assets/study-aura-logo.png"
               alt="Study Aura"
-              className="h-7 w-7 object-contain sm:h-8 sm:w-8"
+              className="h-7 w-7 object-contain sm:h-8 sm:w-8 landscape:h-6 landscape:w-6"
             />
 
-            <div className="hidden min-w-0 sm:block">
+            <div className="hidden min-w-0 sm:block landscape:hidden min-[1100px]:landscape:block">
               <p className="truncate text-sm font-black leading-4 text-aura-text">
                 Study Aura
               </p>
@@ -227,19 +227,19 @@ const DashboardNavbar = ({
               </p>
             </div>
 
-            <div className="min-w-0 sm:hidden">
+            <div className="min-w-0 sm:hidden landscape:hidden min-[800px]:landscape:block min-[1100px]:landscape:hidden">
               <p className="truncate text-xs font-black leading-tight text-aura-text">
                 Study Aura
               </p>
             </div>
           </button>
 
-          <div className="hidden h-8 w-px shrink-0 bg-aura-border lg:block" />
+          <div className="hidden h-8 w-px shrink-0 bg-aura-border lg:block landscape:hidden min-[1200px]:landscape:block" />
 
           <button
             type="button"
             onClick={onOpenLibrary}
-            className="hidden h-11 w-[140px] items-center justify-center rounded-2xl border border-aura-border bg-aura-bg-soft px-3 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text sm:inline-flex md:w-[190px] md:px-4"
+            className="hidden h-11 w-[140px] items-center justify-center rounded-2xl border border-aura-border bg-aura-bg-soft px-3 text-xs font-black text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text sm:inline-flex md:w-[190px] md:px-4 landscape:hidden min-[1000px]:landscape:inline-flex"
           >
             {libraryButtonLabel}
           </button>
@@ -247,7 +247,7 @@ const DashboardNavbar = ({
           <button
             type="button"
             onClick={onOpenCreateModule}
-            className="hidden h-11 w-[130px] items-center justify-center rounded-2xl bg-aura-cyan px-3 text-xs font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(34,211,238,0.2)] sm:inline-flex md:w-[172px] md:px-4"
+            className="hidden h-11 w-[130px] items-center justify-center rounded-2xl bg-aura-cyan px-3 text-xs font-black text-aura-bg transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(34,211,238,0.2)] sm:inline-flex md:w-[172px] md:px-4 landscape:hidden min-[950px]:landscape:inline-flex"
           >
             + Create Module
           </button>
@@ -479,7 +479,7 @@ const DashboardNavbar = ({
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-aura-border bg-aura-bg-soft text-sm text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text md:hidden"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-aura-border bg-aura-bg-soft text-sm text-aura-muted transition hover:border-aura-cyan/60 hover:text-aura-text lg:hidden"
               aria-label="Open mobile menu"
             >
               {isMobileMenuOpen ? "✕" : "☰"}
@@ -488,7 +488,7 @@ const DashboardNavbar = ({
             <button
               type="button"
               onClick={onLogout}
-              className="group hidden h-11 w-11 items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 text-red-300 transition hover:-translate-y-0.5 hover:border-red-400/70 hover:bg-red-500/20 hover:text-red-100 hover:shadow-[0_16px_36px_rgba(239,68,68,0.18)] md:flex"
+              className="group hidden h-11 w-11 items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 text-red-300 transition hover:-translate-y-0.5 hover:border-red-400/70 hover:bg-red-500/20 hover:text-red-100 hover:shadow-[0_16px_36px_rgba(239,68,68,0.18)] lg:flex"
               aria-label="Logout"
               title="Logout"
             >

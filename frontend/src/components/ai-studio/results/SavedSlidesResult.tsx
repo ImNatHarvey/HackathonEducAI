@@ -149,32 +149,32 @@ export default function SavedSlidesResult({ data }: SavedSlidesResultProps) {
         />
       </div>
 
-      <div className="flex min-h-0 flex-1 items-center justify-center">
-        <article className="relative aspect-[16/9] h-full max-h-[470px] w-full max-w-[1080px] overflow-hidden rounded-[2rem] border border-aura-border bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.18),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(245,158,11,0.16),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] px-12 py-12 shadow-[0_24px_70px_rgba(0,0,0,0.25)]">
-          <div className="absolute left-8 top-7 text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+        <article className="relative aspect-[16/9] h-auto w-full max-w-[1080px] origin-center scale-[0.65] overflow-hidden rounded-[1.5rem] border border-aura-border bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.18),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(245,158,11,0.16),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] px-6 py-6 shadow-[0_24px_70px_rgba(0,0,0,0.25)] sm:h-full sm:max-h-[470px] sm:scale-100 sm:rounded-[2rem] sm:px-12 sm:py-12">
+          <div className="absolute left-6 top-5 text-[9px] font-black tracking-[0.22em] text-aura-dim sm:left-8 sm:top-7 sm:text-[10px]">
             Slide {activeSlide.slideNumber}
           </div>
 
-          <div className="absolute right-8 top-7 max-w-[320px] truncate text-[10px] font-black uppercase tracking-[0.22em] text-aura-dim">
+          <div className="absolute right-6 top-5 max-w-[160px] truncate text-[9px] font-black tracking-[0.22em] text-aura-dim sm:right-8 sm:top-7 sm:max-w-[320px] sm:text-[10px]">
             {deckTitle}
           </div>
 
-          <div className="flex h-full flex-col items-center justify-center px-8 pt-4 text-center">
-            <h4 className="max-w-4xl text-4xl font-black leading-tight text-aura-text">
+          <div className="flex h-full flex-col items-center justify-center px-4 pt-2 text-center sm:px-8 sm:pt-4">
+            <h4 className="max-w-4xl text-2xl font-black leading-tight text-aura-text sm:text-4xl">
               {activeSlide.title}
             </h4>
 
             {activeSlide.subtitle && (
-              <p className="mt-4 max-w-3xl text-base font-semibold leading-7 text-aura-muted">
+              <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-aura-muted sm:mt-4 sm:text-base sm:leading-7">
                 {activeSlide.subtitle}
               </p>
             )}
 
-            <ul className="mt-8 grid w-full max-w-3xl gap-3 text-left">
+            <ul className="mt-6 grid w-full max-w-3xl gap-2 text-left sm:mt-8 sm:gap-3">
               {activeSlide.bullets.slice(0, 4).map((bullet, index) => (
                 <li
                   key={`${activeSlide.slideNumber}-bullet-${index}`}
-                  className="rounded-2xl border border-aura-border bg-aura-bg-soft/75 px-5 py-3.5 text-sm font-semibold leading-6 text-aura-text"
+                  className="rounded-xl border border-aura-border bg-aura-bg-soft/75 px-4 py-2.5 text-xs font-semibold leading-5 text-aura-text sm:rounded-2xl sm:px-5 sm:py-3.5 sm:text-sm sm:leading-6"
                 >
                   {bullet}
                 </li>
