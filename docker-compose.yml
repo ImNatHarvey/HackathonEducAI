@@ -1,17 +1,65 @@
 version: '3.8'
 
 services:
+  # 1. n8n - The AI Logic Engine
   n8n:
     image: docker.n8n.io/n8nio/n8n:latest
     restart: always
     ports:
       - "5678:5678"
     environment:
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      N8N_WHITELISTED_ENV_VARS: GEMINI_API_KEY
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - N8N_WHITELISTED_ENV_VARS=GEMINI_API_KEY
     volumes:
       - n8n_data:/home/node/.n8n
+      - ./n8n-workflows:/backup:ro
+    networks:
+      - aura-network
+    healthcheck:
+      test: ["CMD-SHELL", "n8n --version || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # 2. Workflow Automator - Imports workflows into n8n automatically
+  n8n-import:
+    image: docker.n8n.io/n8nio/n8n:latest
+    depends_on:
+      n8n:
+        condition: service_healthy
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-workflows:/backup:ro
+    entrypoint: /bin/sh
+    command: -c "n8n import:workflow --separate --input=/backup/ && echo 'Workflows imported successfully!'"
+    networks:
+      - aura-network
+
+  # 3. YouTube Helper - Media Processing (Node + Python + yt-dlp)
+  youtube-helper:
+    build:
+      context: ./study-aura-youtube-helper
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "8787:8787"
+    environment:
+      - PORT=8787
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    volumes:
+      - ./study-aura-youtube-helper/tmp:/app/tmp
+    networks:
+      - aura-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8787/health').then(r => r.ok ? process.exit(0) : process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 4. Qdrant - Vector Database
   qdrant:
     image: qdrant/qdrant:latest
     restart: always
@@ -20,6 +68,12 @@ services:
       - "6334:6334"
     volumes:
       - qdrant_storage:/qdrant/storage:z
+    networks:
+      - aura-network
+
+networks:
+  aura-network:
+    driver: bridge
 
 volumes:
   n8n_data:

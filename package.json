@@ -1,6 +1,21 @@
 {
-  "dependencies": {
-    "@supabase/supabase-js": "^2.104.1",
-    "lucide-react": "^1.8.0"
+  "name": "study-aura-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Study Aura - AI-Powered Educational Platform",
+  "scripts": {
+    "setup": "node scripts/setup.js",
+    "dev": "node scripts/start-dev.js",
+    "stop": "docker-compose down",
+    "clean": "docker-compose down -v && node scripts/clean.js",
+    "frontend:install": "cd frontend && npm install",
+    "helper:install": "cd study-aura-youtube-helper && npm install",
+    "install:all": "npm run frontend:install && npm run helper:install"
+  },
+  "devDependencies": {
+    "chalk": "^5.3.0",
+    "concurrently": "^9.1.0",
+    "dotenv": "^16.4.7",
+    "shelljs": "^0.8.5"
   }
 }

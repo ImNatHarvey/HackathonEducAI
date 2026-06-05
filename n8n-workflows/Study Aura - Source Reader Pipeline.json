@@ -362,7 +362,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://host.docker.internal:8787/transcribe-youtube",
+        "url": "http://youtube-helper:8787/transcribe-youtube",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
