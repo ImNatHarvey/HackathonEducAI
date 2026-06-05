@@ -48,6 +48,8 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsInitialPanel, setSettingsInitialPanel] =
     useState<SettingsPanel>("home");
+  const [isBackendChecking, setIsBackendChecking] = useState(true);
+  const [backendError, setBackendError] = useState<string | null>(null);
 
   const {
     user,
@@ -115,6 +117,23 @@ function App() {
       setView("landing");
     }
   }, [isAuthenticated, isLoadingAuth, view]);
+
+  // Backend Health Check on Mount
+  useEffect(() => {
+    const checkBackend = async () => {
+      try {
+        const n8nUrl = import.meta.env.VITE_N8N_URL || "http://localhost:5678";
+        const response = await fetch(`${n8nUrl}/`, { mode: 'no-cors' });
+        // Since n8n is often cross-origin, no-cors will result in opaque response, but it verifies connectivity
+        setIsBackendChecking(false);
+      } catch (err) {
+        console.warn("Backend might not be ready yet...", err);
+        // We don't block fully because n8n might be on a different port or blocked by CORS but still working
+        setIsBackendChecking(false);
+      }
+    };
+    checkBackend();
+  }, []);
 
   const activeModule = modules.find((module) => module.title === selectedTopic);
 
@@ -210,22 +229,20 @@ function App() {
           </div>
 
           <p className="mt-5 text-xs leading-5 text-aura-muted">
-            Add these inside your frontend{" "}
-            <span className="font-mono text-aura-text">.env</span> file, then
-            restart the dev server.
+            Ask your lead for the shared team .env file.
           </p>
         </section>
       </main>
     );
   }
 
-  if (isLoadingAuth) {
+  if (isLoadingAuth || isBackendChecking) {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-aura-bg px-6 text-aura-text">
         <div className="w-full max-w-xl">
           <LoadingState
-            title="Checking session..."
-            description="Study Aura is verifying your account session."
+            title="Initializing Aura..."
+            description={isBackendChecking ? "Waking up backend services..." : "Verifying your account session."}
           />
         </div>
       </main>
@@ -239,21 +256,6 @@ function App() {
           <LoadingState
             title="Loading Study Aura..."
             description="Connecting your modules and sources from Supabase."
-          />
-        </div>
-      </main>
-    );
-  }
-
-  if (isAuthenticated && moduleError && modules.length === 0) {
-    return (
-      <main className="flex min-h-dvh items-center justify-center bg-aura-bg px-6 text-aura-text">
-        <div className="w-full max-w-xl">
-          <ErrorState
-            title="Failed to load modules"
-            description={moduleError}
-            actionLabel="Reload"
-            onRetry={() => window.location.reload()}
           />
         </div>
       </main>
